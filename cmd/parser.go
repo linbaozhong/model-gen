@@ -20,6 +20,10 @@ var (
 	tableName = "TableName"
 	temp      = `
 		package table
+		
+		import (
+			"github.com/json-iterator/go"
+		)
 
 		type _{{.StructName}} struct {
 			TableName string
@@ -28,7 +32,14 @@ var (
 		}
 
 		// {{.StructName}} {{lower .StructName}}
-		var {{.StructName}}  _{{.StructName}}
+		var (
+			{{.StructName}}  _{{.StructName}}
+			{{lower .TableName}}Pool = sync.Pool{
+				New:func() interface{} {
+					return &{{.StructName}}{}
+				}
+			}
+		)
 
 		func init() {
 			{{.StructName}}.TableName = "{{lower .TableName}}"
@@ -38,6 +49,18 @@ var (
 			Json: "{{index $value 1}}",
 		} 
 		{{end}}
+		}
+
+		func New{{.StructName}}() *{{.StructName}} {
+			return {{lower .TableName}}Pool.Get().(*{{.StructName}})
+		}
+
+		func (p *{{.StructName}}) Free() {
+			//todo:初始化每个字段
+			{{range $key, $value := .Columns}} 
+				p.{{$key}} = 0
+			{{end}}
+			{{lower .TableName}}Pool.Put(p)
 		}
 		`
 	base = `
