@@ -20,10 +20,6 @@ var (
 	tableName = "TableName"
 	temp      = `
 		package table
-		
-		import (
-			"github.com/json-iterator/go"
-		)
 
 		type _{{.StructName}} struct {
 			TableName string
@@ -31,14 +27,8 @@ var (
 		{{end}}
 		}
 
-		// {{.StructName}} {{lower .StructName}}
 		var (
 			{{.StructName}}  _{{.StructName}}
-			{{lower .TableName}}Pool = sync.Pool{
-				New:func() interface{} {
-					return &{{.StructName}}{}
-				}
-			}
 		)
 
 		func init() {
@@ -49,18 +39,6 @@ var (
 			Json: "{{index $value 1}}",
 		} 
 		{{end}}
-		}
-
-		func New{{.StructName}}() *{{.StructName}} {
-			return {{lower .TableName}}Pool.Get().(*{{.StructName}})
-		}
-
-		func (p *{{.StructName}}) Free() {
-			//todo:初始化每个字段
-			{{range $key, $value := .Columns}} 
-				p.{{$key}} = 0
-			{{end}}
-			{{lower .TableName}}Pool.Put(p)
 		}
 		`
 	base = `
@@ -123,12 +101,12 @@ type TempData struct {
 	PackageName string
 	StructName  string
 	TableName   string
-	Columns     map[string][2]string
+	Columns     map[string][3]string
 }
 
 func handleFile(filename string) error {
 	var tempData TempData
-	tempData.Columns = make(map[string][2]string)
+	tempData.Columns = make(map[string][3]string)
 
 	fset := token.NewFileSet()
 	var src interface{}
@@ -165,17 +143,18 @@ func handleFile(filename string) error {
 
 		case *ast.StructType:
 			for _, f := range x.Fields.List {
+				var _namejson [3]string
 				if f.Tag != nil {
-					_namejson := parseTags(f.Tag.Value)
-
-					if _namejson[0] == "" {
-						_namejson[0] = strings.ToLower(f.Names[0].Name)
-					}
-					if _namejson[1] == "" {
-						_namejson[1] = strings.ToLower(f.Names[0].Name)
-					}
-					tempData.Columns[f.Names[0].Name] = _namejson
+					_namejson = parseTags(f.Tag.Value)
 				}
+				if _namejson[0] == "" {
+					_namejson[0] = strings.ToLower(f.Names[0].Name)
+				}
+				if _namejson[1] == "" {
+					_namejson[1] = strings.ToLower(f.Names[0].Name)
+				}
+				_namejson[2] = fmt.Sprintf("%v", f.Type)
+				tempData.Columns[f.Names[0].Name] = _namejson
 			}
 
 		case *ast.FuncDecl:
@@ -205,7 +184,7 @@ func handleFile(filename string) error {
 	return tempData.writeToFile()
 }
 
-func parseTags(tags string) [2]string {
+func parseTags(tags string) [3]string {
 	re := regexp.MustCompile(fmt.Sprintf(`(?i:%s):"(.*?)"`, tagName))
 	matchs := re.FindStringSubmatch(tags)
 
@@ -219,7 +198,7 @@ func parseTags(tags string) [2]string {
 	if json_name == "" && col_name != "" {
 		json_name = col_name
 	}
-	return [2]string{col_name, json_name}
+	return [3]string{col_name, json_name, ""}
 }
 
 func parseTagsForXORM(matchs []string) string {
@@ -297,12 +276,34 @@ func (d *TempData) appendToModel(fileName, tableName string) error {
 		return err
 	}
 	str := `
-	func (*{{.StructName}}) TableName() string {
-		return table.{{.StructName}}.TableName
-	}
+		var (
+			{{lower .StructName}}Pool = sync.Pool{
+				New: func() interface{} {
+					return &{{.StructName}}{}
+				},
+			}
+		)
+
+		func New{{.StructName}}() *{{.StructName}} {
+			return {{lower .StructName}}Pool.Get().(*{{.StructName}})
+		}
+
+		func (p *{{.StructName}}) Free() {
+			//todo:初始化每个字段
+			{{range $key, $value := .Columns}}p.{{$key}} = ""
+			{{end}}
+			{{lower .StructName}}Pool.Put(p)
+		}
+
+		func (*{{.StructName}}) TableName() string {
+			return table.{{.StructName}}.TableName
+		}
 	`
 	var buf bytes.Buffer
-	template.Must(template.New("temp").Parse(str)).Execute(&buf, d)
+	funcMap := template.FuncMap{
+		"lower": strings.ToLower,
+	}
+	template.Must(template.New("temp").Funcs(funcMap).Parse(str)).Execute(&buf, d)
 	_, err = file.Write(buf.Bytes())
 	if err != nil {
 		return err
