@@ -167,7 +167,10 @@ func handleFile(filename string) error {
 	})
 
 	if !hasTableNameFunc {
-		tempData.appendToModel(filename, tempData.StructName)
+		err = tempData.appendToModel(filename, tempData.StructName)
+		if err != nil {
+			return err
+		}
 	}
 
 	if len(tempData.StructName) == 0 ||
@@ -271,10 +274,6 @@ func (d *TempData) writeToFile() error {
 	return err
 }
 func (d *TempData) appendToModel(fileName, tableName string) error {
-	file, err := os.OpenFile(fileName, os.O_APPEND, os.ModeAppend)
-	if err != nil {
-		return err
-	}
 	str := `
 		var (
 			{{lower .StructName}}Pool = sync.Pool{
@@ -303,7 +302,15 @@ func (d *TempData) appendToModel(fileName, tableName string) error {
 	funcMap := template.FuncMap{
 		"lower": strings.ToLower,
 	}
-	template.Must(template.New("temp").Funcs(funcMap).Parse(str)).Execute(&buf, d)
+	err := template.Must(template.New("temp").Funcs(funcMap).Parse(str)).Execute(&buf, d)
+	if err != nil {
+		return err
+	}
+	file, err := os.OpenFile(fileName, os.O_APPEND, os.ModeAppend)
+	if err != nil {
+		fmt.Println(err.Error())
+		return err
+	}
 	_, err = file.Write(buf.Bytes())
 	if err != nil {
 		return err

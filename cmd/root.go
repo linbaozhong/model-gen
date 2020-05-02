@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	homedir "github.com/mitchellh/go-homedir"
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 )
 
@@ -28,7 +28,7 @@ var (
 		Run: func(cmd *cobra.Command, args []string) {
 			_ = os.Mkdir(path+"/table", os.ModePerm)
 
-			filepath.Walk(path, func(filename string, f os.FileInfo, _ error) error {
+			err := filepath.Walk(path, func(filename string, f os.FileInfo, _ error) error {
 				if f.IsDir() && filename != path {
 					return filepath.SkipDir
 				}
@@ -40,6 +40,9 @@ var (
 				}
 				return nil
 			})
+			if err != nil {
+				fmt.Println(err.Error())
+			}
 		},
 	}
 )
