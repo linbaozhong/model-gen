@@ -3,7 +3,7 @@ package cmd
 import (
 	"bytes"
 	"fmt"
-	"go/ast"
+	"github.com/vetcher/go-astra"
 	"go/format"
 	"go/parser"
 	"go/token"
@@ -101,90 +101,93 @@ type TempData struct {
 	PackageName string
 	StructName  string
 	TableName   string
-	Columns     map[string][3]string
+	Columns     map[string][]string
 }
 
 func handleFile(filename string) error {
 	var tempData TempData
-	tempData.Columns = make(map[string][3]string)
+	tempData.FileName = filename
+
+	tempData.Columns = make(map[string][]string)
 
 	fset := token.NewFileSet()
 	var src interface{}
-	f, err := parser.ParseFile(fset, filename, src, parser.ParseComments)
+	_, err := parser.ParseFile(fset, filename, src, parser.ParseComments)
 	if err != nil {
 		panic(err)
 	}
 
-	//ast.Print(fset, f)
-	tempData.PackageName = f.Name.Name
-	tempData.FileName = filename
-	var hasTableNameFunc bool
+	////////////
+	file, err := astra.ParseFile(filename,
+		astra.IgnoreVariables|astra.IgnoreConstants|astra.IgnoreFunctions|
+			astra.IgnoreInterfaces|astra.IgnoreTypes)
+	if err != nil {
+		fmt.Println(err)
+	}
+	tempData.PackageName = file.Name
+	//
+	functions := make(map[string]bool)
+	for _, fun := range file.Methods {
+		if fun.Name == "TableName" {
+			functions[fun.Receiver.Type.String()] = true
+		}
+	}
 
-	ast.Inspect(f, func(n ast.Node) bool {
+	for _, stru := range file.Structures {
+		tempData.StructName = stru.Name
+		tempData.TableName = parseDoc(strings.Join(stru.Docs, " "))
+		if tempData.TableName == "" {
+			tempData.TableName = tempData.StructName
+		}
 
-		switch x := n.(type) {
-
-		case *ast.GenDecl:
-			if x.Tok == token.TYPE {
-				for _, s := range x.Specs {
-					vSpec := s.(*ast.TypeSpec)
-					if _, ok := vSpec.Type.(*ast.StructType); ok {
-						tempData.StructName = vSpec.Name.Name
-
-						if x.Doc != nil {
-							tempData.TableName = parseDoc(x.Doc.List[len(x.Doc.List)-1].Text)
-						}
-						if tempData.TableName == "" {
-							tempData.TableName = tempData.StructName
-						}
-					}
+		for _, field := range stru.Fields {
+			var _namejson = make([]string, 3)
+			for k, v := range field.Tags {
+				if k == "json" {
+					_namejson[1] = v[0]
+				} else if k == XORM_TAG {
+					_namejson[0] = parseTagsForXORM(v)
+				} else if k == GORM_TAG {
+					_namejson[0] = parseTagsForGORM(v)
 				}
 			}
+			_namejson[2] = field.Type.String()
 
-		case *ast.StructType:
-			for _, f := range x.Fields.List {
-				var _namejson [3]string
-				if f.Tag != nil {
-					_namejson = parseTags(f.Tag.Value)
-				}
-				if _namejson[0] == "" {
-					_namejson[0] = strings.ToLower(f.Names[0].Name)
-				}
-				if _namejson[1] == "" {
-					_namejson[1] = strings.ToLower(f.Names[0].Name)
-				}
-				_namejson[2] = fmt.Sprintf("%v", f.Type)
-				tempData.Columns[f.Names[0].Name] = _namejson
+			if _namejson[0] == "" {
+				_namejson[0] = strings.ToLower(stru.Name)
 			}
-
-		case *ast.FuncDecl:
-			if x.Name.Name == "TableName" &&
-				x.Recv.List[0].Type.(*ast.StarExpr).X.(*ast.Ident).Name == tempData.StructName {
-				hasTableNameFunc = true
+			if _namejson[1] == "" {
+				_namejson[1] = strings.ToLower(stru.Name)
+			}
+			tempData.Columns[field.Name] = _namejson
+		}
+		if functions["*"+stru.Name] != true {
+			err = tempData.appendToModel(filename, tempData.StructName)
+			if err != nil {
+				return err
 			}
 		}
-		return true
-	})
 
-	if !hasTableNameFunc {
-		err = tempData.appendToModel(filename, tempData.StructName)
+		if len(tempData.StructName) == 0 ||
+			tempData.StructName[:1] == strings.ToLower(tempData.StructName[:1]) ||
+			len(tempData.Columns) == 0 {
+			return nil
+		}
+		if debug {
+			tempData.writeTo(os.Stdout)
+		}
+		if err := tempData.writeBaseFile(); err != nil {
+			fmt.Println(err.Error())
+			return err
+		}
+		err := tempData.writeToFile()
 		if err != nil {
+			fmt.Println(err.Error())
 			return err
 		}
 	}
 
-	if len(tempData.StructName) == 0 ||
-		tempData.StructName[:1] == strings.ToLower(tempData.StructName[:1]) ||
-		len(tempData.Columns) == 0 {
-		return nil
-	}
-	if debug {
-		tempData.writeTo(os.Stdout)
-	}
-	if err := tempData.writeBaseFile(); err != nil {
-		return err
-	}
-	return tempData.writeToFile()
+	return nil
 }
 
 func parseTags(tags string) [3]string {
@@ -206,7 +209,7 @@ func parseTags(tags string) [3]string {
 
 func parseTagsForXORM(matchs []string) string {
 	if len(matchs) >= 1 {
-		_matchs := regexp.MustCompile(`'(.*?)'`).FindStringSubmatch(matchs[1])
+		_matchs := regexp.MustCompile(`'(.*?)'`).FindStringSubmatch(matchs[0])
 		if len(_matchs) >= 1 {
 			return _matchs[1]
 		}
@@ -216,7 +219,7 @@ func parseTagsForXORM(matchs []string) string {
 
 func parseTagsForGORM(matchs []string) string {
 	if len(matchs) >= 1 {
-		_matchs := regexp.MustCompile(`(?i:column):(.*?)(?:;|$)`).FindStringSubmatch(matchs[1])
+		_matchs := regexp.MustCompile(`(?i:column):(.*?)(?:;|$)`).FindStringSubmatch(matchs[0])
 		if len(_matchs) >= 1 {
 			return _matchs[1]
 		}
@@ -264,6 +267,7 @@ func (d *TempData) writeToFile() error {
 	d.handleFilename()
 	file, err := os.Create(d.FileName)
 	if err != nil {
+		fmt.Println(err.Error())
 		return err
 	}
 	defer file.Close()
@@ -289,7 +293,7 @@ func (d *TempData) appendToModel(fileName, tableName string) error {
 
 		func (p *{{.StructName}}) Free() {
 			//todo:初始化每个字段
-			{{range $key, $value := .Columns}}p.{{$key}} = ""
+			{{range $key, $value := .Columns}}p.{{$key}} = {{getTypeValue $value}}				
 			{{end}}
 			{{lower .StructName}}Pool.Put(p)
 		}
@@ -301,7 +305,23 @@ func (d *TempData) appendToModel(fileName, tableName string) error {
 	var buf bytes.Buffer
 	funcMap := template.FuncMap{
 		"lower": strings.ToLower,
+		"getTypeValue": func(t []string) interface{} {
+			if len(t) < 3 {
+				return `""`
+			}
+			var ret interface{}
+			switch t[2] {
+			case "string":
+				ret = `""`
+			case "int", "int8", "int16", "int32", "int64":
+				ret = 0
+			default:
+				ret = `""`
+			}
+			return ret
+		},
 	}
+
 	err := template.Must(template.New("temp").Funcs(funcMap).Parse(str)).Execute(&buf, d)
 	if err != nil {
 		return err
@@ -320,16 +340,21 @@ func (d *TempData) appendToModel(fileName, tableName string) error {
 	return nil
 }
 func (d *TempData) writeBaseFile() error {
+	fmt.Println("base")
 	baseFilename := filepath.Join(getFilepath(d.FileName), "base.go")
 
 	file, err := os.Create(baseFilename)
 	if err != nil {
+		fmt.Println(err.Error())
 		return err
 	}
 	defer file.Close()
 	var buf bytes.Buffer
 	_ = template.Must(template.New("temp").Parse(base)).Execute(&buf, d)
 	formatted, _ := format.Source(buf.Bytes())
-	file.Write(formatted)
+	_, err = file.Write(formatted)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 	return err
 }
