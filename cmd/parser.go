@@ -104,7 +104,7 @@ type TempData struct {
 	Columns     map[string][]string
 }
 
-func handleFile(filename string) error {
+func HandleFile(filename string) error {
 	var tempData TempData
 	tempData.FileName = filename
 
@@ -152,12 +152,12 @@ func handleFile(filename string) error {
 				}
 			}
 			_namejson[2] = field.Type.String()
-			_fieldName := getFieldName(stru.Name)
-			if _namejson[0] == "" {
-				_namejson[0] = _fieldName
-			}
+
 			if _namejson[1] == "" {
-				_namejson[1] = _fieldName
+				_namejson[1] = getFieldName(field.Name)
+			}
+			if _namejson[0] == "" {
+				_namejson[0] = _namejson[1]
 			}
 			tempData.Columns[field.Name] = _namejson
 		}

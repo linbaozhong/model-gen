@@ -1,31 +1,14 @@
 package main
 
 import (
-	"bytes"
-	"fmt"
+	"github.com/linbaozhong/model-gen/cmd"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
-func TestString(t *testing.T) {
-	fmt.Println([]byte("az_"))
-	str := "TableName"
-	fmt.Println(getFieldName(str))
-}
-
-func getFieldName(name string) string {
-	bs := bytes.NewBuffer([]byte{})
-	for i, s := range name {
-		if s >= 65 && s <= 90 {
-			s += 32
-			if i == 0 {
-				bs.WriteByte(byte(s))
-			} else {
-				bs.WriteByte(byte(95))
-				bs.WriteByte(byte(s))
-			}
-			continue
-		}
-		bs.WriteByte(byte(s))
-	}
-	return bs.String()
+func TestModel(t *testing.T) {
+	path, _ := os.Getwd()
+	filename := filepath.Join(path, "user_model.go")
+	cmd.HandleFile(filename)
 }
