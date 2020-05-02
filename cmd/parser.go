@@ -340,7 +340,6 @@ func (d *TempData) appendToModel(fileName, tableName string) error {
 	return nil
 }
 func (d *TempData) writeBaseFile() error {
-	fmt.Println("base")
 	baseFilename := filepath.Join(getFilepath(d.FileName), "base.go")
 
 	file, err := os.Create(baseFilename)

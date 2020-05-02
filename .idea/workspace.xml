@@ -3,6 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="5d57b668-8f70-412f-be39-cb6edcc83e6e" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/parser.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/parser.go" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -25,34 +26,12 @@
     <select />
   </component>
   <component name="FileEditorManager">
-    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+    <leaf>
       <file pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/cmd/parser.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="713">
-              <caret line="155" column="35" selection-start-line="155" selection-start-column="35" selection-end-line="155" selection-end-column="35" />
-              <folding>
-                <element signature="n#!!block;n#writeBaseFile#0" />
-                <element signature="n#!!block;n#getFieldName#0" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/main_test.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="133">
-              <caret line="12" column="28" selection-start-line="12" selection-start-column="28" selection-end-line="12" selection-end-column="28" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/cmd/root.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="627">
-              <caret line="41" column="14" selection-start-line="41" selection-start-column="14" selection-end-line="41" selection-end-column="14" />
+            <state relative-caret-position="391">
+              <caret line="44" column="13" lean-forward="true" selection-start-line="44" selection-start-column="13" selection-end-line="44" selection-end-column="13" />
             </state>
           </provider>
         </entry>
@@ -74,10 +53,15 @@
       <find>OpenFile</find>
       <find>tableName</find>
       <find>Columns</find>
+      <find>fmt</find>
+      <find>base</find>
     </findStrings>
     <replaceStrings>
       <replace>TableField</replace>
     </replaceStrings>
+    <dirStrings>
+      <dir>D:\gopath\src\github.com\linbaozhong\model-gen</dir>
+    </dirStrings>
   </component>
   <component name="GOROOT" path="D:\Go" />
   <component name="Git.Settings">
@@ -103,7 +87,6 @@
         <option value="$PROJECT_DIR$/tests/models/user.go" />
         <option value="$PROJECT_DIR$/user_invite.go" />
         <option value="$PROJECT_DIR$/models/table/userinvite_table.go" />
-        <option value="$PROJECT_DIR$/cmd/root.go" />
         <option value="$PROJECT_DIR$/models/package.json" />
         <option value="$PROJECT_DIR$/models/log_reg.go" />
         <option value="$PROJECT_DIR$/models/black_mobile.go" />
@@ -112,6 +95,7 @@
         <option value="$PROJECT_DIR$/main_test.go" />
         <option value="$PROJECT_DIR$/user_model.go" />
         <option value="$PROJECT_DIR$/cmd/parser.go" />
+        <option value="$PROJECT_DIR$/cmd/root.go" />
       </list>
     </option>
   </component>
@@ -138,11 +122,6 @@
               <item name="model-gen" type="b2602c69:ProjectViewProjectNode" />
               <item name="model-gen" type="462c0819:PsiDirectoryNode" />
               <item name="cmd" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="model-gen" type="b2602c69:ProjectViewProjectNode" />
-              <item name="model-gen" type="462c0819:PsiDirectoryNode" />
-              <item name="table" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -190,7 +169,7 @@
     <frame x="-7" y="-7" width="1455" height="935" extended-state="6" />
     <editor active="true" />
     <layout>
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.19828203" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.2040086" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -324,46 +303,39 @@
     <entry file="file://$PROJECT_DIR$/models/black_mobile.go" />
     <entry file="file://$PROJECT_DIR$/models/log_reg.go" />
     <entry file="file://$PROJECT_DIR$/models/user_invite.go" />
-    <entry file="file://$PROJECT_DIR$/user_model.go">
+    <entry file="file://$PROJECT_DIR$/table/base.go" />
+    <entry file="file://$PROJECT_DIR$/table/user_table.go" />
+    <entry file="file://$PROJECT_DIR$/main_test.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="109">
-          <caret line="8" column="57" selection-start-line="8" selection-start-column="57" selection-end-line="8" selection-end-column="57" />
+        <state relative-caret-position="228">
+          <caret line="12" column="28" selection-start-line="12" selection-start-column="28" selection-end-line="12" selection-end-column="28" />
           <folding>
-            <element signature="e#14#63#0" expanded="true" />
+            <element signature="e#14#98#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/table/base.go">
+    <entry file="file://$PROJECT_DIR$/user_model.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-447" />
+        <state relative-caret-position="171">
+          <caret line="9" selection-start-line="9" selection-end-line="9" />
+        </state>
       </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/table/user_table.go">
-      <provider selected="true" editor-type-id="text-editor" />
     </entry>
     <entry file="file://$PROJECT_DIR$/cmd/parser.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="713">
-          <caret line="155" column="35" selection-start-line="155" selection-start-column="35" selection-end-line="155" selection-end-column="35" />
+        <state relative-caret-position="248">
+          <caret line="342" selection-start-line="342" selection-end-line="342" />
           <folding>
-            <element signature="n#!!block;n#writeBaseFile#0" />
             <element signature="n#!!block;n#getFieldName#0" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/main_test.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="133">
-          <caret line="12" column="28" selection-start-line="12" selection-start-column="28" selection-end-line="12" selection-end-column="28" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/cmd/root.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="627">
-          <caret line="41" column="14" selection-start-line="41" selection-start-column="14" selection-end-line="41" selection-end-column="14" />
+        <state relative-caret-position="391">
+          <caret line="44" column="13" lean-forward="true" selection-start-line="44" selection-start-column="13" selection-end-line="44" selection-end-column="13" />
         </state>
       </provider>
     </entry>
