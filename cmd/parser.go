@@ -152,12 +152,12 @@ func handleFile(filename string) error {
 				}
 			}
 			_namejson[2] = field.Type.String()
-
+			_fieldName := getFieldName(stru.Name)
 			if _namejson[0] == "" {
-				_namejson[0] = strings.ToLower(stru.Name)
+				_namejson[0] = _fieldName
 			}
 			if _namejson[1] == "" {
-				_namejson[1] = strings.ToLower(stru.Name)
+				_namejson[1] = _fieldName
 			}
 			tempData.Columns[field.Name] = _namejson
 		}
@@ -357,4 +357,22 @@ func (d *TempData) writeBaseFile() error {
 		fmt.Println(err.Error())
 	}
 	return err
+}
+
+func getFieldName(name string) string {
+	bs := bytes.NewBuffer([]byte{})
+	for i, s := range name {
+		if s >= 65 && s <= 90 {
+			s += 32
+			if i == 0 {
+				bs.WriteByte(byte(s))
+			} else {
+				bs.WriteByte(byte(95))
+				bs.WriteByte(byte(s))
+			}
+			continue
+		}
+		bs.WriteByte(byte(s))
+	}
+	return bs.String()
 }
