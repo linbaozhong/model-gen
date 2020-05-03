@@ -154,10 +154,18 @@ func HandleFile(filename string) error {
 			_namejson[2] = field.Type.String()
 
 			if _namejson[1] == "" {
-				_namejson[1] = getFieldName(field.Name)
+				if _namejson[0] == "" {
+					_namejson[1] = getFieldName(field.Name)
+				} else {
+					_namejson[1] = _namejson[0]
+				}
 			}
 			if _namejson[0] == "" {
-				_namejson[0] = _namejson[1]
+				if _namejson[1] == "" {
+					_namejson[0] = getFieldName(field.Name)
+				} else {
+					_namejson[0] = _namejson[1]
+				}
 			}
 			tempData.Columns[field.Name] = _namejson
 		}
