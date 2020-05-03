@@ -334,7 +334,7 @@ func (d *TempData) appendToModel(fileName, tableName string) error {
 	if err != nil {
 		return err
 	}
-	file, err := os.OpenFile(fileName, os.O_APPEND, os.ModeAppend)
+	file, err := os.OpenFile(fileName, os.O_RDWR|os.O_APPEND, 0644)
 	if err != nil {
 		fmt.Println(err.Error())
 		return err
