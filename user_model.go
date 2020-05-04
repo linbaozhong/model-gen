@@ -1,5 +1,10 @@
 package main
 
+import (
+	"model-gen/table"
+	"sync"
+)
+
 type User struct {
 	ID       int64 `json:"id" grom:"column:id;primary_key"`
 	Name     string
