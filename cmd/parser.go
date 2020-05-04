@@ -105,6 +105,7 @@ type TempData struct {
 }
 
 func HandleFile(filename string) error {
+	showError("")
 	var tempData TempData
 	tempData.FileName = filename
 
@@ -114,6 +115,7 @@ func HandleFile(filename string) error {
 	var src interface{}
 	_, err := parser.ParseFile(fset, filename, src, parser.ParseComments)
 	if err != nil {
+		showError(err)
 		panic(err)
 	}
 
@@ -122,7 +124,7 @@ func HandleFile(filename string) error {
 		astra.IgnoreVariables|astra.IgnoreConstants|astra.IgnoreFunctions|
 			astra.IgnoreInterfaces|astra.IgnoreTypes)
 	if err != nil {
-		fmt.Println(err)
+		showError(err)
 	}
 	tempData.PackageName = file.Name
 	//
@@ -172,6 +174,7 @@ func HandleFile(filename string) error {
 		if functions["*"+stru.Name] != true {
 			err = tempData.appendToModel(filename, tempData.StructName)
 			if err != nil {
+				showError(err)
 				return err
 			}
 		}
@@ -185,12 +188,12 @@ func HandleFile(filename string) error {
 			tempData.writeTo(os.Stdout)
 		}
 		if err := tempData.writeBaseFile(); err != nil {
-			fmt.Println(err.Error())
+			showError(err.Error())
 			return err
 		}
 		err := tempData.writeToFile()
 		if err != nil {
-			fmt.Println(err.Error())
+			showError(err.Error())
 			return err
 		}
 	}
@@ -275,7 +278,7 @@ func (d *TempData) writeToFile() error {
 	d.handleFilename()
 	file, err := os.Create(d.FileName)
 	if err != nil {
-		fmt.Println(err.Error())
+		showError(err.Error())
 		return err
 	}
 	defer file.Close()
@@ -332,19 +335,21 @@ func (d *TempData) appendToModel(fileName, tableName string) error {
 
 	err := template.Must(template.New("temp").Funcs(funcMap).Parse(str)).Execute(&buf, d)
 	if err != nil {
+		showError(err)
 		return err
 	}
 	file, err := os.OpenFile(fileName, os.O_RDWR|os.O_APPEND, 0644)
 	if err != nil {
-		fmt.Println(err.Error())
+		showError(err.Error())
 		return err
 	}
 	_, err = file.Write(buf.Bytes())
+	defer file.Close()
 	if err != nil {
+		showError(err)
 		return err
 	}
 
-	defer file.Close()
 	return nil
 }
 func (d *TempData) writeBaseFile() error {
@@ -352,7 +357,7 @@ func (d *TempData) writeBaseFile() error {
 
 	file, err := os.Create(baseFilename)
 	if err != nil {
-		fmt.Println(err.Error())
+		showError(err.Error())
 		return err
 	}
 	defer file.Close()
@@ -361,7 +366,7 @@ func (d *TempData) writeBaseFile() error {
 	formatted, _ := format.Source(buf.Bytes())
 	_, err = file.Write(formatted)
 	if err != nil {
-		fmt.Println(err.Error())
+		showError(err.Error())
 	}
 	return err
 }

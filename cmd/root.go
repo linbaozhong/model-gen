@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/mitchellh/go-homedir"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
-	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 )
 
@@ -41,7 +42,7 @@ var (
 				return nil
 			})
 			if err != nil {
-				fmt.Println(err.Error())
+				showError(err.Error())
 			}
 		},
 	}
@@ -55,13 +56,15 @@ func Execute() error {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVarP(&tagName, "tag", "t", GORM_TAG, "orm tag name (default is xorm)")
+	rootCmd.PersistentFlags().StringVarP(&tagName, "tag", "t", GORM_TAG, "orm tag name")
 	rootCmd.PersistentFlags().StringVarP(&path, "path", "p", "./models", "models path")
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "debug true")
+
 }
 
-func er(msg interface{}) {
-	fmt.Println("Error:", msg)
+func showError(msg interface{}) {
+	_, file, line, _ := runtime.Caller(1)
+	fmt.Println("Error:", msg, file, line)
 	os.Exit(1)
 }
 
@@ -70,7 +73,7 @@ func initConfig() {
 		// Find home directory.
 		home, err := homedir.Dir()
 		if err != nil {
-			er(err)
+			showError(err)
 		}
 		path = home
 	}
