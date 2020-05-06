@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	jsonName  = "json"
+	//jsonName  = "json"
 	tableName = "TableName"
 	temp      = `
 		package table
@@ -105,7 +105,6 @@ type TempData struct {
 }
 
 func HandleFile(filename string) error {
-	showError("")
 	var tempData TempData
 	tempData.FileName = filename
 
@@ -185,7 +184,7 @@ func HandleFile(filename string) error {
 			return nil
 		}
 		if debug {
-			tempData.writeTo(os.Stdout)
+			err = tempData.writeTo(os.Stdout)
 		}
 		if err := tempData.writeBaseFile(); err != nil {
 			showError(err.Error())
@@ -198,25 +197,25 @@ func HandleFile(filename string) error {
 		}
 	}
 
-	return nil
+	return err
 }
 
-func parseTags(tags string) [3]string {
-	re := regexp.MustCompile(fmt.Sprintf(`(?i:%s):"(.*?)"`, tagName))
-	matchs := re.FindStringSubmatch(tags)
-
-	var col_name string
-	if tagName == XORM_TAG {
-		col_name = parseTagsForXORM(matchs)
-	} else {
-		col_name = parseTagsForGORM(matchs)
-	}
-	json_name := getJsonName(tags)
-	if json_name == "" && col_name != "" {
-		json_name = col_name
-	}
-	return [3]string{col_name, json_name, ""}
-}
+//func parseTags(tags string) [3]string {
+//	re := regexp.MustCompile(fmt.Sprintf(`(?i:%s):"(.*?)"`, tagName))
+//	matchs := re.FindStringSubmatch(tags)
+//
+//	var col_name string
+//	if tagName == XORM_TAG {
+//		col_name = parseTagsForXORM(matchs)
+//	} else {
+//		col_name = parseTagsForGORM(matchs)
+//	}
+//	json_name := getJsonName(tags)
+//	if json_name == "" && col_name != "" {
+//		json_name = col_name
+//	}
+//	return [3]string{col_name, json_name, ""}
+//}
 
 func parseTagsForXORM(matchs []string) string {
 	if len(matchs) >= 1 {
@@ -238,14 +237,14 @@ func parseTagsForGORM(matchs []string) string {
 	return ""
 }
 
-func getJsonName(tags string) string {
-	re := regexp.MustCompile(fmt.Sprintf(`(?i:%s):"(.*?)"`, jsonName))
-	matchs := re.FindStringSubmatch(tags)
-	if len(matchs) >= 1 {
-		return matchs[1]
-	}
-	return ""
-}
+//func getJsonName(tags string) string {
+//	re := regexp.MustCompile(fmt.Sprintf(`(?i:%s):"(.*?)"`, jsonName))
+//	matchs := re.FindStringSubmatch(tags)
+//	if len(matchs) >= 1 {
+//		return matchs[1]
+//	}
+//	return ""
+//}
 
 func parseDoc(doc string) string {
 	re := regexp.MustCompile(fmt.Sprintf(`(?i:%s)[: ]+(.*)`, tableName))
@@ -285,7 +284,7 @@ func (d *TempData) writeToFile() error {
 	var buf bytes.Buffer
 	_ = d.writeTo(&buf)
 	formatted, _ := format.Source(buf.Bytes())
-	file.Write(formatted)
+	_, err = file.Write(formatted)
 	return err
 }
 func (d *TempData) appendToModel(fileName, tableName string) error {

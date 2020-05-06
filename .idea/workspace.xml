@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="5d57b668-8f70-412f-be39-cb6edcc83e6e" name="Default Changelist" comment="">
+    <list default="true" id="5d57b668-8f70-412f-be39-cb6edcc83e6e" name="Default Changelist" comment="修改">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/user_model.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/parser.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/parser.go" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -26,12 +26,12 @@
     <select />
   </component>
   <component name="FileEditorManager">
-    <leaf>
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/cmd/root.go">
+        <entry file="file://$PROJECT_DIR$/cmd/parser.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="161">
-              <caret line="29" selection-start-line="29" selection-end-line="29" />
+            <state relative-caret-position="162">
+              <caret line="361" column="7" selection-start-line="361" selection-start-column="7" selection-end-line="361" selection-end-column="7" />
             </state>
           </provider>
         </entry>
@@ -94,24 +94,23 @@
         <option value="$PROJECT_DIR$/models/user_invite.go" />
         <option value="$PROJECT_DIR$/models/user.go" />
         <option value="$PROJECT_DIR$/main_test.go" />
-        <option value="$PROJECT_DIR$/cmd/parser.go" />
         <option value="$PROJECT_DIR$/user_model.go" />
         <option value="$PROJECT_DIR$/cmd/root.go" />
+        <option value="$PROJECT_DIR$/cmd/parser.go" />
       </list>
     </option>
   </component>
-  <component name="ProjectFrameBounds" extendedState="6">
-    <option name="x" value="-11" />
-    <option name="y" value="-11" />
-    <option name="width" value="2183" />
-    <option name="height" value="1403" />
+  <component name="ProjectFrameBounds">
+    <option name="x" value="-2044" />
+    <option name="y" value="97" />
+    <option name="width" value="1820" />
+    <option name="height" value="1170" />
   </component>
   <component name="ProjectView">
     <navigator proportions="" version="1">
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -119,15 +118,11 @@
               <item name="model-gen" type="b2602c69:ProjectViewProjectNode" />
               <item name="model-gen" type="462c0819:PsiDirectoryNode" />
             </path>
-            <path>
-              <item name="model-gen" type="b2602c69:ProjectViewProjectNode" />
-              <item name="model-gen" type="462c0819:PsiDirectoryNode" />
-              <item name="cmd" type="462c0819:PsiDirectoryNode" />
-            </path>
           </expand>
           <select />
         </subPane>
       </pane>
+      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -167,12 +162,13 @@
     </option>
   </component>
   <component name="ToolWindowManager">
-    <frame x="-7" y="-7" width="1455" height="935" extended-state="6" />
+    <frame x="-2147" y="78" width="1456" height="936" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.22405154" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.22961374" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
+      <window_info anchor="bottom" id="Messages" weight="0.329602" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" weight="0.3275218" />
       <window_info anchor="bottom" id="Run" order="2" type="SLIDING" weight="0.32876712" />
@@ -195,6 +191,7 @@
     <option name="version" value="1" />
   </component>
   <component name="VcsManagerConfiguration">
+    <option name="SHOW_UNVERSIONED_FILES_WHILE_COMMIT" value="false" />
     <MESSAGE value="修改" />
     <option name="LAST_COMMIT_MESSAGE" value="修改" />
   </component>
@@ -290,8 +287,6 @@
     <entry file="file://$PROJECT_DIR$/models/black_mobile.go" />
     <entry file="file://$PROJECT_DIR$/models/log_reg.go" />
     <entry file="file://$PROJECT_DIR$/models/user_invite.go" />
-    <entry file="file://$PROJECT_DIR$/table/base.go" />
-    <entry file="file://$PROJECT_DIR$/table/user_table.go" />
     <entry file="file://$PROJECT_DIR$/main_test.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="228">
@@ -309,23 +304,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/user_model.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="380">
-          <caret line="20" column="1" selection-start-line="20" selection-start-column="1" selection-end-line="20" selection-end-column="1" />
-          <folding>
-            <element signature="e#14#51#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/cmd/parser.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="157">
-          <caret line="126" column="22" lean-forward="true" selection-start-line="126" selection-start-column="22" selection-end-line="126" selection-end-column="22" />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/user_model.go" />
     <entry file="file://$PROJECT_DIR$/main.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="133">
@@ -336,13 +315,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../../../../pkg/mod/github.com/linbaozhong/model-gen@v0.0.0-20200503045901-fcddb6fec283/cmd/root.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="174">
-          <caret line="31" selection-start-line="31" selection-end-line="31" />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../pkg/mod/github.com/linbaozhong/model-gen@v0.0.0-20200503045901-fcddb6fec283/cmd/root.go" />
     <entry file="file://$PROJECT_DIR$/../../../../pkg/mod/github.com/linbaozhong/model-gen@v0.0.0-20200504065137-44f1b85ff79f/cmd/root.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="174">
@@ -364,10 +337,29 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/table/user_table.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-85" />
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/cmd/root.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="161">
+        <state relative-caret-position="-95">
           <caret line="29" selection-start-line="29" selection-end-line="29" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/table/base.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="562">
+          <caret line="53" column="1" selection-start-line="51" selection-start-column="20" selection-end-line="53" selection-end-column="1" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/cmd/parser.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="162">
+          <caret line="361" column="7" selection-start-line="361" selection-start-column="7" selection-end-line="361" selection-end-column="7" />
         </state>
       </provider>
     </entry>
