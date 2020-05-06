@@ -104,8 +104,9 @@ type TempData struct {
 	Columns     map[string][]string
 }
 
-func HandleFile(filename string) error {
-	var tempData TempData
+//
+func handleFile(filename string) error {
+	tempData := new(TempData)
 	tempData.FileName = filename
 
 	tempData.Columns = make(map[string][]string)

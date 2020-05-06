@@ -37,7 +37,7 @@ var (
 					if strings.Contains(filename, "_table.go") {
 						return nil
 					}
-					return HandleFile(filename)
+					return handleFile(filename)
 				}
 				return nil
 			})
