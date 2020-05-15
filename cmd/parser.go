@@ -303,7 +303,6 @@ func (d *TempData) appendToModel(fileName, tableName string) error {
 		}
 
 		func (p *{{.StructName}}) Free() {
-			//todo:初始化每个字段
 			{{range $key, $value := .Columns}}p.{{$key}} = {{getTypeValue $value}}				
 			{{end}}
 			{{lower .StructName}}Pool.Put(p)
