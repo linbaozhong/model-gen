@@ -80,11 +80,6 @@ var (
 		func (f TableField)Bt() string {
 			return f.QuoteName() + " BETWEEN ? AND ?"
 		}
-		//In IN
-		func (f TableField)In() string {
-			return f.QuoteName() + " IN (?)"
-		}
-
 		//Like LIKE
 		func (f TableField) Like() string {
 			return f.QuoteName() + " LIKE '%?%'"
