@@ -84,6 +84,11 @@ var (
 		func (f TableField)In() string {
 			return f.QuoteName() + " IN (?)"
 		}
+
+		//Like LIKE
+		func (f TableField) Like() string {
+			return f.QuoteName() + " LIKE '%?%'"
+		}
 		
 		func (f TableField) QuoteName() string {
 			return Quote_Char + f.Name + Quote_Char
@@ -323,8 +328,10 @@ func (d *TempData) appendToModel(fileName, tableName string) error {
 			switch t[2] {
 			case "string":
 				ret = `""`
-			case "int", "int8", "int16", "int32", "int64":
+			case "int", "int8", "int16", "int32", "int64", "float32", "float64":
 				ret = 0
+			case "time.Time":
+				ret = `time.Time{}`
 			default:
 				ret = `""`
 			}
