@@ -82,7 +82,17 @@ var (
 		}
 		//Like LIKE
 		func (f TableField) Like() string {
-			return f.QuoteName() + " LIKE '%?%'"
+			return f.QuoteName() + " LIKE CONCAT('%',?,'%')"
+		}
+
+		//Like 左like
+		func (f TableField) Llike() string {
+			return f.QuoteName() + " LIKE CONCAT('%',?)"
+		}
+		
+		//Like 右like
+		func (f TableField) Rlike() string {
+			return f.QuoteName() + " LIKE CONCAT(?,'%')"
 		}
 		
 		func (f TableField) QuoteName() string {
@@ -323,7 +333,7 @@ func (d *TempData) appendToModel(fileName, tableName string) error {
 			switch t[2] {
 			case "string":
 				ret = `""`
-			case "int", "int8", "int16", "int32", "int64", "float32", "float64":
+			case "uint", "int", "int8", "int16", "int32", "int64", "float32", "float64":
 				ret = 0
 			case "time.Time":
 				ret = `time.Time{}`
