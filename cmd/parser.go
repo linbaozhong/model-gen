@@ -269,7 +269,8 @@ func parseDoc(doc string) string {
 
 func getFilepath(filename string) string {
 	absPath, _ := filepath.Abs(filename)
-	return filepath.Join(filepath.Dir(absPath), "table")
+	//return filepath.Join(filepath.Dir(absPath), "table")
+	return filepath.Dir(absPath)
 }
 
 func (d *TempData) handleFilename() {
