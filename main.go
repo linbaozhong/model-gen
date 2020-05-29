@@ -2,7 +2,7 @@
 package main
 
 import (
-	"model-gen/cmd"
+	"github.com/linbaozhong/model-gen/cmd"
 )
 
 func main() {

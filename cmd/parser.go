@@ -333,7 +333,7 @@ func (d *TempData) appendToModel(fileName, tableName string) error {
 			switch t[2] {
 			case "string":
 				ret = `""`
-			case "uint", "int", "int8", "int16", "int32", "int64", "float32", "float64":
+			case "uint", "uint8", "uint16", "uint32", "uint64", "int", "int8", "int16", "int32", "int64", "float32", "float64":
 				ret = 0
 			case "time.Time":
 				ret = `time.Time{}`
