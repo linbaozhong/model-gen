@@ -115,7 +115,7 @@ type TempData struct {
 }
 
 //
-func handleFile(filename string) error {
+func handleFile(filename string) (*TempData, error) {
 	tempData := new(TempData)
 	tempData.FileName = filename
 
@@ -185,30 +185,27 @@ func handleFile(filename string) error {
 			err = tempData.appendToModel(filename, tempData.StructName)
 			if err != nil {
 				showError(err)
-				return err
+				return tempData, err
 			}
 		}
 
 		if len(tempData.StructName) == 0 ||
 			tempData.StructName[:1] == strings.ToLower(tempData.StructName[:1]) ||
 			len(tempData.Columns) == 0 {
-			return nil
+			return tempData, nil
 		}
 		if debug {
 			err = tempData.writeTo(os.Stdout)
 		}
-		if err := tempData.writeBaseFile(); err != nil {
-			showError(err.Error())
-			return err
-		}
+
 		err := tempData.writeToFile()
 		if err != nil {
 			showError(err.Error())
-			return err
+			return tempData, err
 		}
 	}
 
-	return err
+	return tempData, err
 }
 
 //func parseTags(tags string) [3]string {
@@ -272,8 +269,8 @@ func getFilepath(filename string) string {
 	return filepath.Join(filepath.Dir(absPath), "table")
 }
 
-func (d *TempData) handleFilename() {
-	d.FileName = filepath.Join(getFilepath(d.FileName), strings.ToLower(d.StructName)+"_table.go")
+func (d *TempData) handleFilename() string {
+	return filepath.Join(getFilepath(d.FileName), strings.ToLower(d.StructName)+"_table.go")
 }
 
 func (d *TempData) writeTo(w io.Writer) error {
@@ -285,8 +282,7 @@ func (d *TempData) writeTo(w io.Writer) error {
 
 // writeToFile 将生成好的模块文件写到本地
 func (d *TempData) writeToFile() error {
-	d.handleFilename()
-	file, err := os.Create(d.FileName)
+	file, err := os.Create(d.handleFilename())
 	if err != nil {
 		showError(err.Error())
 		return err
@@ -363,9 +359,9 @@ func (d *TempData) appendToModel(fileName, tableName string) error {
 
 	return nil
 }
-func (d *TempData) writeBaseFile() error {
-	baseFilename := filepath.Join(getFilepath(d.FileName), "base.go")
-	fmt.Println(d.FileName, getFilepath(d.FileName), baseFilename)
+
+func writeBaseFile(path string) error {
+	baseFilename := filepath.Join(path, "base.go")
 
 	file, err := os.Create(baseFilename)
 	if err != nil {
@@ -374,7 +370,7 @@ func (d *TempData) writeBaseFile() error {
 	}
 	defer file.Close()
 	var buf bytes.Buffer
-	_ = template.Must(template.New("temp").Parse(base)).Execute(&buf, d)
+	_ = template.Must(template.New("temp").Parse(base)).Execute(&buf, nil)
 	formatted, _ := format.Source(buf.Bytes())
 	_, err = file.Write(formatted)
 	if err != nil {
