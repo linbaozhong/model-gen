@@ -42,15 +42,11 @@ var (
 					if strings.Contains(filename, "_table.go") || strings.Contains(filename, "_sorm.go") {
 						return nil
 					}
-					_, e := handleFile(filename)
-					return e
+					return handleFile(filename)
 				}
 				return nil
 			})
 			if err != nil {
-				showError(err.Error())
-			}
-			if err := writeBaseFile(path + "/table"); err != nil {
 				showError(err.Error())
 			}
 		},

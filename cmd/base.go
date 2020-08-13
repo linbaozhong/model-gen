@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bytes"
-
 	"go/format"
 	"os"
 	"path/filepath"

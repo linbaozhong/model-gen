@@ -132,13 +132,11 @@ func handleFile(filename string) error {
 			len(tempData.Columns) == 0 {
 			return nil
 		}
+
 		if debug {
 			err = tempData.writeTo(os.Stdout)
 		}
-		//if err := tempData.writeBaseFile(); err != nil {
-		//	showError(err.Error())
-		//	return err
-		//}
+
 		err := tempData.writeToFile()
 		if err != nil {
 			showError(err.Error())
@@ -148,23 +146,6 @@ func handleFile(filename string) error {
 
 	return err
 }
-
-//func parseTags(tags string) [3]string {
-//	re := regexp.MustCompile(fmt.Sprintf(`(?i:%s):"(.*?)"`, tagName))
-//	matchs := re.FindStringSubmatch(tags)
-//
-//	var col_name string
-//	if tagName == XORM_TAG {
-//		col_name = parseTagsForXORM(matchs)
-//	} else {
-//		col_name = parseTagsForGORM(matchs)
-//	}
-//	json_name := getJsonName(tags)
-//	if json_name == "" && col_name != "" {
-//		json_name = col_name
-//	}
-//	return [3]string{col_name, json_name, ""}
-//}
 
 func parseTagsForXORM(matchs []string) string {
 	if len(matchs) >= 1 {
@@ -185,15 +166,6 @@ func parseTagsForGORM(matchs []string) string {
 	}
 	return ""
 }
-
-//func getJsonName(tags string) string {
-//	re := regexp.MustCompile(fmt.Sprintf(`(?i:%s):"(.*?)"`, jsonName))
-//	matchs := re.FindStringSubmatch(tags)
-//	if len(matchs) >= 1 {
-//		return matchs[1]
-//	}
-//	return ""
-//}
 
 func parseDoc(doc string) string {
 	re := regexp.MustCompile(fmt.Sprintf(`(?i:%s)[: ]+(.*)`, tableName))
@@ -268,6 +240,7 @@ func (*{{.StructName}}) TableName() string {
 	`
 
 func (d *TempData) appendToModel(fileName, tableName string) error {
+	fmt.Println(fileName)
 	var buf bytes.Buffer
 	funcMap := template.FuncMap{
 		"lower": strings.ToLower,
@@ -297,6 +270,7 @@ func (d *TempData) appendToModel(fileName, tableName string) error {
 	}
 	absPath, _ := filepath.Abs(fileName)
 	fileName = filepath.Join(filepath.Dir(absPath), strings.ToLower(d.StructName)+"_sorm.go")
+	fmt.Println(fileName)
 	file, err := os.Create(fileName)
 	if err != nil {
 		showError(err.Error())
