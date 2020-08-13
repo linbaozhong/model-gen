@@ -55,7 +55,6 @@ type TempData struct {
 //
 func handleFile(filename string) error {
 	tempData := new(TempData)
-	tempData.FileName = filename
 
 	tempData.Columns = make(map[string][]string)
 
@@ -84,6 +83,7 @@ func handleFile(filename string) error {
 	}
 
 	for _, stru := range file.Structures {
+		tempData.FileName = filename
 		tempData.StructName = stru.Name
 		tempData.TableName = parseDoc(strings.Join(stru.Docs, " "))
 		if tempData.TableName == "" {
@@ -119,13 +119,13 @@ func handleFile(filename string) error {
 			}
 			tempData.Columns[field.Name] = _namejson
 		}
-		if functions["*"+stru.Name] != true {
-			err = tempData.appendToModel(filename, tempData.StructName)
-			if err != nil {
-				showError(err)
-				return err
-			}
+		//if functions["*"+stru.Name] != true {
+		err = tempData.appendToModel(filename, tempData.StructName)
+		if err != nil {
+			showError(err)
+			return err
 		}
+		//}
 
 		if len(tempData.StructName) == 0 ||
 			tempData.StructName[:1] == strings.ToLower(tempData.StructName[:1]) ||
@@ -269,7 +269,6 @@ func (d *TempData) appendToModel(fileName, tableName string) error {
 	}
 	absPath, _ := filepath.Abs(fileName)
 	fileName = filepath.Join(filepath.Dir(absPath), strings.ToLower(d.StructName)+"_sorm.go")
-
 	file, err := os.Create(fileName)
 	if err != nil {
 		showError(err.Error())
