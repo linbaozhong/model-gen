@@ -41,68 +41,6 @@ var (
 		{{end}}
 		}
 		`
-	base = `
-		package table
-
-		const (
-			Quote_Char = "` + "`" + `"
-		)
-
-		type TableField struct {
-			Name string
-			Json string
-		}
-		//Eq 等于
-		func (f TableField) Eq() string {
-			return f.generate("=")
-		}
-		//Gt 大于
-		func (f TableField) Gt() string {
-			return f.generate(">")
-		}
-		//Gte 大于等于
-		func (f TableField) Gte() string {
-			return f.generate(">=")
-		}
-		//Lt 小于
-		func (f TableField) Lt() string {
-			return f.generate("<")
-		}
-		//Lte 小于等于
-		func (f TableField) Lte() string {
-			return f.generate("<=")
-		}
-		//Ue 不等于
-		func (f TableField)Ue() string {
-			return f.generate("<>")
-		}
-		//Bt BETWEEN
-		func (f TableField)Bt() string {
-			return f.QuoteName() + " BETWEEN ? AND ?"
-		}
-		//Like LIKE
-		func (f TableField) Like() string {
-			return f.QuoteName() + " LIKE CONCAT('%',?,'%')"
-		}
-
-		//Like 左like
-		func (f TableField) Llike() string {
-			return f.QuoteName() + " LIKE CONCAT('%',?)"
-		}
-		
-		//Like 右like
-		func (f TableField) Rlike() string {
-			return f.QuoteName() + " LIKE CONCAT(?,'%')"
-		}
-		
-		func (f TableField) QuoteName() string {
-			return Quote_Char + f.Name + Quote_Char
-		}
-		func (f TableField) generate(op string) string {
-			return f.QuoteName() + op + "?"
-		}
-
-		`
 )
 
 // TempData 表示生成template所需要的数据结构
@@ -197,10 +135,10 @@ func handleFile(filename string) error {
 		if debug {
 			err = tempData.writeTo(os.Stdout)
 		}
-		if err := tempData.writeBaseFile(); err != nil {
-			showError(err.Error())
-			return err
-		}
+		//if err := tempData.writeBaseFile(); err != nil {
+		//	showError(err.Error())
+		//	return err
+		//}
 		err := tempData.writeToFile()
 		if err != nil {
 			showError(err.Error())
@@ -298,30 +236,38 @@ func (d *TempData) writeToFile() error {
 	_, err = file.Write(formatted)
 	return err
 }
-func (d *TempData) appendToModel(fileName, tableName string) error {
-	str := `
-		var (
-			{{lower .StructName}}Pool = sync.Pool{
-				New: func() interface{} {
-					return &{{.StructName}}{}
-				},
-			}
-		)
 
-		func New{{.StructName}}() *{{.StructName}} {
-			return {{lower .StructName}}Pool.Get().(*{{.StructName}})
-		}
+var model_str = `
+package {{.PackageName}}
 
-		func (p *{{.StructName}}) Free() {
-			{{range $key, $value := .Columns}}p.{{$key}} = {{getTypeValue $value}}				
-			{{end}}
-			{{lower .StructName}}Pool.Put(p)
-		}
+import (
+	"sync"
+)
 
-		func (*{{.StructName}}) TableName() string {
-			return table.{{.StructName}}.TableName
-		}
+var (
+	{{lower .StructName}}Pool = sync.Pool{
+		New: func() interface{} {
+			return &{{.StructName}}{}
+		},
+	}
+)
+
+func New{{.StructName}}() *{{.StructName}} {
+	return {{lower .StructName}}Pool.Get().(*{{.StructName}})
+}
+
+func (p *{{.StructName}}) Free() {
+	{{range $key, $value := .Columns}}p.{{$key}} = {{getTypeValue $value}}				
+	{{end}}
+	{{lower .StructName}}Pool.Put(p)
+}
+
+func (*{{.StructName}}) TableName() string {
+	return table.{{.StructName}}.TableName
+}
 	`
+
+func (d *TempData) appendToModel(fileName, tableName string) error {
 	var buf bytes.Buffer
 	funcMap := template.FuncMap{
 		"lower": strings.ToLower,
@@ -333,7 +279,7 @@ func (d *TempData) appendToModel(fileName, tableName string) error {
 			switch t[2] {
 			case "string":
 				ret = `""`
-			case "uint", "int", "int8", "int16", "int32", "int64", "float32", "float64":
+			case "uint", "uint8", "uint16", "uint32", "uint64", "int", "int8", "int16", "int32", "int64", "float32", "float64":
 				ret = 0
 			case "time.Time":
 				ret = `time.Time{}`
@@ -344,18 +290,26 @@ func (d *TempData) appendToModel(fileName, tableName string) error {
 		},
 	}
 
-	err := template.Must(template.New("temp").Funcs(funcMap).Parse(str)).Execute(&buf, d)
+	err := template.Must(template.New("temp").Funcs(funcMap).Parse(model_str)).Execute(&buf, d)
 	if err != nil {
 		showError(err)
 		return err
 	}
-	file, err := os.OpenFile(fileName, os.O_RDWR|os.O_APPEND, 0644)
+	absPath, _ := filepath.Abs(fileName)
+	fileName = filepath.Join(filepath.Dir(absPath), strings.ToLower(d.StructName)+"_sorm.go")
+	file, err := os.Create(fileName)
 	if err != nil {
 		showError(err.Error())
 		return err
 	}
-	_, err = file.Write(buf.Bytes())
 	defer file.Close()
+
+	//file, err := os.OpenFile(fileName, os.O_RDWR|os.O_APPEND, 0644)
+	//if err != nil {
+	//	showError(err.Error())
+	//	return err
+	//}
+	_, err = file.Write(buf.Bytes())
 	if err != nil {
 		showError(err)
 		return err
@@ -363,24 +317,25 @@ func (d *TempData) appendToModel(fileName, tableName string) error {
 
 	return nil
 }
-func (d *TempData) writeBaseFile() error {
-	baseFilename := filepath.Join(getFilepath(d.FileName), "base.go")
 
-	file, err := os.Create(baseFilename)
-	if err != nil {
-		showError(err.Error())
-		return err
-	}
-	defer file.Close()
-	var buf bytes.Buffer
-	_ = template.Must(template.New("temp").Parse(base)).Execute(&buf, d)
-	formatted, _ := format.Source(buf.Bytes())
-	_, err = file.Write(formatted)
-	if err != nil {
-		showError(err.Error())
-	}
-	return err
-}
+//func (d *TempData) writeBaseFile() error {
+//	baseFilename := filepath.Join(getFilepath(d.FileName), "base.go")
+//
+//	file, err := os.Create(baseFilename)
+//	if err != nil {
+//		showError(err.Error())
+//		return err
+//	}
+//	defer file.Close()
+//	var buf bytes.Buffer
+//	_ = template.Must(template.New("temp").Parse(base)).Execute(&buf, d)
+//	formatted, _ := format.Source(buf.Bytes())
+//	_, err = file.Write(formatted)
+//	if err != nil {
+//		showError(err.Error())
+//	}
+//	return err
+//}
 
 func getFieldName(name string) string {
 	bs := bytes.NewBuffer([]byte{})
