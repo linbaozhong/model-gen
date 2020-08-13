@@ -240,7 +240,6 @@ func (*{{.StructName}}) TableName() string {
 	`
 
 func (d *TempData) appendToModel(fileName, tableName string) error {
-	fmt.Println(fileName)
 	var buf bytes.Buffer
 	funcMap := template.FuncMap{
 		"lower": strings.ToLower,
@@ -270,7 +269,7 @@ func (d *TempData) appendToModel(fileName, tableName string) error {
 	}
 	absPath, _ := filepath.Abs(fileName)
 	fileName = filepath.Join(filepath.Dir(absPath), strings.ToLower(d.StructName)+"_sorm.go")
-	fmt.Println(fileName)
+
 	file, err := os.Create(fileName)
 	if err != nil {
 		showError(err.Error())
