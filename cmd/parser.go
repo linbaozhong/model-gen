@@ -56,8 +56,6 @@ type TempData struct {
 func handleFile(filename string) error {
 	tempData := new(TempData)
 
-	tempData.Columns = make(map[string][]string)
-
 	fset := token.NewFileSet()
 	var src interface{}
 	_, err := parser.ParseFile(fset, filename, src, parser.ParseComments)
@@ -82,7 +80,8 @@ func handleFile(filename string) error {
 		}
 	}
 
-	for _, stru := range file.Structures {
+	for i, stru := range file.Structures {
+		tempData.Columns = make(map[string][]string)
 		tempData.FileName = filename
 		tempData.StructName = stru.Name
 		tempData.TableName = parseDoc(strings.Join(stru.Docs, " "))
@@ -119,13 +118,13 @@ func handleFile(filename string) error {
 			}
 			tempData.Columns[field.Name] = _namejson
 		}
-		//if functions["*"+stru.Name] != true {
-		err = tempData.appendToModel(filename, tempData.StructName)
-		if err != nil {
-			showError(err)
-			return err
+		if functions["*"+stru.Name] != true {
+			err = tempData.appendToModel(filename, i)
+			if err != nil {
+				showError(err)
+				return err
+			}
 		}
-		//}
 
 		if len(tempData.StructName) == 0 ||
 			tempData.StructName[:1] == strings.ToLower(tempData.StructName[:1]) ||
@@ -181,9 +180,17 @@ func getFilepath(filename string) string {
 	absPath, _ := filepath.Abs(filename)
 	return filepath.Join(filepath.Dir(absPath), "table")
 }
+func getBaseFilename(filename string) string {
+	f := filepath.Base(filename)
+	pos := strings.LastIndex(f, ".")
+	if pos == -1 {
+		return f
+	}
+	return f[:pos]
+}
 
-func (d *TempData) handleFilename() {
-	d.FileName = filepath.Join(getFilepath(d.FileName), strings.ToLower(d.StructName)+"_table.go")
+func (d *TempData) handleFilename() string {
+	return filepath.Join(getFilepath(d.FileName), getBaseFilename(d.FileName)+"_"+d.StructName+"_table.go")
 }
 
 func (d *TempData) writeTo(w io.Writer) error {
@@ -195,8 +202,7 @@ func (d *TempData) writeTo(w io.Writer) error {
 
 // writeToFile 将生成好的模块文件写到本地
 func (d *TempData) writeToFile() error {
-	d.handleFilename()
-	file, err := os.Create(d.FileName)
+	file, err := os.Create(d.handleFilename())
 	if err != nil {
 		showError(err.Error())
 		return err
@@ -239,7 +245,7 @@ func (*{{.StructName}}) TableName() string {
 }
 	`
 
-func (d *TempData) appendToModel(fileName, tableName string) error {
+func (d *TempData) appendToModel(fileName string, num int) error {
 	var buf bytes.Buffer
 	funcMap := template.FuncMap{
 		"lower": strings.ToLower,
@@ -267,20 +273,26 @@ func (d *TempData) appendToModel(fileName, tableName string) error {
 		showError(err)
 		return err
 	}
+
 	absPath, _ := filepath.Abs(fileName)
-	fileName = filepath.Join(filepath.Dir(absPath), strings.ToLower(d.StructName)+"_sorm.go")
-	file, err := os.Create(fileName)
+	fileName = filepath.Join(filepath.Dir(absPath), getBaseFilename(d.FileName)+"_"+d.StructName+"_sorm.go")
+
+	var (
+		file *os.File
+	)
+	//if num>0{
+	//	file, err = os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	//}else{
+	//	file, err = os.Create(fileName)
+	//}
+	file, err = os.Create(fileName)
+
 	if err != nil {
 		showError(err.Error())
 		return err
 	}
 	defer file.Close()
 
-	//file, err := os.OpenFile(fileName, os.O_RDWR|os.O_APPEND, 0644)
-	//if err != nil {
-	//	showError(err.Error())
-	//	return err
-	//}
 	_, err = file.Write(buf.Bytes())
 	if err != nil {
 		showError(err)
