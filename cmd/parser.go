@@ -3,7 +3,6 @@ package cmd
 import (
 	"bytes"
 	"fmt"
-	"github.com/vetcher/go-astra"
 	"go/format"
 	"go/parser"
 	"go/token"
@@ -13,34 +12,8 @@ import (
 	"regexp"
 	"strings"
 	"text/template"
-)
 
-var (
-	//jsonName  = "json"
-	tableName = "TableName"
-	temp      = `
-		package table
-
-		type _{{.StructName}} struct {
-			TableName string
-		{{range $key, $value := .Columns}} {{ $key }} TableField 
-		{{end}}
-		}
-
-		var (
-			{{.StructName}}  _{{.StructName}}
-		)
-
-		func init() {
-			{{.StructName}}.TableName = "{{lower .TableName}}"
-		{{range $key, $value := .Columns}} 
-		{{ $.StructName}}.{{$key}} = TableField{
-			Name: "{{index $value 0}}",
-			Json: "{{index $value 1}}",
-		} 
-		{{end}}
-		}
-		`
+	"github.com/vetcher/go-astra"
 )
 
 // TempData 表示生成template所需要的数据结构
@@ -52,7 +25,7 @@ type TempData struct {
 	Columns     map[string][]string
 }
 
-//
+//handleFile 处理model文件
 func handleFile(filename string) error {
 	tempData := new(TempData)
 
@@ -73,14 +46,14 @@ func handleFile(filename string) error {
 	}
 	tempData.PackageName = file.Name
 	//
-	functions := make(map[string]bool)
-	for _, fun := range file.Methods {
-		if fun.Name == "TableName" {
-			functions[fun.Receiver.Type.String()] = true
-		}
-	}
+	//functions := make(map[string]bool)
+	//for _, fun := range file.Methods {
+	//	if fun.Name == "TableName" {
+	//		functions[fun.Receiver.Type.String()] = true
+	//	}
+	//}
 
-	for i, stru := range file.Structures {
+	for _, stru := range file.Structures {
 		tempData.Columns = make(map[string][]string)
 		tempData.FileName = filename
 		tempData.StructName = stru.Name
@@ -118,14 +91,7 @@ func handleFile(filename string) error {
 			}
 			tempData.Columns[field.Name] = _namejson
 		}
-		if functions["*"+stru.Name] != true {
-			err = tempData.appendToModel(filename, i)
-			if err != nil {
-				showError(err)
-				return err
-			}
-		}
-
+		//如果struct名称为空,或者是一个私有struct,或者field为空,返回
 		if len(tempData.StructName) == 0 ||
 			tempData.StructName[:1] == strings.ToLower(tempData.StructName[:1]) ||
 			len(tempData.Columns) == 0 {
@@ -133,9 +99,18 @@ func handleFile(filename string) error {
 		}
 
 		if debug {
-			err = tempData.writeTo(os.Stdout)
+			return tempData.writeTo(os.Stdout)
 		}
+		//写model文件
+		//if !functions["*"+stru.Name] && !functions[stru.Name] {
+		err = tempData.writeModel(filename)
+		if err != nil {
+			showError(err)
+			return err
+		}
+		//}
 
+		//写table文件
 		err := tempData.writeToFile()
 		if err != nil {
 			showError(err.Error())
@@ -197,7 +172,7 @@ func (d *TempData) writeTo(w io.Writer) error {
 	funcMap := template.FuncMap{
 		"lower": strings.ToLower,
 	}
-	return template.Must(template.New("temp").Funcs(funcMap).Parse(temp)).Execute(w, d)
+	return template.Must(template.New("tableTpl").Funcs(funcMap).Parse(tableTpl)).Execute(w, d)
 }
 
 // writeToFile 将生成好的模块文件写到本地
@@ -215,125 +190,26 @@ func (d *TempData) writeToFile() error {
 	return err
 }
 
-var model_str = `
-package {{.PackageName}}
-
-import (
-	"sync"
-)
-
-var (
-	{{lower .StructName}}Pool = sync.Pool{
-		New: func() interface{} {
-			return &{{.StructName}}{}
-		},
-	}
-)
-
-func New{{.StructName}}() *{{.StructName}} {
-	return {{lower .StructName}}Pool.Get().(*{{.StructName}})
-}
-
-func (p *{{.StructName}}) Free() {
-	{{range $key, $value := .Columns}}p.{{$key}} = {{getTypeValue $value}}				
-	{{end}}
-	{{lower .StructName}}Pool.Put(p)
-}
-
-func (*{{.StructName}}) TableName() string {
-	return table.{{.StructName}}.TableName
-}
-	`
-
-func (d *TempData) appendToModel(fileName string, num int) error {
-	var buf bytes.Buffer
-	funcMap := template.FuncMap{
-		"lower": strings.ToLower,
-		"getTypeValue": func(t []string) interface{} {
-			if len(t) < 3 {
-				return `""`
-			}
-			var ret interface{}
-			switch t[2] {
-			case "string":
-				ret = `""`
-			case "uint", "uint8", "uint16", "uint32", "uint64", "int", "int8", "int16", "int32", "int64", "float32", "float64":
-				ret = 0
-			case "time.Time":
-				ret = `time.Time{}`
-			default:
-				ret = `""`
-			}
-			return ret
-		},
-	}
-
-	err := template.Must(template.New("temp").Funcs(funcMap).Parse(model_str)).Execute(&buf, d)
-	if err != nil {
-		showError(err)
-		return err
-	}
-
-	absPath, _ := filepath.Abs(fileName)
-	fileName = filepath.Join(filepath.Dir(absPath), getBaseFilename(d.FileName)+"_"+d.StructName+"_sorm.go")
-
-	var (
-		file *os.File
-	)
-	//if num>0{
-	//	file, err = os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
-	//}else{
-	//	file, err = os.Create(fileName)
-	//}
-	file, err = os.Create(fileName)
-
-	if err != nil {
-		showError(err.Error())
-		return err
-	}
-	defer file.Close()
-
-	_, err = file.Write(buf.Bytes())
-	if err != nil {
-		showError(err)
-		return err
-	}
-
-	return nil
-}
-
-//func (d *TempData) writeBaseFile() error {
-//	baseFilename := filepath.Join(getFilepath(d.FileName), "base.go")
-//
-//	file, err := os.Create(baseFilename)
-//	if err != nil {
-//		showError(err.Error())
-//		return err
-//	}
-//	defer file.Close()
-//	var buf bytes.Buffer
-//	_ = template.Must(template.New("temp").Parse(base)).Execute(&buf, d)
-//	formatted, _ := format.Source(buf.Bytes())
-//	_, err = file.Write(formatted)
-//	if err != nil {
-//		showError(err.Error())
-//	}
-//	return err
-//}
-
 func getFieldName(name string) string {
 	bs := bytes.NewBuffer([]byte{})
+
+	pre_lower := true //前一个字母是小写
 	for i, s := range name {
+		//如果是大写字母
 		if s >= 65 && s <= 90 {
-			s += 32
+			s += 32 //转成小写
 			if i == 0 {
 				bs.WriteByte(byte(s))
 			} else {
-				bs.WriteByte(byte(95))
+				if pre_lower {
+					bs.WriteByte(byte(95)) //写下划线
+				}
 				bs.WriteByte(byte(s))
 			}
+			pre_lower = false
 			continue
 		}
+		pre_lower = true
 		bs.WriteByte(byte(s))
 	}
 	return bs.String()

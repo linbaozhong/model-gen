@@ -18,7 +18,7 @@ func writeBaseFile(filename string) error {
 	}
 	defer file.Close()
 	var buf bytes.Buffer
-	_ = template.Must(template.New("temp").Parse(base)).Execute(&buf, nil)
+	_ = template.Must(template.New("baseTpl").Parse(baseTpl)).Execute(&buf, nil)
 	formatted, _ := format.Source(buf.Bytes())
 	_, err = file.Write(formatted)
 	if err != nil {
@@ -27,7 +27,7 @@ func writeBaseFile(filename string) error {
 	return err
 }
 
-var base = `
+var baseTpl = `
 		package table
 
 		const (

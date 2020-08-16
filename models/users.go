@@ -17,8 +17,9 @@ type Users struct {
 
 //tablename wallet
 type Wallet struct {
-	ID       uint64 `json:"id" xorm:"'id' pk autoincr"` //用户id
+	ID       uint64 //用户id
 	Currency uint8  `json:"currency" xorm:"'currency'"` //币种:
 	Amount   uint64 `json:"amount" xorm:"'amount'"`     //金额:单位:分
 	Fee      uint64 `json:"fee" xorm:"'fee'"`           //服务费,单位:分
+	JsON     string
 }
