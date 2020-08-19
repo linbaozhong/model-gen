@@ -57,9 +57,10 @@ func handleFile(filename string) error {
 		tempData.Columns = make(map[string][]string)
 		tempData.FileName = filename
 		tempData.StructName = stru.Name
-		tempData.TableName = parseDoc(strings.Join(stru.Docs, " "))
+		tempData.TableName = parseTableName(strings.Join(stru.Docs, " "))
 		if tempData.TableName == "" {
-			tempData.TableName = tempData.StructName
+			continue
+			//tempData.TableName = tempData.StructName
 		}
 
 		for _, field := range stru.Fields {
@@ -141,7 +142,7 @@ func parseTagsForGORM(matchs []string) string {
 	return ""
 }
 
-func parseDoc(doc string) string {
+func parseTableName(doc string) string {
 	re := regexp.MustCompile(fmt.Sprintf(`(?i:%s)[: ]+(.*)`, tableName))
 	matchs := re.FindStringSubmatch(doc)
 

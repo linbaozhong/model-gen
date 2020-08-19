@@ -26,7 +26,9 @@ var (
 	rootCmd = &cobra.Command{
 		Use:   "model-gen",
 		Short: "model 访问字典生成器",
-		Long:  `model 访问字典生成器.`,
+		Long: `model 访问字典生成器.
+在需要生成的struct上增加注释 //tablename [表名]
+				`,
 		Run: func(cmd *cobra.Command, args []string) {
 			_ = os.Mkdir(path+"/table", os.ModePerm)
 

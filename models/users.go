@@ -15,7 +15,6 @@ type Users struct {
 	IP     uint64    `json:"ip" xorm:"'ip' ->"` //ip地址
 }
 
-//tablename wallet
 type Wallet struct {
 	ID       uint64 //用户id
 	Currency uint8  `json:"currency" xorm:"'currency'"` //币种:
