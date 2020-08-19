@@ -62,9 +62,9 @@ func Execute() error {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVarP(&tagName, "tag", "t", XORM_TAG, "ORM名称.支持:xorm,gorm(缺省xorm)")
-	rootCmd.PersistentFlags().StringVarP(&path, "path", "p", "./models", "models路径(缺省./models)")
-	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "true:调试模式(缺省false)")
+	rootCmd.PersistentFlags().StringVarP(&tagName, "tag", "t", XORM_TAG, "ORM名称.支持:xorm,gorm")
+	rootCmd.PersistentFlags().StringVarP(&path, "path", "p", "./models", "models路径")
+	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "true:调试模式")
 
 }
 

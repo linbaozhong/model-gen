@@ -84,7 +84,7 @@ var baseTpl = `
 
 		//JOIN
 		func (f TableField) Join(joinOp string, col TableField, args ...string) (string, string, string, []string) {
-			return joinOp, col.Table, col.Quote() + "=" + f.Quote(), args
+			return strings.ToUpper(joinOp), col.Table, col.Quote() + "=" + f.Quote(), args
 		}
 
 		func (f TableField) Quote() string {
