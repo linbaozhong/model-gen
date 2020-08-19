@@ -21,5 +21,5 @@ type Wallet struct {
 	Currency uint8  `json:"currency" xorm:"'currency'"` //币种:
 	Amount   uint64 `json:"amount" xorm:"'amount'"`     //金额:单位:分
 	Fee      uint64 `json:"fee" xorm:"'fee'"`           //服务费,单位:分
-	JsON     string
+	JSON     string `json:"json" xorm:"'jn'"`
 }

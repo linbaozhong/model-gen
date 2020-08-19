@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/mitchellh/go-homedir"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/mitchellh/go-homedir"
 
 	"github.com/spf13/cobra"
 )
@@ -61,9 +62,9 @@ func Execute() error {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVarP(&tagName, "tag", "t", GORM_TAG, "orm tag name")
-	rootCmd.PersistentFlags().StringVarP(&path, "path", "p", "./models", "models path")
-	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "debug true")
+	rootCmd.PersistentFlags().StringVarP(&tagName, "tag", "t", XORM_TAG, "ORM名称.支持:xorm,gorm(缺省xorm)")
+	rootCmd.PersistentFlags().StringVarP(&path, "path", "p", "./models", "models路径(缺省./models)")
+	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "true:调试模式(缺省false)")
 
 }
 
