@@ -21,6 +21,7 @@ var (
 		{{ $.StructName}}.{{$key}} = TableField{
 			Name: "{{index $value 0}}",
 			Json: "{{index $value 1}}",
+			Table: {{.StructName}}.TableName,
 		} 
 		{{end}}
 		}

@@ -37,6 +37,7 @@ var baseTpl = `
 		type TableField struct {
 			Name string
 			Json string
+			Table string
 		}
 		//Eq 等于
 		func (f TableField) Eq() string {
@@ -64,28 +65,33 @@ var baseTpl = `
 		}
 		//Bt BETWEEN
 		func (f TableField)Bt() string {
-			return f.QuoteName() + " BETWEEN ? AND ?"
+			return f.Quote() + " BETWEEN ? AND ?"
 		}
 		//Like LIKE
 		func (f TableField) Like() string {
-			return f.QuoteName() + " LIKE CONCAT('%',?,'%')"
+			return f.Quote() + " LIKE CONCAT('%',?,'%')"
 		}
 
 		//Like 左like
 		func (f TableField) Llike() string {
-			return f.QuoteName() + " LIKE CONCAT('%',?)"
+			return f.Quote() + " LIKE CONCAT('%',?)"
 		}
 		
 		//Like 右like
 		func (f TableField) Rlike() string {
-			return f.QuoteName() + " LIKE CONCAT(?,'%')"
+			return f.Quote() + " LIKE CONCAT(?,'%')"
 		}
-		
-		func (f TableField) QuoteName() string {
-			return Quote_Char + f.Name + Quote_Char
+
+		//JOIN
+		func (f TableField) Join(joinOp string, col TableField, args ...string) (string, string, string, []string) {
+			return joinOp, col.Table, col.Table + "." + col.Quote() + "=" + f.Table + "." + f.Quote(), args
+		}
+
+		func (f TableField) Quote() string {
+			return f.Table + "." + Quote_Char + f.Name + Quote_Char
 		}
 		func (f TableField) generate(op string) string {
-			return f.QuoteName() + op + "?"
+			return f.Quote() + op + "?"
 		}
 
 		`
