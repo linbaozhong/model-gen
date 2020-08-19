@@ -27,19 +27,5 @@ var (
 		} 
 		{{end}}
 		}
-
-		func (*_{{.StructName}}) Select(fields ...TableField) string {
-			if len(fields) == 0 {
-				return ""
-			}
-			buf := strings.Builder{}
-			for i, f := range fields {
-				if i > 0 {
-					buf.WriteByte(',')
-				}
-				buf.WriteString(f.Quote())
-			}
-			return buf.String()
-		}
 		`
 )

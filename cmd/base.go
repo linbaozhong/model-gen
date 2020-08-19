@@ -36,6 +36,22 @@ var baseTpl = `
 			Quote_Char = "` + "`" + `"
 		)
 
+		//Select 生成select字段字符串
+		func Select(fields ...TableField) string {
+			l := len(fields)
+			if l == 0 {
+				return ""
+			}
+			buf := strings.Builder{}
+			for i, f := range fields {
+				if i > 0 {
+					buf.WriteByte(',')
+				}
+				buf.WriteString(f.Quote())
+			}
+			return buf.String()
+		}
+
 		type TableField struct {
 			Name string
 			Json string
