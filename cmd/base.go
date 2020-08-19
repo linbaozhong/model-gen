@@ -30,6 +30,8 @@ func writeBaseFile(filename string) error {
 var baseTpl = `
 		package table
 
+		import "strings"
+
 		const (
 			Quote_Char = "` + "`" + `"
 		)
