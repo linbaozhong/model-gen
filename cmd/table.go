@@ -4,9 +4,7 @@ var (
 	tableName = "TableName"
 	tableTpl  = `
 		package table
-		import (
-			"strings"
-		)
+
 		type _{{.StructName}} struct {
 			TableName string
 		{{range $key, $value := .Columns}} {{ $key }} TableField 
