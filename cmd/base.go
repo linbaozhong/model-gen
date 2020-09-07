@@ -47,7 +47,11 @@ var baseTpl = `
 				if i > 0 {
 					buf.WriteByte(',')
 				}
-				buf.WriteString(f.Quote())
+				if _f, ok := f.(TableField); ok {
+					buf.WriteString(_f.Quote())
+				} else {
+					buf.WriteString(utils.Interface2String(f))
+				}
 			}
 			return buf.String()
 		}
@@ -103,6 +107,11 @@ var baseTpl = `
 		//JOIN
 		func (f *TableField) Join(joinOp string, col TableField) (string, string, string) {
 			return strings.ToUpper(joinOp), col.Table, col.Quote() + "=" + f.Quote()
+		}
+
+		//AsName
+		func (f *TableField) AsName(s string) string {
+			return f.Quote() + " AS " + s
 		}
 
 		func (f *TableField) Quote() string {
