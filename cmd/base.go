@@ -106,6 +106,9 @@ var baseTpl = `
 		}
 
 		func (f *TableField) Quote() string {
+			if f.Table == "" {
+				return Quote_Char + f.Name + Quote_Char
+			}
 			return f.Table + "." + Quote_Char + f.Name + Quote_Char
 		}
 		func (f *TableField) generate(op string) string {
