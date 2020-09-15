@@ -37,7 +37,7 @@ var baseTpl = `
 		)
 
 		//Select 生成select字段字符串
-		func Select(fields ...TableField) string {
+		func Select(fields ...interface{}) string {
 			l := len(fields)
 			if l == 0 {
 				return ""
