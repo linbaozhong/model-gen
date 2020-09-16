@@ -45,7 +45,7 @@ func (p *{{.StructName}}) ToMap() map[string]interface{} {
 }
 	`
 
-func (d *TempData) writeModel(fileName string) error {
+func (d *TempData) writeToModel(fileName string) error {
 	var buf bytes.Buffer
 	funcMap := template.FuncMap{
 		"lower": strings.ToLower,

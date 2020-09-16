@@ -104,7 +104,7 @@ func handleFile(filename string) error {
 		}
 		//写model文件
 		//if !functions["*"+stru.Name] && !functions[stru.Name] {
-		err = tempData.writeModel(filename)
+		err = tempData.writeToModel(filename)
 		if err != nil {
 			showError(err)
 			return err
@@ -112,7 +112,7 @@ func handleFile(filename string) error {
 		//}
 
 		//写table文件
-		err := tempData.writeToFile()
+		err := tempData.writeToTable()
 		if err != nil {
 			showError(err.Error())
 			return err
@@ -165,7 +165,7 @@ func getBaseFilename(filename string) string {
 	return f[:pos]
 }
 
-func (d *TempData) handleFilename() string {
+func (d *TempData) tableFilename() string {
 	return filepath.Join(getFilepath(d.FileName), getBaseFilename(d.FileName)+"_"+d.StructName+"_table.go")
 }
 
@@ -176,9 +176,9 @@ func (d *TempData) writeTo(w io.Writer) error {
 	return template.Must(template.New("tableTpl").Funcs(funcMap).Parse(tableTpl)).Execute(w, d)
 }
 
-// writeToFile 将生成好的模块文件写到本地
-func (d *TempData) writeToFile() error {
-	file, err := os.Create(d.handleFilename())
+// writeToTable 将生成好的模块文件写到本地
+func (d *TempData) writeToTable() error {
+	file, err := os.Create(d.tableFilename())
 	if err != nil {
 		showError(err.Error())
 		return err
