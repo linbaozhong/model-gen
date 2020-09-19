@@ -49,8 +49,10 @@ var baseTpl = `
 				}
 				if _f, ok := f.(TableField); ok {
 					buf.WriteString(_f.Quote())
+				} else if _f, ok := f.(string); ok {
+					buf.WriteString(_f)
 				} else {
-					buf.WriteString(utils.Interface2String(f))
+					
 				}
 			}
 			return buf.String()
