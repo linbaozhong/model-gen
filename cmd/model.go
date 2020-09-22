@@ -37,12 +37,12 @@ func (*{{.StructName}}) TableName() string {
 	return table.{{.StructName}}.TableName
 }
 
-func (p *{{.StructName}}) ToMap() map[string]interface{} {
-	m := make(map[string]interface{}, {{len .Columns}})
-	{{range $key, $value := .Columns}}m[table.{{$.StructName}}.{{$key}}.Name] = p.{{$key}}
-	{{end}}
-	return m
-}
+//func (p *{{.StructName}}) ToMap() map[string]interface{} {
+//	m := make(map[string]interface{}, {{len .Columns}})
+//	{{range $key, $value := .Columns}}m[table.{{$.StructName}}.{{$key}}.Name] = p.{{$key}}
+//	{{end}}
+//	return m
+//}
 	`
 
 func (d *TempData) writeToModel(fileName string) error {
