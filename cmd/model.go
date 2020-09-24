@@ -12,7 +12,9 @@ var model_str = `
 package {{.PackageName}}
 
 import (
+	{{if .HasTime}}"time"{{end}}
 	"sync"
+	"{{.Module}}/table"
 )
 
 var (

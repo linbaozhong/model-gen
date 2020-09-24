@@ -18,16 +18,19 @@ import (
 
 // TempData 表示生成template所需要的数据结构
 type TempData struct {
+	Module      string
 	FileName    string
 	PackageName string
 	StructName  string
 	TableName   string
 	Columns     map[string][]string
+	HasTime     bool
 }
 
 //handleFile 处理model文件
-func handleFile(filename string) error {
+func handleFile(module, filename string) error {
 	tempData := new(TempData)
+	tempData.Module = module
 
 	fset := token.NewFileSet()
 	var src interface{}
@@ -75,6 +78,9 @@ func handleFile(filename string) error {
 				}
 			}
 			_namejson[2] = field.Type.String()
+			if _namejson[2] == "time.Time" {
+				tempData.HasTime = true
+			}
 
 			if _namejson[1] == "" {
 				if _namejson[0] == "" {

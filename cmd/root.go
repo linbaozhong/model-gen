@@ -21,6 +21,7 @@ var (
 	// Used for flags.
 	tagName string
 	path    string
+	module  string
 	debug   bool
 
 	rootCmd = &cobra.Command{
@@ -30,6 +31,14 @@ var (
 在需要生成的struct上增加注释 //tablename [表名]
 				`,
 		Run: func(cmd *cobra.Command, args []string) {
+			//module
+			p := path[:1]
+			if p == "." || p == "\\" {
+				module += "/" + path[strings.Index(path, "\\")+1:]
+			} else {
+				module += "/" + path
+			}
+
 			_ = os.Mkdir(path+"/table", os.ModePerm)
 
 			if err := writeBaseFile(path + "/table/base_sorm.go"); err != nil {
@@ -45,7 +54,7 @@ var (
 					if strings.Contains(filename, "_table.go") || strings.Contains(filename, "_sorm.go") {
 						return nil
 					}
-					return handleFile(filename)
+					return handleFile(module, filename)
 				}
 				return nil
 			})
@@ -66,6 +75,7 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVarP(&tagName, "tag", "t", XORM_TAG, "ORM名称.支持:xorm,gorm")
 	rootCmd.PersistentFlags().StringVarP(&path, "path", "p", "./models", "models路径")
+	rootCmd.PersistentFlags().StringVarP(&module, "module", "m", "", "module名称")
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "true:调试模式")
 
 }
