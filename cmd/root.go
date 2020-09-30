@@ -34,7 +34,10 @@ var (
 			//module
 			p := path[:1]
 			if p == "." || p == "\\" {
-				module += "/" + path[strings.Index(path, "\\")+1:]
+				p = path[strings.Index(path, "\\")+1:]
+				if len(p) > 0 {
+					module += "/" + p
+				}
 			} else {
 				module += "/" + path
 			}
