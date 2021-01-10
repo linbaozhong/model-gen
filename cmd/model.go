@@ -77,7 +77,8 @@ func (d *TempData) writeToModel(fileName string) error {
 	}
 
 	absPath, _ := filepath.Abs(fileName)
-	fileName = filepath.Join(filepath.Dir(absPath), getBaseFilename(d.FileName)+"_"+d.StructName+"_sorm.go")
+	//fileName = filepath.Join(filepath.Dir(absPath), getBaseFilename(d.FileName)+"_"+d.StructName+"_sorm.go")
+	fileName = filepath.Join(filepath.Dir(absPath), "zzz_"+d.StructName+".go")
 
 	var (
 		file *os.File
