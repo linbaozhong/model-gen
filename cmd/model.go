@@ -21,23 +21,23 @@ func (*{{.StructName}}) TableName() string {
 	return table.{{.StructName}}.TableName
 }
 
-//var (
-//	{{lower .StructName}}Pool = sync.Pool{
-//		New: func() interface{} {
-//			return &{{.StructName}}{}
-//		},
-//	}
-//)
-//
-//func New{{.StructName}}() *{{.StructName}} {
-//	return {{lower .StructName}}Pool.Get().(*{{.StructName}})
-//}
-//
-//func (p *{{.StructName}}) Free() {
-//	{{range $key, $value := .Columns}}p.{{$key}} = {{getTypeValue $value}}				
-//	{{end}}
-//	{{lower .StructName}}Pool.Put(p)
-//}
+var (
+	{{lower .StructName}}Pool = sync.Pool{
+		New: func() interface{} {
+			return &{{.StructName}}{}
+		},
+	}
+)
+
+func New{{.StructName}}() *{{.StructName}} {
+	return {{lower .StructName}}Pool.Get().(*{{.StructName}})
+}
+
+func (p *{{.StructName}}) Free() {
+	{{range $key, $value := .Columns}}p.{{$key}} = {{getTypeValue $value}}				
+	{{end}}
+	{{lower .StructName}}Pool.Put(p)
+}
 
 //func (p *{{.StructName}}) ToMap() map[string]interface{} {
 //	m := make(map[string]interface{}, {{len .Columns}})
