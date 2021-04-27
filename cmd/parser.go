@@ -43,7 +43,7 @@ func handleFile(module, filename string) error {
 	////////////
 	file, err := astra.ParseFile(filename,
 		astra.IgnoreVariables|astra.IgnoreConstants|astra.IgnoreFunctions|
-			astra.IgnoreInterfaces|astra.IgnoreTypes)
+			astra.IgnoreInterfaces|astra.IgnoreTypes|astra.IgnoreMethods)
 	if err != nil {
 		showError(err)
 	}
