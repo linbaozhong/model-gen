@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
-	"fmt"
 )
 
 var model_str = `
@@ -57,7 +56,6 @@ func (d *TempData) writeToModel(fileName string) error {
 				return `""`
 			}
 			var ret interface{}
-			fmt.Println(t[2])
 			switch t[2] {
 			case "string":
 				ret = `""`
@@ -66,7 +64,7 @@ func (d *TempData) writeToModel(fileName string) error {
 			case "time.Time":
 				ret = `time.Time{}`
 			default:
-				ret = `""`
+				ret = 0
 			}
 			return ret
 		},
