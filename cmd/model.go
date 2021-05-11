@@ -56,6 +56,7 @@ func (d *TempData) writeToModel(fileName string) error {
 				return `""`
 			}
 			var ret interface{}
+			fmt.Println(t[2])
 			switch t[2] {
 			case "string":
 				ret = `""`
