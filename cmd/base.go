@@ -106,6 +106,17 @@ var baseTpl = `
 			return f.Quote() + " LIKE CONCAT(?,'%')"
 		}
 
+
+		//Null is null
+		func (f *TableField) Null() string {
+			return f.Quote() + " is null"
+		}
+
+		//UnNull is not null
+		func (f *TableField) UnNull() string {
+			return f.Quote() + " is not null"
+		}
+
 		//JOIN
 		func (f *TableField) Join(joinOp string, col TableField) (string, string, string) {
 			return strings.ToUpper(joinOp), col.Table, col.Quote() + "=" + f.Quote()
