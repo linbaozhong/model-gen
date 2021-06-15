@@ -29,14 +29,31 @@ func New{{.StructName}}() *{{.StructName}} {
 	return {{lower .StructName}}Pool.Get().(*{{.StructName}})
 }
 
+//Free 
 func (p *{{.StructName}}) Free() {
 	{{range $key, $value := .Columns}}p.{{$key}} = {{getTypeValue $value}}				
 	{{end}}
 	{{lower .StructName}}Pool.Put(p)
 }
 
+//TableName
 func (*{{.StructName}}) TableName() string {
 	return table.{{.StructName}}.TableName
+}
+
+//Insert
+func (p *{{.StructName}}) Insert() (int64,error) {
+	return 0,nil
+}
+
+//Update
+func (p *{{.StructName}}) Update() (int64,error) {
+	return 0,nil
+}
+
+//Delete
+func (p *{{.StructName}}) Delete() (int64,error) {
+	return 0,nil
 }
 
 //func (p *{{.StructName}}) ToMap() map[string]interface{} {
