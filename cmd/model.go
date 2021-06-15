@@ -50,7 +50,7 @@ func (p *{{.StructName}}) Insert(db lib.Session, cols ...string) (int64,error) {
 }
 
 //Update
-func (p *{{.StructName}}) Update(db lib.Session, id uint64, bean interface{}) (int64,error) {
+func (p *{{.StructName}}) Update(db lib.Session, id uint64, bean ...interface{}) (int64,error) {
 	if len(bean) == 0 {
 		return db.ID(id).Update(p)
 	}

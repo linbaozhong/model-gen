@@ -96,6 +96,7 @@ func handleFile(module, filename string) error {
 					_namejson[0] = _namejson[1]
 				}
 			}
+			fmt.Println(field.Name, _namejson)
 			tempData.Columns[field.Name] = _namejson
 		}
 		//如果struct名称为空,或者是一个私有struct,或者field为空,返回
