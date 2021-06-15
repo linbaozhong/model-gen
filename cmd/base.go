@@ -110,6 +110,7 @@ var baseTpl = `
 		func (f *TableField) Null() string {
 			return f.Quote() + " is null"
 		}
+
 		//UnNull is not null
 		func (f *TableField) UnNull() string {
 			return f.Quote() + " is not null"

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,7 +13,7 @@ package {{.PackageName}}
 
 import (
 	{{if .HasTime}}"time"{{end}}
-//	"sync"
+	"sync"
 	"{{.Module}}/table"
 )
 
@@ -30,14 +29,14 @@ func New{{.StructName}}() *{{.StructName}} {
 	return {{lower .StructName}}Pool.Get().(*{{.StructName}})
 }
 
-func (*{{.StructName}}) TableName() string {
-	return table.{{.StructName}}.TableName
-}
-
 func (p *{{.StructName}}) Free() {
 	{{range $key, $value := .Columns}}p.{{$key}} = {{getTypeValue $value}}				
 	{{end}}
 	{{lower .StructName}}Pool.Put(p)
+}
+
+func (*{{.StructName}}) TableName() string {
+	return table.{{.StructName}}.TableName
 }
 
 //func (p *{{.StructName}}) ToMap() map[string]interface{} {
@@ -57,7 +56,6 @@ func (d *TempData) writeToModel(fileName string) error {
 				return `""`
 			}
 			var ret interface{}
-			fmt.Println(t[2])
 			switch t[2] {
 			case "string":
 				ret = `""`
@@ -66,7 +64,7 @@ func (d *TempData) writeToModel(fileName string) error {
 			case "time.Time":
 				ret = `time.Time{}`
 			default:
-				ret = `""`
+				ret = 0
 			}
 			return ret
 		},
