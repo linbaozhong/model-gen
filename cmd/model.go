@@ -50,13 +50,16 @@ func (p *{{.StructName}}) Insert(db lib.Session, cols ...string) (int64,error) {
 }
 
 //Update
-func (p *{{.StructName}}) Update() (int64,error) {
-	return 0,nil
+func (p *{{.StructName}}) Update(db lib.Session, id uint64, bean interface{}) (int64,error) {
+	if len(bean) == 0 {
+		return db.ID(id).Update(p)
+	}
+	return db.ID(id).Update(bean[0])
 }
 
 //Delete
-func (p *{{.StructName}}) Delete() (int64,error) {
-	return 0,nil
+func (p *{{.StructName}}) Delete(db lib.Session, id uint64) (int64,error) {
+	return  db.ID(id).Delete(p)
 }
 
 
