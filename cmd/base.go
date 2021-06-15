@@ -27,6 +27,7 @@ func writeBaseFile(filename string) error {
 	return err
 }
 
+//
 var baseTpl = `
 		package table
 

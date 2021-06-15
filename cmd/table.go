@@ -1,8 +1,10 @@
 package cmd
 
 var (
+	//
 	tableName = "TableName"
-	tableTpl  = `
+	//
+	tableTpl = `
 		package table
 
 		type _{{.StructName}} struct {

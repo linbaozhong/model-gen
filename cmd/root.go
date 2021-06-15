@@ -89,6 +89,7 @@ func showError(msg interface{}) {
 	os.Exit(1)
 }
 
+//
 func initConfig() {
 	if path == "" {
 		// Find home directory.

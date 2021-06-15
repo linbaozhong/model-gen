@@ -197,6 +197,7 @@ func (d *TempData) writeToTable() error {
 	return err
 }
 
+//
 func getFieldName(name string) string {
 	bs := bytes.NewBuffer([]byte{})
 
