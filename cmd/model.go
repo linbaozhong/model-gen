@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,10 +18,6 @@ import (
 	"{{.Module}}/table"
 )
 
-func (*{{.StructName}}) TableName() string {
-	return table.{{.StructName}}.TableName
-}
-
 var (
 	{{lower .StructName}}Pool = sync.Pool{
 		New: func() interface{} {
@@ -31,6 +28,10 @@ var (
 
 func New{{.StructName}}() *{{.StructName}} {
 	return {{lower .StructName}}Pool.Get().(*{{.StructName}})
+}
+
+func (*{{.StructName}}) TableName() string {
+	return table.{{.StructName}}.TableName
 }
 
 func (p *{{.StructName}}) Free() {
@@ -56,6 +57,7 @@ func (d *TempData) writeToModel(fileName string) error {
 				return `""`
 			}
 			var ret interface{}
+			fmt.Println(t[2])
 			switch t[2] {
 			case "string":
 				ret = `""`

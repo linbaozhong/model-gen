@@ -77,7 +77,7 @@ func handleFile(module, filename string) error {
 					_namejson[0] = parseTagsForGORM(v)
 				}
 			}
-			_namejson[2] = field.Type.String()
+			_namejson[2] = field.Base.Name //.Type.String()
 			if _namejson[2] == "time.Time" {
 				tempData.HasTime = true
 			}
