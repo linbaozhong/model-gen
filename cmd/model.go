@@ -42,8 +42,11 @@ func (*{{.StructName}}) TableName() string {
 }
 
 //Insert
-func (p *{{.StructName}}) Insert() (int64,error) {
-	return 0,nil
+func (p *{{.StructName}}) Insert(db lib.Session, cols ...string) (int64,error) {
+	if len(cols) == 0 {
+		return db.InsertOne(p)
+	}
+	return db.Cols(cols...).InsertOne(p)
 }
 
 //Update
