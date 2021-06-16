@@ -12,6 +12,7 @@ var model_str = `
 package {{.PackageName}}
 
 import (
+	"context"
 	{{if .HasTime}}"time"{{end}}
 	"sync"
 	"{{.Module}}/table"
@@ -24,6 +25,37 @@ var (
 		},
 	}
 )
+
+//这里是cache的示例，建议在其他的文件中实现
+//var (
+//	{{lower .StructName}}_cache     = redis.C(conf.App.Mode).Expiration(time.Minute)
+//	{{lower .StructName}}_ids_cache = redis.C(conf.App.Mode, "ids").Expiration(time.Minute)
+//)
+//
+//func init() {
+//	{{lower .StructName}}_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
+//		id := utils.Interface2UInt64(k, 0)
+//		if id < 1 {
+//			return nil, errors.New("key is invalid")
+//		}
+//
+//		m := New{{.StructName}}()
+//		db := lib.DB().Table(table.{{.StructName}}.TableName)
+//		has, e := db.ID(id).Get(m)
+//		if has {
+//			return m, nil
+//		}
+//		if e != nil {
+//			log.Logs.DBError(db, e)
+//		}
+//		return nil, e
+//	})
+//	//
+//	sharemp_ids_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
+//		//todo:实现从数据库拉取数据的逻辑
+//		return nil,nil
+//	})
+//}
 
 func New{{.StructName}}() *{{.StructName}} {
 	return {{lower .StructName}}Pool.Get().(*{{.StructName}})
@@ -62,6 +94,53 @@ func (p *{{.StructName}}) Delete(db lib.Session, id uint64) (int64,error) {
 	return  db.ID(id).Delete(p)
 }
 
+//Get
+func (p *{{.StructName}}) Get(db Session,id uint64) (bool, error) {
+	cm, e := {{lower .StructName}}_cache.Get(context.TODO(), id)
+	if e != nil {
+		return false, e
+	}
+	if val, ok := cm.(*{{.StructName}}); ok {
+		*p = *val
+		return ok, nil
+	}
+	return false, errors.New("类型错误")
+}
+
+//FindIDs
+//args: size,index
+func (p *{{.StructName}}) FindIDs(db Session,query string, vals []interface{}, args ...int) ([]uint64, error) {
+	ids := make([]uint64, 0)
+	db.Where(query, vals...)
+
+	if len(args) > 0 {
+		if len(args) > 1 {
+			db.Limit(args[0], args[1]*args[0])
+		} else {
+			db.Limit(args[0])
+		}
+	}
+	e := db.Find(&ids)
+	return ids, e
+}
+
+//Find
+//args: size,index
+func (p *{{.StructName}}) Find(db Session, query string, vals []interface{}, args ...int) ([]*{{.StructName}}, error) {
+	ids, e := p.FindIDs(db, query, vals, args...)
+	if len(ids) == 0 {
+		return nil, e
+	}
+	list := make([]*{{.StructName}}, 0, len(ids))
+	for _, id := range ids {
+		m := New{{.StructName}}()
+		b, _ := m.Get(db, id)
+		if b {
+			list = append(list, m)
+		}
+	}
+	return list, nil
+}
 
 //func (p *{{.StructName}}) ToMap() map[string]interface{} {
 //	m := make(map[string]interface{}, {{len .Columns}})
