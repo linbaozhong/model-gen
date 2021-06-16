@@ -224,22 +224,26 @@ func (d *TempData) writeToModel(fileName string) error {
 	}
 
 	absPath, _ := filepath.Abs(fileName)
-	//fileName = filepath.Join(filepath.Dir(absPath), getBaseFilename(d.FileName)+"_"+d.StructName+"_sorm.go")
 	fileName = filepath.Join(filepath.Dir(absPath), "zzz_"+d.StructName+".go")
 
+	////文件已存在
+	//_, e := os.Stat(fileName)
+	//if e == nil {
+	//	return nil
+	//}
 	var (
-		file *os.File
+		f *os.File
 	)
 
-	file, err = os.Create(fileName)
+	f, err = os.Create(fileName)
 
 	if err != nil {
 		showError(err.Error())
 		return err
 	}
-	defer file.Close()
+	defer f.Close()
 
-	_, err = file.Write(buf.Bytes())
+	_, err = f.Write(buf.Bytes())
 	if err != nil {
 		showError(err)
 		return err
