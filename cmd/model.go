@@ -51,7 +51,7 @@ var (
 //		return nil, e
 //	})
 //	//
-//	sharemp_ids_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
+//	{{lower .StructName}}_ids_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
 //		//todo:实现从数据库拉取数据的逻辑
 //		return nil,nil
 //	})
@@ -107,36 +107,43 @@ func (p *{{.StructName}}) Get(db Session,id uint64) (bool, error) {
 	return false, errors.New("类型错误")
 }
 
-//FindIDs
-//args: size,index
-func (p *{{.StructName}}) FindIDs(db Session,query string, vals []interface{}, args ...int) ([]uint64, error) {
-	ids := make([]uint64, 0)
-	db.Where(query, vals...)
-
-	if len(args) > 0 {
-		if len(args) > 1 {
-			db.Limit(args[0], args[1]*args[0])
-		} else {
-			db.Limit(args[0])
-		}
-	}
-	e := db.Find(&ids)
-	return ids, e
-}
+////FindIDs
+////args: size,index
+//func (p *{{.StructName}}) FindIDs(db Session,query string, vals []interface{}, args ...int) ([]uint64, error) {
+//	ids := make([]uint64, 0)
+//	db.Where(query, vals...)
+//
+//	if len(args) > 0 {
+//		if len(args) > 1 {
+//			db.Limit(args[0], args[1]*args[0])
+//		} else {
+//			db.Limit(args[0])
+//		}
+//	}
+//	e := db.Find(&ids)
+//	return ids, e
+//}
 
 //Find
 //args: size,index
-func (p *{{.StructName}}) Find(db Session, query string, vals []interface{}, args ...int) ([]*{{.StructName}}, error) {
-	ids, e := p.FindIDs(db, query, vals, args...)
+func (p *{{.StructName}}) Find(db Session, query string, vals []interface{}, size, index int) ([]*{{.StructName}}, error) {
+	k := lib.NewCacheKey(query,vals)
+
+	ids, e := {{lower .StructName}}_ids_cache.LGet(context.TODO(), k, int64(size*index), int64(size*(index+1)))
 	if len(ids) == 0 {
+		log.Logs.Error(e)
 		return nil, e
 	}
-	list := make([]*{{.StructName}}, 0, len(ids))
-	for _, id := range ids {
-		m := New{{.StructName}}()
-		b, _ := m.Get(db, id)
-		if b {
-			list = append(list, m)
+
+	ms, e := {{lower .StructName}}_cache.Gets(context.TODO(), ids)
+	if e != nil {
+		log.Logs.Error(e)
+		return nil, e
+	}
+	list := make([]*{{.StructName}}, 0, len(ms))
+	for _, m := range ms {
+		if mm, ok := m.(*{{.StructName}}); ok {
+			list = append(list, mm)
 		}
 	}
 	return list, nil
