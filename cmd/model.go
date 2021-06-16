@@ -108,7 +108,6 @@ func (p *{{.StructName}}) Get(db Session,id uint64) (bool, error) {
 }
 
 ////FindIDs
-////args: size,index
 //func (p *{{.StructName}}) FindIDs(db Session,query string, vals []interface{}, args ...int) ([]uint64, error) {
 //	ids := make([]uint64, 0)
 //	db.Where(query, vals...)
