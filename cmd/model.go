@@ -13,6 +13,9 @@ package {{.PackageName}}
 
 import (
 	"context"
+	"dao/lib"
+	"errors"
+	"internal/log"
 	{{if .HasTime}}"time"{{end}}
 	"sync"
 	"{{.Module}}/table"
@@ -49,11 +52,25 @@ var (
 //			log.Logs.DBError(db, e)
 //		}
 //		return nil, e
+//	}).DeserializeModel(func() interface{} {
+//		return New{{.StructName}}()
 //	})
 //	//
 //	{{lower .StructName}}_ids_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
-//		//todo:实现从数据库拉取数据的逻辑
-//		return nil,nil
+//		key, ok := k.(*lib.CacheKey)
+//		if !ok {
+//			return nil, errors.New("key is invalid")
+//		}
+//
+//		db := lib.DB().Where(key.Query, key.Vals...).Limit(Max_Size_Limit)
+//		ids := make([]uint64, 0)
+//
+//		e := db.Find(&ids)
+//		return ids, e
+//	}).DeserializeFunc(func(bean interface{}) (interface{}, error) {
+//		list := make([]uint64, 0)
+//		e := utils.JSON.UnmarshalFromString(bean.(string), list)
+//		return list, e
 //	})
 //}
 
@@ -74,7 +91,7 @@ func (*{{.StructName}}) TableName() string {
 }
 
 //Insert
-func (p *{{.StructName}}) Insert(db lib.Session, cols ...string) (int64,error) {
+func (p *{{.StructName}}) Insert(db Session, cols ...string) (int64,error) {
 	if len(cols) == 0 {
 		return db.InsertOne(p)
 	}
@@ -82,7 +99,7 @@ func (p *{{.StructName}}) Insert(db lib.Session, cols ...string) (int64,error) {
 }
 
 //Update
-func (p *{{.StructName}}) Update(db lib.Session, id uint64, bean ...interface{}) (int64,error) {
+func (p *{{.StructName}}) Update(db Session, id uint64, bean ...interface{}) (int64,error) {
 	if len(bean) == 0 {
 		return db.ID(id).Update(p)
 	}
@@ -90,7 +107,7 @@ func (p *{{.StructName}}) Update(db lib.Session, id uint64, bean ...interface{})
 }
 
 //Delete
-func (p *{{.StructName}}) Delete(db lib.Session, id uint64) (int64,error) {
+func (p *{{.StructName}}) Delete(db Session, id uint64) (int64,error) {
 	return  db.ID(id).Delete(p)
 }
 
