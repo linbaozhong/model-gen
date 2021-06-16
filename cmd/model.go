@@ -145,24 +145,7 @@ func (p *{{.StructName}}) Get(db Session,id uint64) (bool, error) {
 	return false, e
 }
 
-////FindIDs
-//func (p *{{.StructName}}) FindIDs(db Session,query string, vals []interface{}, args ...int) ([]uint64, error) {
-//	ids := make([]uint64, 0)
-//	db.Where(query, vals...)
-//
-//	if len(args) > 0 {
-//		if len(args) > 1 {
-//			db.Limit(args[0], args[1]*args[0])
-//		} else {
-//			db.Limit(args[0])
-//		}
-//	}
-//	e := db.Find(&ids)
-//	return ids, e
-//}
-
 //Find
-//args: size,index
 func (p *{{.StructName}}) Find(db Session, query string, vals []interface{}, size, index int) ([]*{{.StructName}}, error) {
 	k := lib.NewCacheKey(query,vals)
 
@@ -186,12 +169,23 @@ func (p *{{.StructName}}) Find(db Session, query string, vals []interface{}, siz
 	return list, nil
 }
 
-//func (p *{{.StructName}}) ToMap() map[string]interface{} {
-//	m := make(map[string]interface{}, {{len .Columns}})
-//	{{range $key, $value := .Columns}}m[table.{{$.StructName}}.{{$key}}.Name] = p.{{$key}}
-//	{{end}}
-//	return m
-//}
+//ToMap
+func (p *{{.StructName}}) ToMap(cols...table.TableField) types.Smap {
+	if len(cols) == 0{
+		return types.Smap{
+			{{range $key, $value := .Columns}}table.{{$.StructName}}.{{$key}}.Name:p.{{$key}},{{end}}
+		}
+	}
+
+	m := make(types.Smap,len(cols))
+	for _, col := range cols {
+		switch col {
+		{{range $key, $value := .Columns}}case table.{{$.StructName}}.{{$key}}:
+			m[col.Name] = p.{{$key}}{{end}}
+		}
+	}
+	return m
+}
 	`
 
 func (d *TempData) writeToModel(fileName string) error {
