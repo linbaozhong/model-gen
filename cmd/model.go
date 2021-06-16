@@ -16,6 +16,7 @@ import (
 	"dao/lib"
 	"errors"
 	"internal/log"
+	"internal/types"
 	{{if .HasTime}}"time"{{end}}
 	"sync"
 	"{{.Module}}/table"
