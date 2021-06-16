@@ -31,15 +31,21 @@ var (
 在需要生成的struct上增加注释 //tablename [表名]
 				`,
 		Run: func(cmd *cobra.Command, args []string) {
-			//module
+			//module_path
+			module_path := module
 			p := path[:1]
 			if p == "." || p == "\\" {
 				p = path[strings.Index(path, "\\")+1:]
 				if len(p) > 0 {
-					module += "/" + p
+					module_path += "/" + p
 				}
 			} else {
-				module += "/" + path
+				module_path += "/" + path
+			}
+			//module
+			pos := strings.Index(module, "/")
+			if pos > 0 {
+				module = module[:pos]
 			}
 
 			_ = os.Mkdir(path+"/table", os.ModePerm)
@@ -51,13 +57,15 @@ var (
 
 			err := filepath.Walk(path, func(filename string, f os.FileInfo, _ error) error {
 				if f.IsDir() && filename != path {
-					return filepath.SkipDir
+					fmt.Println(f.Name(), path)
+					return nil
+					//return filepath.SkipDir
 				}
 				if filepath.Ext(filename) == ".go" {
 					if strings.Contains(filename, "_table.go") || strings.Contains(filename, "_sorm.go") {
 						return nil
 					}
-					return handleFile(module, filename)
+					return handleFile(module, module_path, filename)
 				}
 				return nil
 			})

@@ -13,13 +13,17 @@ package {{.PackageName}}
 
 import (
 	"context"
-	"dao/lib"
 	"errors"
+	"internal/cache"
+	"internal/cache/redis"
+	"internal/conf"
 	"internal/log"
 	"internal/types"
-	{{if .HasTime}}"time"{{end}}
+	"libs/utils"
 	"sync"
-	"{{.Module}}/table"
+	"time"
+	"{{.ModulePath}}/table"
+	"{{.Module}}"
 )
 
 var (
@@ -30,50 +34,49 @@ var (
 	}
 )
 
-//这里是cache的示例，建议在其他的文件中实现
-//var (
-//	{{lower .StructName}}_cache     = redis.C(conf.App.Mode).Expiration(time.Minute)
-//	{{lower .StructName}}_ids_cache = redis.C(conf.App.Mode, "ids").Expiration(time.Minute)
-//)
-//
-//func init() {
-//	{{lower .StructName}}_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
-//		id := utils.Interface2UInt64(k, 0)
-//		if id < 1 {
-//			return nil, errors.New("key is invalid")
-//		}
-//
-//		m := New{{.StructName}}()
-//		db := lib.DB().Table(table.{{.StructName}}.TableName)
-//		has, e := db.ID(id).Get(m)
-//		if has {
-//			return m, nil
-//		}
-//		if e != nil {
-//			log.Logs.DBError(db, e)
-//		}
-//		return nil, e
-//	}).DeserializeModel(func() interface{} {
-//		return New{{.StructName}}()
-//	})
-//	//
-//	{{lower .StructName}}_ids_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
-//		key, ok := k.(*lib.CacheKey)
-//		if !ok {
-//			return nil, errors.New("key is invalid")
-//		}
-//
-//		db := lib.DB().Where(key.Query, key.Vals...).Limit(Max_Size_Limit)
-//		ids := make([]uint64, 0)
-//
-//		e := db.Find(&ids)
-//		return ids, e
-//	}).DeserializeFunc(func(bean interface{}) (interface{}, error) {
-//		list := make([]uint64, 0)
-//		e := utils.JSON.UnmarshalFromString(bean.(string), list)
-//		return list, e
-//	})
-//}
+//以下是cache的示例，建议在其他的文件中实现
+var (
+	{{lower .StructName}}_cache     = redis.C(conf.App.Mode).Expiration(time.Minute)
+	{{lower .StructName}}_ids_cache = redis.C(conf.App.Mode, "ids").Expiration(time.Minute)
+)
+
+func init() {
+	{{lower .StructName}}_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
+		id := utils.Interface2Uint64(k, 0)
+		if id < 1 {
+			return nil, dao.InvalidKey
+		}
+
+		m := New{{.StructName}}()
+		db := {{.Module}}.DB().Table(table.{{.StructName}}.TableName)
+		has, e := db.ID(id).Get(m)
+		if has {
+			return m, nil
+		}
+		if e != nil {
+			log.Logs.DBError(db, e)
+		}
+		return nil, e
+	}).DeserializeModel(func() interface{} {
+		return New{{.StructName}}()
+	})
+	//
+	{{lower .StructName}}_ids_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
+		key, ok := k.(*cache.CacheKey)
+		if !ok {
+			return nil, dao.InvalidKey
+		}
+
+		db := {{.Module}}.DB().Where(key.Query, key.Vals...).Limit({{.Module}}.Max_Size_Limit)
+		ids := make([]uint64, 0)
+
+		e := db.Find(&ids)
+		return ids, e
+	}).DeserializeFunc(func(bean interface{}) (interface{}, error) {
+		return utils.Interface2Uint64(bean), nil
+	})
+}
+//以上是cache的示例，建议在其他的文件中实现
 
 func New{{.StructName}}() *{{.StructName}} {
 	return {{lower .StructName}}Pool.Get().(*{{.StructName}})
@@ -92,7 +95,7 @@ func (*{{.StructName}}) TableName() string {
 }
 
 //Insert
-func (p *{{.StructName}}) Insert(db Session, cols ...string) (int64,error) {
+func (p *{{.StructName}}) Insert(db types.Session, cols ...string) (int64,error) {
 	if len(cols) > 0 {
 		db.Cols(cols...)
 	}
@@ -104,7 +107,7 @@ func (p *{{.StructName}}) Insert(db Session, cols ...string) (int64,error) {
 }
 
 //Update
-func (p *{{.StructName}}) Update(db Session, id uint64, bean ...interface{}) (int64,error) {
+func (p *{{.StructName}}) Update(db types.Session, id uint64, bean ...interface{}) (int64,error) {
 	var (
 		i64 int64
 		e error
@@ -121,7 +124,7 @@ func (p *{{.StructName}}) Update(db Session, id uint64, bean ...interface{}) (in
 }
 
 //Delete
-func (p *{{.StructName}}) Delete(db Session, id uint64) (int64,error) {
+func (p *{{.StructName}}) Delete(db types.Session, id uint64) (int64,error) {
 	i64,e := db.ID(id).Delete(p)
 	if e != nil {
 		log.Logs.DBError(db, e)
@@ -130,7 +133,7 @@ func (p *{{.StructName}}) Delete(db Session, id uint64) (int64,error) {
 }
 
 //Get
-func (p *{{.StructName}}) Get(db Session,id uint64) (bool, error) {
+func (p *{{.StructName}}) Get(db types.Session,id uint64) (bool, error) {
 	cm, e := {{lower .StructName}}_cache.Get(context.TODO(), id)
 	if e != nil {
 		log.Logs.Error(e)
@@ -147,8 +150,8 @@ func (p *{{.StructName}}) Get(db Session,id uint64) (bool, error) {
 }
 
 //Find
-func (p *{{.StructName}}) Find(db Session, query string, vals []interface{}, size, index int) ([]*{{.StructName}}, error) {
-	k := lib.NewCacheKey(query,vals)
+func (p *{{.StructName}}) Find(db types.Session, query string, vals []interface{}, size, index int) ([]interface{}, error) {
+	k := cache.NewCacheKey(query,vals)
 
 	ids, e := {{lower .StructName}}_ids_cache.LGet(context.TODO(), k, int64(size*index), int64(size*(index+1)))
 	if len(ids) == 0 {
@@ -156,33 +159,36 @@ func (p *{{.StructName}}) Find(db Session, query string, vals []interface{}, siz
 		return nil, e
 	}
 
-	ms, e := {{lower .StructName}}_cache.Gets(context.TODO(), ids)
+	ms, e := {{lower .StructName}}_cache.Gets(context.TODO(), ids...)
 	if e != nil {
 		log.Logs.Error(e)
 		return nil, e
 	}
-	list := make([]*{{.StructName}}, 0, len(ms))
+	list := make([]interface{}, 0, len(ms))
 	for _, m := range ms {
-		if mm, ok := m.(*{{.StructName}}); ok {
-			list = append(list, mm)
-		}
+		list = append(list, m)
+		//if mm, ok := m.(*{{.StructName}}); ok {
+		//	list = append(list, mm)
+		//}
 	}
 	return list, nil
 }
 
 //ToMap
-func (p *{{.StructName}}) ToMap(cols...table.TableField) types.Smap {
+func (p *{{.StructName}}) ToMap(cols...string) types.Smap {
 	if len(cols) == 0{
 		return types.Smap{
-			{{range $key, $value := .Columns}}table.{{$.StructName}}.{{$key}}.Name:p.{{$key}},{{end}}
+			{{range $key, $value := .Columns}}table.{{$.StructName}}.{{$key}}.Name:p.{{$key}},
+			{{end}}
 		}
 	}
 
 	m := make(types.Smap,len(cols))
 	for _, col := range cols {
 		switch col {
-		{{range $key, $value := .Columns}}case table.{{$.StructName}}.{{$key}}:
-			m[col.Name] = p.{{$key}}{{end}}
+		{{range $key, $value := .Columns}}case table.{{$.StructName}}.{{$key}}.Name:
+			m[col] = p.{{$key}}
+		{{end}}
 		}
 	}
 	return m
