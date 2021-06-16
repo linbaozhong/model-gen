@@ -13,6 +13,9 @@ package {{.PackageName}}
 
 import (
 	"context"
+	"dao/lib"
+	"errors"
+	"internal/log"
 	{{if .HasTime}}"time"{{end}}
 	"sync"
 	"{{.Module}}/table"
@@ -49,11 +52,25 @@ var (
 //			log.Logs.DBError(db, e)
 //		}
 //		return nil, e
+//	}).DeserializeModel(func() interface{} {
+//		return New{{.StructName}}()
 //	})
 //	//
 //	{{lower .StructName}}_ids_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
-//		//todo:实现从数据库拉取数据的逻辑
-//		return nil,nil
+//		key, ok := k.(*lib.CacheKey)
+//		if !ok {
+//			return nil, errors.New("key is invalid")
+//		}
+//
+//		db := lib.DB().Where(key.Query, key.Vals...).Limit(Max_Size_Limit)
+//		ids := make([]uint64, 0)
+//
+//		e := db.Find(&ids)
+//		return ids, e
+//	}).DeserializeFunc(func(bean interface{}) (interface{}, error) {
+//		list := make([]uint64, 0)
+//		e := utils.JSON.UnmarshalFromString(bean.(string), list)
+//		return list, e
 //	})
 //}
 
@@ -74,37 +91,58 @@ func (*{{.StructName}}) TableName() string {
 }
 
 //Insert
-func (p *{{.StructName}}) Insert(db lib.Session, cols ...string) (int64,error) {
-	if len(cols) == 0 {
-		return db.InsertOne(p)
+func (p *{{.StructName}}) Insert(db Session, cols ...string) (int64,error) {
+	if len(cols) > 0 {
+		db.Cols(cols...)
 	}
-	return db.Cols(cols...).InsertOne(p)
+	i64,e := db.InsertOne(p)
+	if e != nil {
+		log.Logs.DBError(db, e)
+	}
+	return i64, e
 }
 
 //Update
-func (p *{{.StructName}}) Update(db lib.Session, id uint64, bean ...interface{}) (int64,error) {
+func (p *{{.StructName}}) Update(db Session, id uint64, bean ...interface{}) (int64,error) {
+	var (
+		i64 int64
+		e error
+	)
 	if len(bean) == 0 {
-		return db.ID(id).Update(p)
+		i64,e =  db.ID(id).Update(p)
+	} else {
+		i64,e = db.ID(id).Update(bean[0])
 	}
-	return db.ID(id).Update(bean[0])
+	if e != nil {
+		log.Logs.DBError(db, e)
+	}
+	return i64, e
 }
 
 //Delete
-func (p *{{.StructName}}) Delete(db lib.Session, id uint64) (int64,error) {
-	return  db.ID(id).Delete(p)
+func (p *{{.StructName}}) Delete(db Session, id uint64) (int64,error) {
+	i64,e := db.ID(id).Delete(p)
+	if e != nil {
+		log.Logs.DBError(db, e)
+	}
+	return i64, e
 }
 
 //Get
 func (p *{{.StructName}}) Get(db Session,id uint64) (bool, error) {
 	cm, e := {{lower .StructName}}_cache.Get(context.TODO(), id)
 	if e != nil {
+		log.Logs.Error(e)
 		return false, e
 	}
 	if val, ok := cm.(*{{.StructName}}); ok {
 		*p = *val
 		return ok, nil
 	}
-	return false, errors.New("类型错误")
+
+	e = errors.New("类型错误")
+	log.Logs.Error(e)
+	return false, e
 }
 
 ////FindIDs
@@ -186,22 +224,26 @@ func (d *TempData) writeToModel(fileName string) error {
 	}
 
 	absPath, _ := filepath.Abs(fileName)
-	//fileName = filepath.Join(filepath.Dir(absPath), getBaseFilename(d.FileName)+"_"+d.StructName+"_sorm.go")
 	fileName = filepath.Join(filepath.Dir(absPath), "zzz_"+d.StructName+".go")
 
+	////文件已存在
+	//_, e := os.Stat(fileName)
+	//if e == nil {
+	//	return nil
+	//}
 	var (
-		file *os.File
+		f *os.File
 	)
 
-	file, err = os.Create(fileName)
+	f, err = os.Create(fileName)
 
 	if err != nil {
 		showError(err.Error())
 		return err
 	}
-	defer file.Close()
+	defer f.Close()
 
-	_, err = file.Write(buf.Bytes())
+	_, err = f.Write(buf.Bytes())
 	if err != nil {
 		showError(err)
 		return err
