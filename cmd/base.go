@@ -42,7 +42,7 @@ var baseTpl = `
 			Update(db types.Session, id uint64, bean ...interface{}) (int64, error)
 			Delete(db types.Session, id uint64) (int64, error)
 			Get(db types.Session, id uint64) (bool, error)
-			Find(db types.Session, query string, vals []interface{}, size, index int) ([]interface{}, error)
+			//Find(db types.Session, query string, vals []interface{}, size, index int) ([]interface{}, error)
 			ToMap(cols ...string) types.Smap
 		}
 

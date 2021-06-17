@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	XORM_TAG = "xorm"
-	GORM_TAG = "gorm"
+	XORM_TAG  = "xorm"
+	GORM_TAG  = "gorm"
+	Separator = string(os.PathSeparator)
 )
 
 var (
@@ -34,8 +35,14 @@ var (
 			//module_path
 			module_path := module
 			p := path[:1]
-			if p == "." || p == "\\" {
-				p = path[strings.Index(path, "\\")+1:]
+			if p == "." {
+				pos := strings.Index(path, Separator)
+				if pos == -1 {
+					p = path[1:]
+				} else {
+					p = path[pos+1:]
+				}
+
 				if len(p) > 0 {
 					module_path += "/" + p
 				}
@@ -48,24 +55,39 @@ var (
 				module = module[:pos]
 			}
 
-			_ = os.Mkdir(path+"/table", os.ModePerm)
-
-			if err := writeBaseFile(path + "/table/base_sorm.go"); err != nil {
-				showError(err.Error())
-				return
-			}
-
+			var dir string
 			err := filepath.Walk(path, func(filename string, f os.FileInfo, _ error) error {
-				if f.IsDir() && filename != path {
-					fmt.Println(f.Name(), path)
-					return nil
-					//return filepath.SkipDir
+				if f.IsDir() {
+					dir = f.Name()
+					if dir == ".git" || dir == "table" {
+						return filepath.SkipDir
+					}
+					if dir == "." {
+						return nil
+					}
+					//fmt.Println(path, dir, filename)
+
+					if p == dir {
+						_ = os.Mkdir(path+"/table", os.ModePerm)
+						if err := writeBaseFile(path + "/table/base_sorm.go"); err != nil {
+							return nil
+						}
+					} else {
+						_ = os.Mkdir(path+"/"+dir+"/table", os.ModePerm)
+						if err := writeBaseFile(path + "/" + dir + "/table/base_sorm.go"); err != nil {
+							return nil
+						}
+					}
 				}
+
 				if filepath.Ext(filename) == ".go" {
 					if strings.Contains(filename, "_table.go") || strings.Contains(filename, "_sorm.go") {
 						return nil
 					}
-					return handleFile(module, module_path, filename)
+					if p == dir {
+						return handleFile(module, module_path, filename)
+					}
+					return handleFile(module, module_path+"/"+dir, filename)
 				}
 				return nil
 			})

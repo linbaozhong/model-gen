@@ -36,8 +36,8 @@ var (
 
 //以下是cache的示例，建议在其他的文件中实现
 var (
-	{{lower .StructName}}_cache     = redis.C(conf.App.Mode).Expiration(time.Minute)
-	{{lower .StructName}}_ids_cache = redis.C(conf.App.Mode, "ids").Expiration(time.Minute)
+	{{lower .StructName}}_cache     = redis.NewClient(conf.App.Mode,"{{lower .StructName}}").Expiration(time.Minute)
+	{{lower .StructName}}_ids_cache = redis.NewClient(conf.App.Mode, "{{lower .StructName}}_ids").Expiration(time.Minute)
 )
 
 func init() {
@@ -150,7 +150,7 @@ func (p *{{.StructName}}) Get(db types.Session,id uint64) (bool, error) {
 }
 
 //Find
-func (p *{{.StructName}}) Find(db types.Session, query string, vals []interface{}, size, index int) ([]interface{}, error) {
+func (p *{{.StructName}}) Find(db types.Session, query string, vals []interface{}, size, index int) ([]*{{.StructName}}, error) {
 	k := cache.NewCacheKey(query,vals)
 
 	ids, e := {{lower .StructName}}_ids_cache.LGet(context.TODO(), k, int64(size*index), int64(size*(index+1)))
@@ -164,12 +164,12 @@ func (p *{{.StructName}}) Find(db types.Session, query string, vals []interface{
 		log.Logs.Error(e)
 		return nil, e
 	}
-	list := make([]interface{}, 0, len(ms))
+	list := make([]*{{.StructName}}, 0, len(ms))
 	for _, m := range ms {
-		list = append(list, m)
-		//if mm, ok := m.(*{{.StructName}}); ok {
-		//	list = append(list, mm)
-		//}
+		//list = append(list, m)
+		if mm, ok := m.(*{{.StructName}}); ok {
+			list = append(list, mm)
+		}
 	}
 	return list, nil
 }
