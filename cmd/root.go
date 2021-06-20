@@ -72,11 +72,13 @@ var (
 						if err := writeBaseFile(path + "/table/base_sorm.go"); err != nil {
 							return nil
 						}
+						writeBuildFile(filepath.Join(path, "table", "build_sorm.go"))
 					} else {
 						_ = os.Mkdir(path+"/"+dir+"/table", os.ModePerm)
 						if err := writeBaseFile(path + "/" + dir + "/table/base_sorm.go"); err != nil {
 							return nil
 						}
+						writeBuildFile(filepath.Join(path, dir, "table", "build_sorm.go"))
 					}
 				}
 
