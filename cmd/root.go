@@ -55,30 +55,19 @@ var (
 				module = module[:pos]
 			}
 
-			var dir string
 			err := filepath.Walk(path, func(filename string, f os.FileInfo, _ error) error {
+				fmt.Println("-----------", path, filename)
 				if f.IsDir() {
-					dir = f.Name()
-					if dir == ".git" || dir == "table" {
-						return filepath.SkipDir
-					}
-					if dir == "." {
-						return nil
-					}
-					//fmt.Println(path, dir, filename)
-
-					if p == dir {
+					if f.Name() == "models" {
 						_ = os.Mkdir(path+"/table", os.ModePerm)
 						if err := writeBaseFile(path + "/table/base_sorm.go"); err != nil {
 							return nil
 						}
 						writeBuildFile(filepath.Join(path, "table", "build_sorm.go"))
+
+						return nil
 					} else {
-						_ = os.Mkdir(path+"/"+dir+"/table", os.ModePerm)
-						if err := writeBaseFile(path + "/" + dir + "/table/base_sorm.go"); err != nil {
-							return nil
-						}
-						writeBuildFile(filepath.Join(path, dir, "table", "build_sorm.go"))
+						return filepath.SkipDir
 					}
 				}
 
@@ -86,10 +75,7 @@ var (
 					if strings.Contains(filename, "_table.go") || strings.Contains(filename, "_sorm.go") {
 						return nil
 					}
-					if p == dir {
-						return handleFile(module, module_path, filename)
-					}
-					return handleFile(module, module_path+"/"+dir, filename)
+					return handleFile(module, module_path, filename)
 				}
 				return nil
 			})
