@@ -21,7 +21,7 @@ import (
 	"libs/utils"
 	"sync"
 	"{{.ModulePath}}/table"
-	"{{.Module}}/lib"
+	"{{.ModulePath}}/lib"
 )
 
 var (
