@@ -113,7 +113,7 @@ func (p *{{.StructName}}) Insert(db types.Session, cols ...string) (int64,error)
 }
 
 //InsertBatch
-func (p *ShareMp) InsertBatch(db types.Session, beans []interface{}, cols ...string) (int64, error) {
+func (p *{{.StructName}}) InsertBatch(db types.Session, beans []interface{}, cols ...string) (int64, error) {
 	if len(cols) > 0 {
 		db.Cols(cols...)
 	}
