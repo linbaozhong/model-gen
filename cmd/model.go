@@ -14,14 +14,12 @@ package {{.PackageName}}
 import (
 	"context"
 	"errors"
-	"internal/cache"
 	"internal/cache/redis"
 	"internal/conf"
 	"internal/log"
 	"internal/types"
 	"libs/utils"
 	"sync"
-	"time"
 	"{{.ModulePath}}/table"
 	"{{.Module}}"
 )
