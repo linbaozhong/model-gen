@@ -34,17 +34,17 @@ var (
 	}
 )
 
-//以下是cache的示例，建议在其他的文件中实现
+//以下的Expiration常量参数，建议在其他的文件中实现，以免被覆盖
 var (
-	{{lower .StructName}}_cache     = redis.NewClient(conf.App.Mode,"{{lower .StructName}}").Expiration(time.Minute)
-	{{lower .StructName}}_ids_cache = redis.NewClient(conf.App.Mode, "{{lower .StructName}}_ids").Expiration(time.Minute)
+	{{lower .StructName}}_cache     = redis.NewClient(conf.App.Mode,"{{lower .StructName}}").Expiration({{lower .StructName}}_cache_expire)
+	{{lower .StructName}}_ids_cache = redis.NewClient(conf.App.Mode, "{{lower .StructName}}_ids").Expiration({{lower .StructName}}_ids_cache_expire)
 )
 
 func init() {
 	{{lower .StructName}}_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
 		id := utils.Interface2Uint64(k, 0)
 		if id < 1 {
-			return nil, dao.InvalidKey
+			return nil, {{.Module}}.InvalidKey
 		}
 
 		m := New{{.StructName}}()
@@ -62,12 +62,14 @@ func init() {
 	})
 	//
 	{{lower .StructName}}_ids_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
-		key, ok := k.(*cache.CacheKey)
+		cond, ok := k.(table.ISqlBuilder)
 		if !ok {
-			return nil, dao.InvalidKey
+			return nil, {{.Module}}.InvalidKey
 		}
-
-		db := {{.Module}}.DB().Where(key.Query, key.Vals...).Limit({{.Module}}.Max_Size_Limit)
+		
+		query, args := cond.GetQuery()
+		
+		db := {{.Module}}.DB().Where(query, args...).Limit({{lower .StructName}}_ids_max_limit)
 		ids := make([]uint64, 0)
 
 		e := db.Find(&ids)
@@ -99,9 +101,14 @@ func (p *{{.StructName}}) Insert(db types.Session, cols ...string) (int64,error)
 	if len(cols) > 0 {
 		db.Cols(cols...)
 	}
+
 	i64,e := db.InsertOne(p)
 	if e != nil {
 		log.Logs.DBError(db, e)
+	}
+
+	if i64 > 0 {
+		{{lower .StructName}}_ids_cache.Empty(context.TODO())
 	}
 	return i64, e
 }
@@ -112,13 +119,49 @@ func (p *{{.StructName}}) Update(db types.Session, id uint64, bean ...interface{
 		i64 int64
 		e error
 	)
+
+	db.ID(id)
+
 	if len(bean) == 0 {
-		i64,e =  db.ID(id).Update(p)
+		i64,e =  db.Update(p)
 	} else {
-		i64,e = db.ID(id).Update(bean[0])
+		i64,e = db.Update(bean[0])
 	}
+
 	if e != nil {
 		log.Logs.DBError(db, e)
+	}
+
+	if i64 > 0 {
+		p.OnChange(id)
+	}
+
+	return i64, e
+}
+
+//UpdateBatch
+func (p *{{.StructName}}) UpdateBatch(db types.Session, cond table.ISqlBuilder, bean ...interface{}) (int64, error) {
+	var (
+		i64 int64
+		e   error
+	)
+
+	query, args := cond.GetQuery()
+
+	db.Where(query, args...)
+
+	if len(bean) == 0 {
+		i64, e = db.Update(p)
+	} else {
+		i64, e = db.Update(bean[0])
+	}
+
+	if e != nil {
+		log.Logs.DBError(db, e)
+	}
+
+	if i64 > 0 {
+		p.OnBatchChange(cond)
 	}
 	return i64, e
 }
@@ -126,8 +169,28 @@ func (p *{{.StructName}}) Update(db types.Session, id uint64, bean ...interface{
 //Delete
 func (p *{{.StructName}}) Delete(db types.Session, id uint64) (int64,error) {
 	i64,e := db.ID(id).Delete(p)
+
 	if e != nil {
 		log.Logs.DBError(db, e)
+	}
+
+	if i64 > 0 {
+		p.OnChange(id)
+	}
+	return i64, e
+}
+
+//DeleteBatch
+func (p *{{.StructName}}) DeleteBatch(db types.Session, cond table.ISqlBuilder) (int64, error) {
+	query, args := cond.GetQuery()
+	i64, e := db.Where(query, args...).Delete(p)
+
+	if e != nil {
+		log.Logs.DBError(db, e)
+	}
+
+	if i64 > 0 {
+		p.OnBatchChange(cond)
 	}
 	return i64, e
 }
@@ -150,10 +213,8 @@ func (p *{{.StructName}}) Get(db types.Session,id uint64) (bool, error) {
 }
 
 //Find
-func (p *{{.StructName}}) Find(db types.Session, query string, vals []interface{}, size, index int) ([]*{{.StructName}}, error) {
-	k := cache.NewCacheKey(query,vals)
-
-	ids, e := {{lower .StructName}}_ids_cache.LGet(context.TODO(), k, int64(size*index), int64(size*(index+1)))
+func (p *{{.StructName}}) Find(db types.Session, cond table.ISqlBuilder, size, index int) ([]*{{.StructName}}, error) {
+	ids, e := {{lower .StructName}}_ids_cache.LGet(context.TODO(), cond, int64(size*index), int64(size*(index+1)))
 	if len(ids) == 0 {
 		log.Logs.Error(e)
 		return nil, e
@@ -193,6 +254,29 @@ func (p *{{.StructName}}) ToMap(cols...string) types.Smap {
 	}
 	return m
 }
+
+//OnChange
+func (p *{{.StructName}}) OnChange(id uint64) error {
+	return {{lower .StructName}}_cache.Remove(context.TODO(), id)
+}
+
+//OnBatchChange
+func (p *{{.StructName}}) OnBatchChange(cond table.ISqlBuilder) {
+	ids := make([]interface{}, 0)
+
+	query, args := cond.GetQuery()
+	db := {{.Module}}.DB().Where(query, args...)
+	e := db.Find(&ids)
+
+	if e != nil {
+		log.Logs.DBError(db, e)
+	}
+
+	if len(ids) > 0 {
+		{{lower .StructName}}_cache.Remove(context.TODO(), ids...)
+	}
+}
+
 	`
 
 func (d *TempData) writeToModel(fileName string) error {
