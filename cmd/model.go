@@ -78,7 +78,6 @@ func init() {
 		return utils.Interface2Uint64(bean), nil
 	})
 }
-//以上是cache的示例，建议在其他的文件中实现
 
 func New{{.StructName}}() *{{.StructName}} {
 	return {{lower .StructName}}Pool.Get().(*{{.StructName}})
@@ -96,13 +95,30 @@ func (*{{.StructName}}) TableName() string {
 	return table.{{.StructName}}.TableName
 }
 
-//Insert
+//Insert 
 func (p *{{.StructName}}) Insert(db types.Session, cols ...string) (int64,error) {
 	if len(cols) > 0 {
 		db.Cols(cols...)
 	}
 
 	i64,e := db.InsertOne(p)
+	if e != nil {
+		log.Logs.DBError(db, e)
+	}
+
+	if i64 > 0 {
+		{{lower .StructName}}_ids_cache.Empty(context.TODO())
+	}
+	return i64, e
+}
+
+//InsertBatch
+func (p *ShareMp) InsertBatch(db types.Session, beans []interface{}, cols ...string) (int64, error) {
+	if len(cols) > 0 {
+		db.Cols(cols...)
+	}
+
+	i64, e := db.Insert(beans...)
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
