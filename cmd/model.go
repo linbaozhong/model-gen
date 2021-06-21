@@ -21,7 +21,7 @@ import (
 	"libs/utils"
 	"sync"
 	"{{.ModulePath}}/table"
-	"{{.Module}}"
+	"{{.Module}}/lib"
 )
 
 var (
@@ -42,11 +42,11 @@ func init() {
 	{{lower .StructName}}_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
 		id := utils.Interface2Uint64(k, 0)
 		if id < 1 {
-			return nil, {{.Module}}.InvalidKey
+			return nil, InvalidKey
 		}
 
 		m := New{{.StructName}}()
-		db := {{.Module}}.DB().Table(table.{{.StructName}}.TableName)
+		db := lib.DB().Table(table.{{.StructName}}.TableName)
 		has, e := db.ID(id).Get(m)
 		if has {
 			return m, nil
@@ -62,12 +62,12 @@ func init() {
 	{{lower .StructName}}_ids_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
 		cond, ok := k.(table.ISqlBuilder)
 		if !ok {
-			return nil, {{.Module}}.InvalidKey
+			return nil, InvalidKey
 		}
 		
 		query, args := cond.GetQuery()
 		
-		db := {{.Module}}.DB().Where(query, args...).Limit({{lower .StructName}}_ids_max_limit)
+		db := lib.DB().Where(query, args...).Limit({{lower .StructName}}_ids_max_limit)
 		ids := make([]uint64, 0)
 
 		e := db.Find(&ids)
@@ -279,7 +279,7 @@ func (p *{{.StructName}}) OnBatchChange(cond table.ISqlBuilder) {
 	ids := make([]interface{}, 0)
 
 	query, args := cond.GetQuery()
-	db := {{.Module}}.DB().Where(query, args...)
+	db := lib.DB().Where(query, args...)
 	e := db.Find(&ids)
 
 	if e != nil {
