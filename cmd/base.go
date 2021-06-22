@@ -32,7 +32,6 @@ var baseTpl = `
 		package table
 
 		import (
-			"internal/types"
 			"strings"
 		)
 

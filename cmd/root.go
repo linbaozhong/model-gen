@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -32,6 +33,11 @@ var (
 在需要生成的struct上增加注释 //tablename [表名]
 				`,
 		Run: func(cmd *cobra.Command, args []string) {
+			dir, e := ioutil.ReadDir(path)
+			if e != nil {
+				showError(e.Error())
+				return
+			}
 			//module_path
 			module_path := module
 			p := path[:1]
@@ -44,10 +50,10 @@ var (
 				}
 
 				if len(p) > 0 {
-					module_path += "/" + p
+					module_path += "/" + strings.Replace(p, Separator, "/", -1)
 				}
 			} else {
-				module_path += "/" + path
+				module_path += "/" + strings.Replace(path, Separator, "/", -1)
 			}
 			//module
 			pos := strings.Index(module, "/")
@@ -55,32 +61,23 @@ var (
 				module = module[:pos]
 			}
 
-			err := filepath.Walk(path, func(filename string, f os.FileInfo, _ error) error {
-				fmt.Println("-----------", path, filename)
+			_ = os.Mkdir(filepath.Join(path, "table"), os.ModePerm)
+			if e = writeBaseFile(filepath.Join(path, "table", "base_sorm.go")); e != nil {
+				return
+			}
+			writeBuildFile(filepath.Join(path, "table", "build_sorm.go"))
+
+			for _, f := range dir {
 				if f.IsDir() {
-					if f.Name() == "models" {
-						_ = os.Mkdir(path+"/table", os.ModePerm)
-						if err := writeBaseFile(path + "/table/base_sorm.go"); err != nil {
-							return nil
-						}
-						writeBuildFile(filepath.Join(path, "table", "build_sorm.go"))
-
-						return nil
-					} else {
-						return filepath.SkipDir
-					}
+					continue
 				}
-
+				var filename = f.Name()
 				if filepath.Ext(filename) == ".go" {
 					if strings.Contains(filename, "_table.go") || strings.Contains(filename, "_sorm.go") {
-						return nil
+						continue
 					}
-					return handleFile(module, module_path, filename)
+					handleFile(module, module_path, filepath.Join(path, f.Name()))
 				}
-				return nil
-			})
-			if err != nil {
-				showError(err.Error())
 			}
 		},
 	}

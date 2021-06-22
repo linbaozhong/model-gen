@@ -32,6 +32,7 @@ package table
 
 import (
 	"errors"
+	"internal/types"
 	"strconv"
 	"strings"
 	"sync"
