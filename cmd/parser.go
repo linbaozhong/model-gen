@@ -19,6 +19,7 @@ import (
 // TempData 表示生成template所需要的数据结构
 type TempData struct {
 	Module      string
+	ModulePath  string
 	FileName    string
 	PackageName string
 	StructName  string
@@ -28,9 +29,10 @@ type TempData struct {
 }
 
 //handleFile 处理model文件
-func handleFile(module, filename string) error {
+func handleFile(module, modulePath, filename string) error {
 	tempData := new(TempData)
 	tempData.Module = module
+	tempData.ModulePath = modulePath
 
 	fset := token.NewFileSet()
 	var src interface{}
