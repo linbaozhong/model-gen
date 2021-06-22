@@ -35,19 +35,6 @@ var baseTpl = `
 			"internal/types"
 			"strings"
 		)
-		
-		type IModel interface {
-			TableName() string
-			Insert(db types.Session, cols ...string) (int64, error)
-			InsertBatch(db types.Session, beans []interface{}, cols ...string) (int64, error)
-			Update(db types.Session, id uint64, bean ...interface{}) (int64, error)
-			UpdateBatch(db types.Session, cond ISqlBuilder, bean ...interface{}) (int64, error)
-			Delete(db types.Session, id uint64) (int64, error)
-			DeleteBatch(db types.Session, cond ISqlBuilder) (int64, error)
-			Get(db types.Session, id uint64) (bool, error)
-			//Find(db types.Session, query string, vals []interface{}, size, index int) ([]interface{}, error)
-			ToMap(cols ...string) types.Smap
-		}
 
 		const (
 			Quote_Char = "` + "`" + `"
