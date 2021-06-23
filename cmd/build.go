@@ -33,6 +33,7 @@ package table
 import (
 	"errors"
 	"internal/types"
+	"libs/utils"
 	"strconv"
 	"strings"
 	"sync"
@@ -86,10 +87,12 @@ type IModel interface {
 
 type ISqlBuilder interface {
 	Table(m interface{}) ISqlBuilder
-	GetQuery() (string, []interface{})
+	GetCondition() (string, []interface{})
 	Select() (string, []interface{}, error)
-	//Insert() (string, error)
+	//Insert() (string, []interface{}, error)
+	Update() (string, []interface{}, error)
 
+	Distinct() ISqlBuilder
 	Cols(args ...TableField) ISqlBuilder
 	Eq(f TableField, v interface{}) ISqlBuilder
 	Gt(f TableField, v interface{}) ISqlBuilder
@@ -121,10 +124,17 @@ type ISqlBuilder interface {
 	Asc(cols ...TableField) ISqlBuilder
 	Desc(cols ...TableField) ISqlBuilder
 
+	//
+	Set(f TableField, v interface{}) ISqlBuilder
+	Incr(f TableField, v ...interface{}) ISqlBuilder
+	Decr(f TableField, v ...interface{}) ISqlBuilder
+	SetExpr(f TableField, expr interface{}) ISqlBuilder
+
 	Free()
 }
 type sqlBuilder struct {
 	table        string
+	distinct     bool
 	cols         []TableField
 	where        strings.Builder
 	params       []interface{}
@@ -136,6 +146,9 @@ type sqlBuilder struct {
 	join         string
 
 	andOr bool
+
+	updateCols   []string
+	updateParams []interface{}
 }
 
 var (
@@ -153,6 +166,7 @@ func NewSqlBuilder() *sqlBuilder {
 //Free
 func (p *sqlBuilder) Free() {
 	p.table = ""
+	p.distinct = false
 	p.cols = []TableField{}
 	p.where.Reset()
 	p.params = []interface{}{}
@@ -163,6 +177,9 @@ func (p *sqlBuilder) Free() {
 	p.limit = ""
 
 	p.andOr = true
+
+	p.updateCols = []string{}
+	p.updateParams = []interface{}{}
 
 	sqlBuilderPool.Put(p)
 }
@@ -177,6 +194,33 @@ func (p *sqlBuilder) Table(m interface{}) ISqlBuilder {
 	return p
 }
 
+//Update
+func (p *sqlBuilder) Update() (string, []interface{}, error) {
+	if p.table == "" {
+		return "", nil, ErrTableEmpty
+	}
+	if len(p.updateCols) == 0 {
+		return "", nil, ErrUpdateEmpty
+	}
+
+	var buf strings.Builder
+	var _params = p.updateParams
+	//UPDATE
+	buf.WriteString("UPDATE ")
+	//TABLE
+	buf.WriteString(Quote_Char + p.table + Quote_Char + " SET ")
+	//SET
+	buf.WriteString(strings.Join(p.updateCols, ", "))
+	//WHERE
+	sql, params := p.GetCondition()
+	if sql != "" {
+		buf.WriteString(" WHERE " + sql)
+		_params = append(_params, params...)
+	}
+
+	return buf.String(), _params, nil
+}
+
 //Select
 func (p *sqlBuilder) Select() (string, []interface{}, error) {
 	if p.table == "" {
@@ -188,6 +232,9 @@ func (p *sqlBuilder) Select() (string, []interface{}, error) {
 	if len(p.cols) == 0 {
 		buf.WriteString("*")
 	} else {
+		if p.distinct {
+			buf.WriteString("DISTINCT ")
+		}
 		for i, col := range p.cols {
 			if i > 0 {
 				buf.WriteByte(',')
@@ -202,7 +249,7 @@ func (p *sqlBuilder) Select() (string, []interface{}, error) {
 		buf.WriteString(p.join)
 	}
 	//WHERE
-	sql, params := p.GetQuery()
+	sql, params := p.GetCondition()
 	if sql != "" {
 		buf.WriteString(" WHERE " + sql)
 	}
@@ -210,8 +257,8 @@ func (p *sqlBuilder) Select() (string, []interface{}, error) {
 	return buf.String(), params, nil
 }
 
-//GetQuery
-func (p *sqlBuilder) GetQuery() (string, []interface{}) {
+//GetCondition
+func (p *sqlBuilder) GetCondition() (string, []interface{}) {
 	defer p.Free()
 
 	var buf strings.Builder
@@ -237,6 +284,12 @@ func (p *sqlBuilder) GetQuery() (string, []interface{}) {
 	}
 
 	return buf.String(), p.Params()
+}
+
+//
+func (p *sqlBuilder) Distinct() ISqlBuilder {
+	p.distinct = true
+	return p
 }
 
 //JOIN
@@ -460,6 +513,40 @@ func (p *sqlBuilder) Params() []interface{} {
 }
 
 ////
+//Set
+func (p *sqlBuilder) Set(f TableField, v interface{}) ISqlBuilder {
+	p.updateCols = append(p.updateCols, f.QuoteName()+" = ?")
+	p.updateParams = append(p.updateParams, v)
+	return p
+}
+
+//Incr
+func (p *sqlBuilder) Incr(f TableField, v ...interface{}) ISqlBuilder {
+	var _v = "1"
+	if len(v) > 0 {
+		_v = utils.Interface2String(v[0])
+	}
+	p.updateCols = append(p.updateCols, f.QuoteName()+" = "+f.QuoteName()+"+"+_v)
+	return p
+}
+
+//Decr
+func (p *sqlBuilder) Decr(f TableField, v ...interface{}) ISqlBuilder {
+	var _v = "1"
+	if len(v) > 0 {
+		_v = utils.Interface2String(v[0])
+	}
+	p.updateCols = append(p.updateCols, f.QuoteName()+" = "+f.QuoteName()+"-"+_v)
+	return p
+}
+
+//SetExpr
+func (p *sqlBuilder) SetExpr(f TableField, expr interface{}) ISqlBuilder {
+	p.updateCols = append(p.updateCols, f.QuoteName()+" = "+utils.Interface2String(expr))
+	return p
+}
+
+////
 //subCond 子条件
 func (p *sqlBuilder) subCond(sb ISqlBuilder) ISqlBuilder {
 	p.where.WriteString(" ( ")
@@ -489,4 +576,5 @@ func (p *sqlBuilder) prepare() *sqlBuilder {
 	}
 	return p
 }
+
 `

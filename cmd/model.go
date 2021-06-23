@@ -21,7 +21,6 @@ import (
 	"libs/utils"
 	"sync"
 	"{{.ModulePath}}/table"
-	"{{.ModulePath}}/lib"
 )
 
 var (
@@ -46,7 +45,7 @@ func init() {
 		}
 
 		m := New{{.StructName}}()
-		db := lib.DB().Table(table.{{.StructName}}.TableName)
+		db := DB().Table(table.{{.StructName}}.TableName)
 		has, e := db.ID(id).Get(m)
 		if has {
 			return m, nil
@@ -67,7 +66,7 @@ func init() {
 		
 		query, args := cond.GetQuery()
 		
-		db := lib.DB().Where(query, args...).Limit({{lower .StructName}}_ids_max_limit)
+		db := DB().Where(query, args...).Limit({{lower .StructName}}_ids_max_limit)
 		ids := make([]uint64, 0)
 
 		e := db.Find(&ids)
@@ -221,8 +220,7 @@ func (p *{{.StructName}}) Get(db types.Session,id uint64) (bool, error) {
 		return ok, nil
 	}
 
-	e = errors.New("类型错误")
-	log.Logs.Error(e)
+	log.Logs.Error(Err_Type)
 	return false, e
 }
 
@@ -279,7 +277,7 @@ func (p *{{.StructName}}) OnBatchChange(cond table.ISqlBuilder) {
 	ids := make([]interface{}, 0)
 
 	query, args := cond.GetQuery()
-	db := lib.DB().Where(query, args...)
+	db := DB().Where(query, args...)
 	e := db.Find(&ids)
 
 	if e != nil {
