@@ -89,7 +89,7 @@ type ISqlBuilder interface {
 	Table(m interface{}) ISqlBuilder
 	GetCondition() (string, []interface{})
 	Select() (string, []interface{}, error)
-	//Insert() (string, []interface{}, error)
+	Insert() (string, []interface{}, error)
 	Update() (string, []interface{}, error)
 
 	Distinct() ISqlBuilder
@@ -148,6 +148,7 @@ type sqlBuilder struct {
 	andOr bool
 
 	updateCols   []string
+	updateVals   []string
 	updateParams []interface{}
 }
 
@@ -179,6 +180,7 @@ func (p *sqlBuilder) Free() {
 	p.andOr = true
 
 	p.updateCols = []string{}
+	p.updateVals = []string{}
 	p.updateParams = []interface{}{}
 
 	sqlBuilderPool.Put(p)
@@ -192,6 +194,31 @@ func (p *sqlBuilder) Table(m interface{}) ISqlBuilder {
 		p.table = iface.TableName()
 	}
 	return p
+}
+
+//Insert
+func (p *sqlBuilder) Insert() (string, []interface{}, error) {
+	if p.table == "" {
+		return "", nil, ErrTableEmpty
+	}
+	if len(p.updateCols) == 0 {
+		return "", nil, ErrUpdateEmpty
+	}
+
+	var buf strings.Builder
+	//INSERT
+	buf.WriteString("INSERT INTO " + Quote_Char + p.table + Quote_Char)
+	//VALUES
+	buf.WriteString(" ( " + strings.Join(p.updateCols, ", ") + " ) VALUES ( ")
+	for i := 0; i < len(p.updateCols); i++ {
+		if i > 0 {
+			buf.WriteString(",")
+		}
+		buf.WriteString("?")
+	}
+	buf.WriteString(" ) ")
+
+	return buf.String(), p.updateParams, nil
 }
 
 //Update
@@ -210,7 +237,20 @@ func (p *sqlBuilder) Update() (string, []interface{}, error) {
 	//TABLE
 	buf.WriteString(Quote_Char + p.table + Quote_Char + " SET ")
 	//SET
-	buf.WriteString(strings.Join(p.updateCols, ", "))
+	if len(p.updateCols) > 0 {
+		for i, col := range p.updateCols {
+			if i > 0 {
+				buf.WriteString(", ")
+			}
+			buf.WriteString(col + " = ?")
+		}
+	}
+	if len(p.updateVals) > 0 {
+		if len(p.updateCols) > 0 {
+			buf.WriteString(", ")
+		}
+		buf.WriteString(strings.Join(p.updateVals, ", "))
+	}
 	//WHERE
 	sql, params := p.GetCondition()
 	if sql != "" {
@@ -515,7 +555,7 @@ func (p *sqlBuilder) Params() []interface{} {
 ////
 //Set
 func (p *sqlBuilder) Set(f TableField, v interface{}) ISqlBuilder {
-	p.updateCols = append(p.updateCols, f.QuoteName()+" = ?")
+	p.updateCols = append(p.updateCols, f.QuoteName())
 	p.updateParams = append(p.updateParams, v)
 	return p
 }
@@ -526,8 +566,8 @@ func (p *sqlBuilder) Incr(f TableField, v ...interface{}) ISqlBuilder {
 	if len(v) > 0 {
 		_v = utils.Interface2String(v[0])
 	}
-	p.updateCols = append(p.updateCols, f.QuoteName()+" = "+f.QuoteName()+"+"+_v)
-	return p
+	//p.updateCols = append(p.updateCols, f.QuoteName()+" = "+f.QuoteName()+"+"+_v)
+	return p.SetExpr(f, f.QuoteName()+"+"+_v)
 }
 
 //Decr
@@ -536,13 +576,13 @@ func (p *sqlBuilder) Decr(f TableField, v ...interface{}) ISqlBuilder {
 	if len(v) > 0 {
 		_v = utils.Interface2String(v[0])
 	}
-	p.updateCols = append(p.updateCols, f.QuoteName()+" = "+f.QuoteName()+"-"+_v)
-	return p
+	//p.updateCols = append(p.updateCols, f.QuoteName()+" = "+f.QuoteName()+"-"+_v)
+	return p.SetExpr(f, f.QuoteName()+"-"+_v)
 }
 
 //SetExpr
 func (p *sqlBuilder) SetExpr(f TableField, expr interface{}) ISqlBuilder {
-	p.updateCols = append(p.updateCols, f.QuoteName()+" = "+utils.Interface2String(expr))
+	p.updateVals = append(p.updateVals, f.QuoteName()+" = "+utils.Interface2String(expr))
 	return p
 }
 
