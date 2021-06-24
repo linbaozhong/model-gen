@@ -116,8 +116,8 @@ type ISqlBuilder interface {
 	Or() ISqlBuilder
 	OrWhere(sb ISqlBuilder) ISqlBuilder
 
-	Where() string
-	Params() []interface{}
+	GetWhere() string
+	GetParams() []interface{}
 
 	GroupBy(cols ...TableField) ISqlBuilder
 	Having(sb ISqlBuilder) ISqlBuilder
@@ -281,7 +281,7 @@ func (p *sqlBuilder) Update() (string, []interface{}, error) {
 		}
 	}
 	//WHERE
-	sql, params := p.GetCondition()
+	sql, params := p.condition()
 	var _params = make([]interface{}, len(p.updateParams)+len(params))
 	copy(_params, p.updateParams)
 
@@ -307,7 +307,7 @@ func (p *sqlBuilder) Delete() (string, []interface{}, error) {
 	//TABLE
 	buf.WriteString(Quote_Char + p.table + Quote_Char + " ")
 	//WHERE
-	sql, params := p.GetCondition()
+	sql, params := p.condition()
 	var _params = make([]interface{}, len(p.updateParams)+len(params))
 	copy(_params, p.updateParams)
 
@@ -349,7 +349,7 @@ func (p *sqlBuilder) Select() (string, []interface{}, error) {
 		buf.WriteString(p.join)
 	}
 	//WHERE
-	sql, params := p.GetCondition()
+	sql, params := p.condition()
 	if sql != "" {
 		buf.WriteString(" WHERE " + sql)
 	}
@@ -359,29 +359,8 @@ func (p *sqlBuilder) Select() (string, []interface{}, error) {
 
 //GetCondition
 func (p *sqlBuilder) GetCondition() (string, []interface{}) {
-	var buf strings.Builder
-	//WHERE
-	if p.where.Len() > 0 {
-		buf.WriteString(p.Where())
-	}
-	//GROUP BY
-	if p.groupBy.Len() > 0 {
-		buf.WriteString(" GROUP BY " + p.groupBy.String())
-	}
-	//HAVING
-	if p.having.Len() > 0 {
-		buf.WriteString(" HAVING " + p.having.String())
-	}
-	//ORDER BY
-	if p.orderBy.Len() > 0 {
-		buf.WriteString(" ORDER BY " + p.orderBy.String())
-	}
-	//LIMIT
-	if p.limit != "" {
-		buf.WriteString(p.limit)
-	}
-
-	return buf.String(), p.Params()
+	defer p.Free()
+	return p.condition()
 }
 
 //
@@ -423,8 +402,8 @@ func (p *sqlBuilder) GroupBy(cols ...TableField) ISqlBuilder {
 //HAVING
 func (p *sqlBuilder) Having(sb ISqlBuilder) ISqlBuilder {
 	defer sb.Free()
-	p.having.WriteString(sb.Where())
-	p.havingParams = sb.Params()
+	p.having.WriteString(sb.GetWhere())
+	p.havingParams = sb.GetParams()
 	return p
 }
 
@@ -568,7 +547,7 @@ func (p *sqlBuilder) And() ISqlBuilder {
 func (p *sqlBuilder) AndWhere(sb ISqlBuilder) ISqlBuilder {
 	defer sb.Free()
 
-	if sb.Where() == "" {
+	if sb.GetWhere() == "" {
 		return p
 	}
 
@@ -588,7 +567,7 @@ func (p *sqlBuilder) Or() ISqlBuilder {
 //OrWhere
 func (p *sqlBuilder) OrWhere(sb ISqlBuilder) ISqlBuilder {
 	defer sb.Free()
-	if sb.Where() == "" {
+	if sb.GetWhere() == "" {
 		return p
 	}
 
@@ -596,18 +575,44 @@ func (p *sqlBuilder) OrWhere(sb ISqlBuilder) ISqlBuilder {
 	return p.subCond(sb)
 }
 
-//Where
-func (p *sqlBuilder) Where() string {
+//GetWhere
+func (p *sqlBuilder) GetWhere() string {
 	return p.where.String()
 }
 
-//Params
-func (p *sqlBuilder) Params() []interface{} {
+//GetParams
+func (p *sqlBuilder) GetParams() []interface{} {
 	params := []interface{}{}
 	params = append(params, p.params...)
 	params = append(params, p.havingParams...)
 
 	return params
+}
+//GetCondition
+func (p *sqlBuilder) condition() (string, []interface{}) {
+	var buf strings.Builder
+	//WHERE
+	if p.where.Len() > 0 {
+		buf.WriteString(p.GetWhere())
+	}
+	//GROUP BY
+	if p.groupBy.Len() > 0 {
+		buf.WriteString(" GROUP BY " + p.groupBy.String())
+	}
+	//HAVING
+	if p.having.Len() > 0 {
+		buf.WriteString(" HAVING " + p.having.String())
+	}
+	//ORDER BY
+	if p.orderBy.Len() > 0 {
+		buf.WriteString(" ORDER BY " + p.orderBy.String())
+	}
+	//LIMIT
+	if p.limit != "" {
+		buf.WriteString(p.limit)
+	}
+
+	return buf.String(), p.GetParams()
 }
 
 ////
@@ -649,11 +654,11 @@ func (p *sqlBuilder) SetExpr(f TableField, expr string) ISqlBuilder {
 //subCond 子条件
 func (p *sqlBuilder) subCond(sb ISqlBuilder) ISqlBuilder {
 	p.where.WriteString(" ( ")
-	p.where.WriteString(sb.Where())
+	p.where.WriteString(sb.GetWhere())
 	p.where.WriteString(" ) ")
 
-	if len(sb.Params()) > 0 {
-		p.params = append(p.params, sb.Params()...)
+	if len(sb.GetParams()) > 0 {
+		p.params = append(p.params, sb.GetParams()...)
 	}
 
 	p.andOr = false

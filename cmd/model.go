@@ -64,7 +64,7 @@ func init() {
 			return nil, InvalidKey
 		}
 		
-		query, args := cond.GetQuery()
+		query, args := cond.GetCondition()
 		
 		db := DB().Where(query, args...).Limit({{lower .StructName}}_ids_max_limit)
 		ids := make([]uint64, 0)
@@ -159,7 +159,7 @@ func (p *{{.StructName}}) UpdateBatch(db types.Session, cond table.ISqlBuilder, 
 		e   error
 	)
 
-	query, args := cond.GetQuery()
+	query, args := cond.GetCondition()
 
 	db.Where(query, args...)
 
@@ -195,7 +195,7 @@ func (p *{{.StructName}}) Delete(db types.Session, id uint64) (int64,error) {
 
 //DeleteBatch
 func (p *{{.StructName}}) DeleteBatch(db types.Session, cond table.ISqlBuilder) (int64, error) {
-	query, args := cond.GetQuery()
+	query, args := cond.GetCondition()
 	i64, e := db.Where(query, args...).Delete(p)
 
 	if e != nil {
@@ -276,7 +276,7 @@ func (p *{{.StructName}}) OnChange(id uint64) error {
 func (p *{{.StructName}}) OnBatchChange(cond table.ISqlBuilder) {
 	ids := make([]interface{}, 0)
 
-	query, args := cond.GetQuery()
+	query, args := cond.GetCondition()
 	db := DB().Where(query, args...)
 	e := db.Find(&ids)
 
