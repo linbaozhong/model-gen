@@ -21,7 +21,6 @@ import (
 	"libs/utils"
 	"sync"
 	"{{.ModulePath}}/table"
-	"{{.ModulePath}}/lib"
 )
 
 var (
@@ -46,7 +45,7 @@ func init() {
 		}
 
 		m := New{{.StructName}}()
-		db := lib.DB().Table(table.{{.StructName}}.TableName)
+		db := DB().Table(table.{{.StructName}}.TableName)
 		has, e := db.ID(id).Get(m)
 		if has {
 			return m, nil
@@ -65,9 +64,9 @@ func init() {
 			return nil, InvalidKey
 		}
 		
-		query, args := cond.GetQuery()
+		query, args := cond.GetCondition()
 		
-		db := lib.DB().Where(query, args...).Limit({{lower .StructName}}_ids_max_limit)
+		db := DB().Where(query, args...).Limit({{lower .StructName}}_ids_max_limit)
 		ids := make([]uint64, 0)
 
 		e := db.Find(&ids)
@@ -160,7 +159,7 @@ func (p *{{.StructName}}) UpdateBatch(db types.Session, cond table.ISqlBuilder, 
 		e   error
 	)
 
-	query, args := cond.GetQuery()
+	query, args := cond.GetCondition()
 
 	db.Where(query, args...)
 
@@ -196,7 +195,7 @@ func (p *{{.StructName}}) Delete(db types.Session, id uint64) (int64,error) {
 
 //DeleteBatch
 func (p *{{.StructName}}) DeleteBatch(db types.Session, cond table.ISqlBuilder) (int64, error) {
-	query, args := cond.GetQuery()
+	query, args := cond.GetCondition()
 	i64, e := db.Where(query, args...).Delete(p)
 
 	if e != nil {
@@ -221,8 +220,7 @@ func (p *{{.StructName}}) Get(db types.Session,id uint64) (bool, error) {
 		return ok, nil
 	}
 
-	e = errors.New("类型错误")
-	log.Logs.Error(e)
+	log.Logs.Error(Err_Type)
 	return false, e
 }
 
@@ -278,8 +276,8 @@ func (p *{{.StructName}}) OnChange(id uint64) error {
 func (p *{{.StructName}}) OnBatchChange(cond table.ISqlBuilder) {
 	ids := make([]interface{}, 0)
 
-	query, args := cond.GetQuery()
-	db := lib.DB().Where(query, args...)
+	query, args := cond.GetCondition()
+	db := DB().Where(query, args...)
 	e := db.Find(&ids)
 
 	if e != nil {
@@ -290,6 +288,21 @@ func (p *{{.StructName}}) OnBatchChange(cond table.ISqlBuilder) {
 		{{lower .StructName}}_cache.Remove(context.TODO(), ids...)
 	}
 }
+
+//func (p *{{.StructName}}) getInsert(cols ...string) (sql string, params []interface{}, e error) {
+//	sb := table.NewSqlBuilder()
+//	defer sb.Free()
+//
+//	sb.Table(p)
+//
+//	m := p.ToMap(cols...)
+//	for k, v := range m {
+//		sb.Set(k, v)
+//	}
+//
+//	sql, params, e = sb.Insert()
+//	return
+//}
 
 	`
 
