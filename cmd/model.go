@@ -289,6 +289,21 @@ func (p *{{.StructName}}) OnBatchChange(cond table.ISqlBuilder) {
 	}
 }
 
+//func (p *{{.StructName}}) getInsert(cols ...string) (sql string, params []interface{}, e error) {
+//	sb := table.NewSqlBuilder()
+//	defer sb.Free()
+//
+//	sb.Table(p)
+//
+//	m := p.ToMap(cols...)
+//	for k, v := range m {
+//		sb.Set(k, v)
+//	}
+//
+//	sql, params, e = sb.Insert()
+//	return
+//}
+
 	`
 
 func (d *TempData) writeToModel(fileName string) error {
