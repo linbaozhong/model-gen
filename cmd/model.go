@@ -13,7 +13,7 @@ package {{.PackageName}}
 
 import (
 	"context"
-	"errors"
+	"time"
 	"internal/cache/redis"
 	"internal/conf"
 	"internal/log"
