@@ -72,7 +72,9 @@ func init() {
 		e := db.Find(&ids)
 		return ids, e
 	}).DeserializeFunc(func(bean interface{}) (interface{}, error) {
-		return utils.Interface2Uint64(bean), nil
+		ids := make([]uint64, 0)
+		e := utils.JSON.UnmarshalFromString(utils.Interface2String(bean), &ids)
+		return ids, e
 	})
 }
 
