@@ -111,12 +111,12 @@ var baseTpl = `
 
 		//Null is null
 		func (f *TableField) Null() string {
-			return f.Quote() + " is null"
+			return f.Quote() + " IS NULL"
 		}
 
 		//UnNull is not null
 		func (f *TableField) UnNull() string {
-			return f.Quote() + " is not null"
+			return f.Quote() + " IS NOT NULL"
 		}
 
 		//JOIN

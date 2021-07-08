@@ -228,7 +228,7 @@ func (p *{{.StructName}}) Get(db types.Session,id uint64) (bool, error) {
 
 //Find
 func (p *{{.StructName}}) Find(db types.Session, cond table.ISqlBuilder, size, index int) ([]*{{.StructName}}, error) {
-	ids, e := {{lower .StructName}}_ids_cache.LGet(context.TODO(), cond, int64(size*index), int64(size*(index+1)))
+	ids, e := {{lower .StructName}}_ids_cache.LGet(context.TODO(), cond, int64(size*(index-1)), int64(size*index))
 	if len(ids) == 0 {
 		log.Logs.Error(e)
 		return nil, e
