@@ -100,6 +100,8 @@ type ISqlBuilder interface {
 	Gte(f TableField, v interface{}) ISqlBuilder
 	Lt(f TableField, v interface{}) ISqlBuilder
 	Lte(f TableField, v interface{}) ISqlBuilder
+	In(f TableField, v ...interface{}) ISqlBuilder
+	UnIn(f TableField, v ...interface{}) ISqlBuilder
 	Ue(f TableField, v interface{}) ISqlBuilder
 	Bt(f TableField, v1, v2 interface{}) ISqlBuilder
 	Like(f TableField, v interface{}) ISqlBuilder
@@ -493,6 +495,32 @@ func (p *sqlBuilder) Bt(f TableField, v1, v2 interface{}) ISqlBuilder {
 	p.prepare()
 	p.where.WriteString(f.Quote() + " BETWEEN " + placeholder + " AND " + placeholder)
 	p.params = append(p.params, v1, v2)
+
+	p.andOr = false
+	return p
+}
+
+//In
+func (p *sqlBuilder) In(f TableField, v ...interface{}) ISqlBuilder {
+	if len(v) == 0 {
+		return p
+	}
+	p.prepare()
+	p.where.WriteString(f.Quote() + " IN (" + strings.Repeat(placeholder+",", len(v))[:2*len(v)-1] + ") ")
+	p.params = append(p.params, v...)
+
+	p.andOr = false
+	return p
+}
+
+//UnIn
+func (p *sqlBuilder) UnIn(f TableField, v ...interface{}) ISqlBuilder {
+	if len(v) == 0 {
+		return p
+	}
+	p.prepare()
+	p.where.WriteString(f.Quote() + " NOT IN (" + strings.Repeat(placeholder+",", len(v))[:2*len(v)-1] + ") ")
+	p.params = append(p.params, v...)
 
 	p.andOr = false
 	return p
