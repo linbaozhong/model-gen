@@ -241,7 +241,6 @@ func (p *{{.StructName}}) Find(db types.Session, cond table.ISqlBuilder, size, i
 	}
 	list := make([]*{{.StructName}}, 0, len(ms))
 	for _, m := range ms {
-		//list = append(list, m)
 		if mm, ok := m.(*{{.StructName}}); ok {
 			list = append(list, mm)
 		}
