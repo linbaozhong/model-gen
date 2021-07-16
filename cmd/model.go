@@ -13,7 +13,7 @@ package {{.PackageName}}
 
 import (
 	"context"
-	"time"
+	{{if .HasTime}}"time"{{end}}
 	"internal/cache/redis"
 	"internal/conf"
 	"internal/log"
