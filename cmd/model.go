@@ -45,7 +45,7 @@ func init() {
 		}
 
 		m := New{{.StructName}}()
-		db := DB().Table(table.{{.StructName}}.TableName)
+		db := Db().Table(table.{{.StructName}}.TableName)
 		has, e := db.ID(id).Get(m)
 		if has {
 			return m, nil
@@ -66,7 +66,7 @@ func init() {
 		
 		query, args := cond.GetCondition()
 		
-		db := DB().Where(query, args...).Limit({{lower .StructName}}_ids_max_limit)
+		db := Db().Where(query, args...).Limit({{lower .StructName}}_ids_max_limit)
 		ids := make([]uint64, 0)
 
 		e := db.Find(&ids)
@@ -278,7 +278,7 @@ func (p *{{.StructName}}) OnBatchChange(cond table.ISqlBuilder) {
 	ids := make([]interface{}, 0)
 
 	query, args := cond.GetCondition()
-	db := DB().Where(query, args...)
+	db := Db().Where(query, args...)
 	e := db.Find(&ids)
 
 	if e != nil {
