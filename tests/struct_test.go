@@ -9,6 +9,7 @@ type obj struct {
 	Name   string
 	Depart string
 	Age    int
+	IS     bool
 }
 
 func (p *obj) Add(i int) {

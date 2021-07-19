@@ -17,7 +17,7 @@ import (
 	"internal/cache/redis"
 	"internal/conf"
 	"internal/log"
-	"internal/types"
+	"libs/types"
 	"libs/utils"
 	"sync"
 	"{{.ModulePath}}/table"
