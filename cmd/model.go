@@ -323,6 +323,8 @@ func (d *TempData) writeToModel(fileName string) error {
 				ret = 0
 			case "time.Time":
 				ret = `time.Time{}`
+			case "bool":
+				ret = `false`
 			default:
 				ret = 0
 			}
