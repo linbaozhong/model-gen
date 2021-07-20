@@ -82,7 +82,8 @@ type IDelete interface {
 type IModel interface {
 	Get(db types.Session, id uint64) (bool, error)
 	//Find(db types.Session, query string, vals []interface{}, size, index int) ([]interface{}, error)
-	ToMap(cols ...string) types.Smap
+	ToMap(cols ...TableField) map[string]interface{}
+	ToJSON(cols ...TableField) types.Smap
 }
 
 type ISqlBuilder interface {
