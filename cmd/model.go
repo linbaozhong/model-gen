@@ -249,19 +249,39 @@ func (p *{{.StructName}}) Find(db types.Session, cond table.ISqlBuilder, size, i
 }
 
 //ToMap
-func (p *{{.StructName}}) ToMap(cols...string) types.Smap {
+func (p *{{.StructName}}) ToMap(cols...table.TableField) map[string]interface{} {
+	if len(cols) == 0{
+		return map[string]interface{}{
+			{{range $key, $value := .Columns}}table.{{$.StructName}}.{{$key}}.Name:p.{{$key}},
+			{{end}}
+		}
+	}
+
+	m := make(map[string]interface{},len(cols))
+	for _, col := range cols {
+		switch col.Name {
+		{{range $key, $value := .Columns}}case table.{{$.StructName}}.{{$key}}.Name:
+			m[col.Name] = p.{{$key}}
+		{{end}}
+		}
+	}
+	return m
+}
+
+//ToJSON
+func (p *{{.StructName}}) ToJSON(cols...table.TableField) types.Smap {
 	if len(cols) == 0{
 		return types.Smap{
-			{{range $key, $value := .Columns}}table.{{$.StructName}}.{{$key}}.Name:p.{{$key}},
+			{{range $key, $value := .Columns}}table.{{$.StructName}}.{{$key}}.Json:p.{{$key}},
 			{{end}}
 		}
 	}
 
 	m := make(types.Smap,len(cols))
 	for _, col := range cols {
-		switch col {
-		{{range $key, $value := .Columns}}case table.{{$.StructName}}.{{$key}}.Name:
-			m[col] = p.{{$key}}
+		switch col.Json {
+		{{range $key, $value := .Columns}}case table.{{$.StructName}}.{{$key}}.Json:
+			m[col.Json] = p.{{$key}}
 		{{end}}
 		}
 	}

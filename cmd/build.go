@@ -32,7 +32,7 @@ package table
 
 import (
 	"errors"
-	"internal/types"
+	"libs/types"
 	"libs/utils"
 	"strconv"
 	"strings"
