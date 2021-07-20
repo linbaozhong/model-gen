@@ -310,6 +310,14 @@ func (p *{{.StructName}}) OnBatchChange(cond table.ISqlBuilder) {
 	}
 }
 
+func {{.StructName}}Cache() *redis.RedisBroker {
+	return {{lower .StructName}}_cache
+}
+
+func {{.StructName}}IDsCache() *redis.RedisBroker {
+	return {{lower .StructName}}_ids_cache
+}
+
 //func (p *{{.StructName}}) getInsert(cols ...string) (sql string, params []interface{}, e error) {
 //	sb := table.NewSqlBuilder()
 //	defer sb.Free()
