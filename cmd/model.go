@@ -66,14 +66,21 @@ func init() {
 		
 		query, args := cond.GetCondition()
 		
-		db := Db().Table(table.{{.StructName}}.TableName).Where(query, args...).Limit({{lower .StructName}}_ids_max_limit)
+		db := Db().Table(table.{{.StructName}}.TableName).
+			Where(query, args...).
+			Limit({{lower .StructName}}_ids_max_limit)
 		ids := make([]uint64, 0)
-
 		e := db.Find(&ids)
+		if e != nil {
+			log.Logs.DBError(db, e)
+		}
 		return ids, e
 	}).DeserializeFunc(func(bean interface{}) (interface{}, error) {
 		ids := make([]uint64, 0)
 		e := utils.JSON.UnmarshalFromString(utils.Interface2String(bean), &ids)
+		if e != nil {
+			log.Logs.Error(e)
+		}
 		return ids, e
 	})
 }
