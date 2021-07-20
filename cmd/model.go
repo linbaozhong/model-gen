@@ -269,15 +269,15 @@ func (p *{{.StructName}}) ToMap(cols...table.TableField) map[string]interface{} 
 }
 
 //ToJSON
-func (p *{{.StructName}}) ToJSON(cols...table.TableField) map[string]interface{} {
+func (p *{{.StructName}}) ToJSON(cols...table.TableField) types.Smap {
 	if len(cols) == 0{
-		return map[string]interface{}{
+		return types.Smap{
 			{{range $key, $value := .Columns}}table.{{$.StructName}}.{{$key}}.Json:p.{{$key}},
 			{{end}}
 		}
 	}
 
-	m := make(map[string]interface{},len(cols))
+	m := make(types.Smap,len(cols))
 	for _, col := range cols {
 		switch col.Json {
 		{{range $key, $value := .Columns}}case table.{{$.StructName}}.{{$key}}.Json:
