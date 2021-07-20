@@ -135,10 +135,10 @@ func (p *{{.StructName}}) Update(db types.Session, id uint64, bean ...interface{
 		e error
 	)
 
-	db.ID(id)
+	db.Table(table.{{.StructName}}.TableName).ID(id)
 
 	if len(bean) == 0 {
-		i64,e =  db.Update(p)
+		i64,e = db.Update(p)
 	} else {
 		i64,e = db.Update(bean[0])
 	}
@@ -183,7 +183,7 @@ func (p *{{.StructName}}) UpdateBatch(db types.Session, cond table.ISqlBuilder, 
 
 //Delete
 func (p *{{.StructName}}) Delete(db types.Session, id uint64) (int64,error) {
-	i64,e := db.ID(id).Delete(p)
+	i64,e := db.Table(table.{{.StructName}}.TableName).ID(id).Delete(p)
 
 	if e != nil {
 		log.Logs.DBError(db, e)
