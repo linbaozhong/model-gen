@@ -46,7 +46,8 @@ func init() {
 
 		m := New{{.StructName}}()
 		db := Db().Table(table.{{.StructName}}.TableName)
-		has, e := db.ID(id).Get(m)
+		has, e := db.Where(table.{{.StructName}}.ID.Eq(),id).
+			Get(m)
 		if has {
 			return m, nil
 		}
@@ -142,7 +143,8 @@ func (p *{{.StructName}}) Update(db types.Session, id uint64, bean ...interface{
 		e error
 	)
 
-	db.Table(table.{{.StructName}}.TableName).ID(id)
+	db.Table(table.{{.StructName}}.TableName).
+		Where(table.{{.StructName}}.ID.Eq(),id)
 
 	if len(bean) == 0 {
 		i64,e = db.Update(p)
@@ -190,7 +192,9 @@ func (p *{{.StructName}}) UpdateBatch(db types.Session, cond table.ISqlBuilder, 
 
 //Delete
 func (p *{{.StructName}}) Delete(db types.Session, id uint64) (int64,error) {
-	i64,e := db.Table(table.{{.StructName}}.TableName).ID(id).Delete(p)
+	i64,e := db.Table(table.{{.StructName}}.TableName).
+		Where(table.{{.StructName}}.ID.Eq(),id).
+		Delete(p)
 
 	if e != nil {
 		log.Logs.DBError(db, e)
