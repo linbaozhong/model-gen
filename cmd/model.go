@@ -46,7 +46,8 @@ func init() {
 
 		m := New{{.StructName}}()
 		db := Db().Table(table.{{.StructName}}.TableName)
-		has, e := db.ID(id).Get(m)
+		has, e := db.Where(table.{{.StructName}}.ID.Eq(),id).
+			Get(m)
 		if has {
 			return m, nil
 		}
@@ -66,14 +67,21 @@ func init() {
 		
 		query, args := cond.GetCondition()
 		
-		db := Db().Where(query, args...).Limit({{lower .StructName}}_ids_max_limit)
+		db := Db().Table(table.{{.StructName}}.TableName).
+			Where(query, args...).
+			Limit({{lower .StructName}}_ids_max_limit)
 		ids := make([]uint64, 0)
-
 		e := db.Find(&ids)
+		if e != nil {
+			log.Logs.DBError(db, e)
+		}
 		return ids, e
 	}).DeserializeFunc(func(bean interface{}) (interface{}, error) {
 		ids := make([]uint64, 0)
 		e := utils.JSON.UnmarshalFromString(utils.Interface2String(bean), &ids)
+		if e != nil {
+			log.Logs.Error(e)
+		}
 		return ids, e
 	})
 }
@@ -100,7 +108,7 @@ func (p *{{.StructName}}) Insert(db types.Session, cols ...string) (int64,error)
 		db.Cols(cols...)
 	}
 
-	i64,e := db.InsertOne(p)
+	i64,e := db.Table(table.{{.StructName}}.TableName).InsertOne(p)
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
@@ -117,7 +125,7 @@ func (p *{{.StructName}}) InsertBatch(db types.Session, beans []interface{}, col
 		db.Cols(cols...)
 	}
 
-	i64, e := db.Insert(beans...)
+	i64, e := db.Table(table.{{.StructName}}.TableName).Insert(beans...)
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
@@ -135,10 +143,11 @@ func (p *{{.StructName}}) Update(db types.Session, id uint64, bean ...interface{
 		e error
 	)
 
-	db.ID(id)
+	db.Table(table.{{.StructName}}.TableName).
+		Where(table.{{.StructName}}.ID.Eq(),id)
 
 	if len(bean) == 0 {
-		i64,e =  db.Update(p)
+		i64,e = db.Update(p)
 	} else {
 		i64,e = db.Update(bean[0])
 	}
@@ -163,7 +172,7 @@ func (p *{{.StructName}}) UpdateBatch(db types.Session, cond table.ISqlBuilder, 
 
 	query, args := cond.GetCondition()
 
-	db.Where(query, args...)
+	db.Table(table.{{.StructName}}.TableName).Where(query, args...)
 
 	if len(bean) == 0 {
 		i64, e = db.Update(p)
@@ -183,7 +192,9 @@ func (p *{{.StructName}}) UpdateBatch(db types.Session, cond table.ISqlBuilder, 
 
 //Delete
 func (p *{{.StructName}}) Delete(db types.Session, id uint64) (int64,error) {
-	i64,e := db.ID(id).Delete(p)
+	i64,e := db.Table(table.{{.StructName}}.TableName).
+		Where(table.{{.StructName}}.ID.Eq(),id).
+		Delete(p)
 
 	if e != nil {
 		log.Logs.DBError(db, e)
@@ -198,7 +209,7 @@ func (p *{{.StructName}}) Delete(db types.Session, id uint64) (int64,error) {
 //DeleteBatch
 func (p *{{.StructName}}) DeleteBatch(db types.Session, cond table.ISqlBuilder) (int64, error) {
 	query, args := cond.GetCondition()
-	i64, e := db.Where(query, args...).Delete(p)
+	i64, e := db.Table(table.{{.StructName}}.TableName).Where(query, args...).Delete(p)
 
 	if e != nil {
 		log.Logs.DBError(db, e)
@@ -298,7 +309,7 @@ func (p *{{.StructName}}) OnBatchChange(cond table.ISqlBuilder) {
 	ids := make([]interface{}, 0)
 
 	query, args := cond.GetCondition()
-	db := Db().Where(query, args...)
+	db := Db().Table(table.{{.StructName}}.TableName).Where(query, args...)
 	e := db.Find(&ids)
 
 	if e != nil {
@@ -308,6 +319,14 @@ func (p *{{.StructName}}) OnBatchChange(cond table.ISqlBuilder) {
 	if len(ids) > 0 {
 		{{lower .StructName}}_cache.Remove(context.TODO(), ids...)
 	}
+}
+
+func {{.StructName}}Cache() *redis.RedisBroker {
+	return {{lower .StructName}}_cache
+}
+
+func {{.StructName}}IDsCache() *redis.RedisBroker {
+	return {{lower .StructName}}_ids_cache
 }
 
 //func (p *{{.StructName}}) getInsert(cols ...string) (sql string, params []interface{}, e error) {
