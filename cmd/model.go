@@ -12,8 +12,9 @@ var model_str = `
 package {{.PackageName}}
 
 import (
-{{if .HasPrimaryKey}}
+	"sync"
 	{{if or .HasTime .HasCache}}"time"{{end}}
+{{if .HasPrimaryKey}}
 	{{if .HasCache}}"context"
 	"internal/cache/redis"
 	"internal/conf"
@@ -22,7 +23,6 @@ import (
 	"libs/types"
 	"{{.ModulePath}}/table"
 {{end}}
-	"sync"
 )
 
 var (
