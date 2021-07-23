@@ -9,7 +9,7 @@ var (
 
 		type _{{.StructName}} struct {
 			TableName string
-			PrimaryKey TableField
+			{{if .HasPrimaryKey}}PrimaryKey TableField{{end}}
 		{{range $key, $value := .Columns}} {{ $key }} TableField 
 		{{end}}
 		}
@@ -20,12 +20,13 @@ var (
 
 		func init() {
 			{{.StructName}}.TableName = "{{lower .TableName}}"
-
+		{{if .HasPrimaryKey}}
 			{{.StructName}}.PrimaryKey = TableField{
 				Name: "{{index .PrimaryKey 0}}",
 				Json: "{{index .PrimaryKey 1}}",
 				Table: {{$.StructName}}.TableName,
 			}
+		{{end}}
 		{{range $key, $value := .Columns}} 
 		{{ $.StructName}}.{{$key}} = TableField{
 			Name: "{{index $value 0}}",
