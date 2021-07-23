@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bytes"
-	"fmt"
 	"go/format"
 	"go/parser"
 	"go/token"
@@ -24,8 +23,13 @@ type TempData struct {
 	PackageName string
 	StructName  string
 	TableName   string
+	CacheData   string //数据缓存时长
+	CacheList   string //list缓存时长
+	CacheLimit  string //list缓存长度
 	Columns     map[string][]string
+	PrimaryKey  []string
 	HasTime     bool
+	HasCache    bool
 }
 
 //handleFile 处理model文件
@@ -50,33 +54,34 @@ func handleFile(module, modulePath, filename string) error {
 		showError(err)
 	}
 	tempData.PackageName = file.Name
-	//
-	//functions := make(map[string]bool)
-	//for _, fun := range file.Methods {
-	//	if fun.Name == "TableName" {
-	//		functions[fun.Receiver.Type.String()] = true
-	//	}
-	//}
 
 	for _, stru := range file.Structures {
+		tempData.TableName = ""
+		tempData.HasCache = false
+		tempData.CacheData = ""
+		tempData.CacheList = ""
+		tempData.CacheLimit = ""
+		tempData.PrimaryKey = nil
 		tempData.Columns = make(map[string][]string)
 		tempData.FileName = filename
 		tempData.StructName = stru.Name
-		tempData.TableName = parseTableName(strings.Join(stru.Docs, " "))
+		//解析struct文档
+		parseDocs(tempData, stru.Docs)
 		if tempData.TableName == "" {
 			continue
 			//tempData.TableName = tempData.StructName
 		}
 
 		for _, field := range stru.Fields {
+			var pk string
 			var _namejson = make([]string, 3)
 			for k, v := range field.Tags {
 				if k == "json" {
-					_namejson[1] = v[0]
+					_namejson[1] = v[0] //json_name
 				} else if k == XORM_TAG {
-					_namejson[0] = parseTagsForXORM(v)
+					_namejson[0], pk = parseTagsForXORM(v) //column_name
 				} else if k == GORM_TAG {
-					_namejson[0] = parseTagsForGORM(v)
+					_namejson[0] = parseTagsForGORM(v) //column_name
 				}
 			}
 			_namejson[2] = field.Type.String()
@@ -99,6 +104,9 @@ func handleFile(module, modulePath, filename string) error {
 				}
 			}
 			tempData.Columns[field.Name] = _namejson
+			if pk != "" {
+				tempData.PrimaryKey = _namejson
+			}
 		}
 		//如果struct名称为空,或者是一个私有struct,或者field为空,返回
 		if len(tempData.StructName) == 0 ||
@@ -130,14 +138,37 @@ func handleFile(module, modulePath, filename string) error {
 	return err
 }
 
-func parseTagsForXORM(matchs []string) string {
-	if len(matchs) >= 1 {
-		_matchs := regexp.MustCompile(`'(.*?)'`).FindStringSubmatch(matchs[0])
-		if len(_matchs) >= 1 {
-			return _matchs[1]
+func parseTagsForXORM(matchs []string) (columnName string, key string) {
+	s := strings.Split(matchs[0], " ")
+	if len(s) == 1 {
+		columnName = strings.Replace(s[0], "'", "", -1)
+		return
+	}
+	col := &columnName
+	k := new(string)
+	for _, v := range s {
+		if v == "" {
+			continue
+		}
+		if v[:1] == "'" {
+			*col = strings.Replace(v, "'", "", -1)
+			continue
+		}
+		if strings.ToLower(v) == "pk" {
+			k = col
+			continue
 		}
 	}
-	return ""
+	key = *k
+	return
+
+	//if len(matchs) >= 1 {
+	//	_matchs := regexp.MustCompile(`'(.*?)'`).FindStringSubmatch(matchs[0])
+	//	if len(_matchs) >= 1 {
+	//		return _matchs[1]
+	//	}
+	//}
+	//return ""
 }
 
 func parseTagsForGORM(matchs []string) string {
@@ -150,14 +181,29 @@ func parseTagsForGORM(matchs []string) string {
 	return ""
 }
 
-func parseTableName(doc string) string {
-	re := regexp.MustCompile(fmt.Sprintf(`(?i:%s)[: ]+(.*)`, tableName))
-	matchs := re.FindStringSubmatch(doc)
-
-	if len(matchs) >= 1 {
-		return strings.TrimSpace(matchs[1])
+func parseDocs(tmp *TempData, docs []string) {
+	for _, doc := range docs {
+		doc = strings.TrimLeft(doc, " /")
+		if strings.Contains(doc, "tablename") {
+			tmp.TableName = strings.TrimSpace(strings.TrimLeft(doc, "tablename"))
+			continue
+		}
+		if strings.HasPrefix(doc, "cachedata") {
+			tmp.HasCache = true
+			tmp.CacheData = strings.TrimSpace(strings.TrimLeft(doc, "cachedata"))
+			continue
+		}
+		if strings.HasPrefix(doc, "cachelist") {
+			tmp.HasCache = true
+			tmp.CacheList = strings.TrimSpace(strings.TrimLeft(doc, "cachelist"))
+			continue
+		}
+		if strings.HasPrefix(doc, "cachelimit") {
+			tmp.HasCache = true
+			tmp.CacheLimit = strings.TrimSpace(strings.TrimLeft(doc, "cachelimit"))
+			continue
+		}
 	}
-	return ""
 }
 
 func getFilepath(filename string) string {

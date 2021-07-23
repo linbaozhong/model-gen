@@ -12,13 +12,13 @@ var model_str = `
 package {{.PackageName}}
 
 import (
-	"context"
-	{{if .HasTime}}"time"{{end}}
+	{{if or .HasTime .HasCache}}"time"{{end}}
+	{{if .HasCache}}"context"
 	"internal/cache/redis"
 	"internal/conf"
+	"libs/utils"{{end}}
 	"internal/log"
 	"libs/types"
-	"libs/utils"
 	"sync"
 	"{{.ModulePath}}/table"
 )
@@ -31,10 +31,10 @@ var (
 	}
 )
 
-//以下的Expiration常量参数，建议在其他的文件中实现，以免被覆盖
+{{if .HasCache}}
 var (
-	{{lower .StructName}}_cache     = redis.NewClient(conf.App.Mode,"{{lower .StructName}}").Expiration({{lower .StructName}}_cache_expire)
-	{{lower .StructName}}_ids_cache = redis.NewClient(conf.App.Mode, "{{lower .StructName}}_ids").Expiration({{lower .StructName}}_ids_cache_expire)
+	{{lower .StructName}}_cache     = redis.NewClient(conf.App.Mode,"{{lower .StructName}}").Expiration({{.CacheData}})
+	{{lower .StructName}}_ids_cache = redis.NewClient(conf.App.Mode, "{{lower .StructName}}_ids").Expiration({{.CacheList}})
 )
 
 func init() {
@@ -46,7 +46,7 @@ func init() {
 
 		m := New{{.StructName}}()
 		db := Db().Table(table.{{.StructName}}.TableName)
-		has, e := db.Where(table.{{.StructName}}.ID.Eq(),id).
+		has, e := db.Where(table.{{.StructName}}.PrimaryKey.Eq(),id).
 			Get(m)
 		if has {
 			return m, nil
@@ -68,8 +68,11 @@ func init() {
 		query, args := cond.GetCondition()
 		
 		db := Db().Table(table.{{.StructName}}.TableName).
-			Where(query, args...).
-			Limit({{lower .StructName}}_ids_max_limit)
+			Cols(table.{{.StructName}}.PrimaryKey.Name).
+			Limit({{.CacheLimit}})
+		if query != ""{
+			db.Where(query, args...)
+		}
 		ids := make([]uint64, 0)
 		e := db.Find(&ids)
 		if e != nil {
@@ -85,6 +88,7 @@ func init() {
 		return ids, e
 	})
 }
+{{end}}
 
 func New{{.StructName}}() *{{.StructName}} {
 	return {{lower .StructName}}Pool.Get().(*{{.StructName}})
@@ -112,10 +116,11 @@ func (p *{{.StructName}}) Insert(db types.Session, cols ...string) (int64,error)
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
-
+{{if .HasCache}}
 	if i64 > 0 {
 		{{lower .StructName}}_ids_cache.Empty(context.TODO())
 	}
+{{end}}
 	return i64, e
 }
 
@@ -129,10 +134,11 @@ func (p *{{.StructName}}) InsertBatch(db types.Session, beans []interface{}, col
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
-
+{{if .HasCache}}
 	if i64 > 0 {
 		{{lower .StructName}}_ids_cache.Empty(context.TODO())
 	}
+{{end}}
 	return i64, e
 }
 
@@ -144,7 +150,7 @@ func (p *{{.StructName}}) Update(db types.Session, id uint64, bean ...interface{
 	)
 
 	db.Table(table.{{.StructName}}.TableName).
-		Where(table.{{.StructName}}.ID.Eq(),id)
+		Where(table.{{.StructName}}.PrimaryKey.Eq(),id)
 
 	if len(bean) == 0 {
 		i64,e = db.Update(p)
@@ -155,11 +161,11 @@ func (p *{{.StructName}}) Update(db types.Session, id uint64, bean ...interface{
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
-
+{{if .HasCache}}
 	if i64 > 0 {
 		p.OnChange(id)
 	}
-
+{{end}}
 	return i64, e
 }
 
@@ -170,9 +176,13 @@ func (p *{{.StructName}}) UpdateBatch(db types.Session, cond table.ISqlBuilder, 
 		e   error
 	)
 
-	query, args := cond.GetCondition()
-
-	db.Table(table.{{.StructName}}.TableName).Where(query, args...)
+	db.Table(table.{{.StructName}}.TableName)
+	if cond != nil {
+		query, args := cond.GetCondition()
+		if query != "" {
+			db.Where(query, args...)
+		}
+	}
 
 	if len(bean) == 0 {
 		i64, e = db.Update(p)
@@ -183,46 +193,55 @@ func (p *{{.StructName}}) UpdateBatch(db types.Session, cond table.ISqlBuilder, 
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
-
+{{if .HasCache}}
 	if i64 > 0 {
 		p.OnBatchChange(cond)
 	}
+{{end}}
 	return i64, e
 }
 
 //Delete
 func (p *{{.StructName}}) Delete(db types.Session, id uint64) (int64,error) {
 	i64,e := db.Table(table.{{.StructName}}.TableName).
-		Where(table.{{.StructName}}.ID.Eq(),id).
+		Where(table.{{.StructName}}.PrimaryKey.Eq(),id).
 		Delete(p)
 
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
-
+{{if .HasCache}}
 	if i64 > 0 {
 		p.OnChange(id)
 	}
+{{end}}
 	return i64, e
 }
 
 //DeleteBatch
 func (p *{{.StructName}}) DeleteBatch(db types.Session, cond table.ISqlBuilder) (int64, error) {
-	query, args := cond.GetCondition()
-	i64, e := db.Table(table.{{.StructName}}.TableName).Where(query, args...).Delete(p)
-
+	db.Table(table.{{.StructName}}.TableName)
+	if cond != nil {
+		query, args := cond.GetCondition()
+		if query != "" {
+			db.Where(query, args...)
+		}
+	}
+	i64, e := db.Delete(p)
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
-
+{{if .HasCache}}
 	if i64 > 0 {
 		p.OnBatchChange(cond)
 	}
+{{end}}
 	return i64, e
 }
 
 //Get
 func (p *{{.StructName}}) Get(db types.Session,id uint64) (bool, error) {
+{{if .HasCache}}
 	cm, e := {{lower .StructName}}_cache.Get(context.TODO(), id)
 	if e != nil {
 		log.Logs.Error(e)
@@ -235,10 +254,19 @@ func (p *{{.StructName}}) Get(db types.Session,id uint64) (bool, error) {
 
 	log.Logs.Error(Err_Type)
 	return false, e
+{{else}}
+	has, e := db.Table(table.{{.StructName}}.TableName).Where(table.{{.StructName}}.PrimaryKey.Eq(),id).
+		Get(p)
+	if e != nil {
+		log.Logs.DBError(db, e)
+	}
+	return has,e
+{{end}}
 }
 
 //Find
 func (p *{{.StructName}}) Find(db types.Session, cond table.ISqlBuilder, size, index int) ([]*{{.StructName}}, error) {
+{{if .HasCache}}
 	ids, e := {{lower .StructName}}_ids_cache.LGet(context.TODO(), cond, int64(size*(index-1)), int64(size*index))
 	if len(ids) == 0 {
 		log.Logs.Error(e)
@@ -256,6 +284,22 @@ func (p *{{.StructName}}) Find(db types.Session, cond table.ISqlBuilder, size, i
 			list = append(list, mm)
 		}
 	}
+{{else}}
+	list := make([]*{{.StructName}}, 0)
+
+	db.Table(table.{{.StructName}}.TableName)
+	if cond != nil {
+		query, args := cond.GetCondition()
+		if query != "" {
+			db.Where(query, args...)
+		}
+	}
+	e := db.Limit(size,size*(index-1)).
+		Find(&list)
+	if e != nil {
+		log.Logs.DBError(db, e)
+	}
+{{end}}
 	return list, nil
 }
 
@@ -299,6 +343,7 @@ func (p *{{.StructName}}) ToJSON(cols...table.TableField) types.Smap {
 	return m
 }
 
+{{if .HasCache}}
 //OnChange
 func (p *{{.StructName}}) OnChange(id uint64) error {
 	return {{lower .StructName}}_cache.Remove(context.TODO(), id)
@@ -320,7 +365,6 @@ func (p *{{.StructName}}) OnBatchChange(cond table.ISqlBuilder) {
 		{{lower .StructName}}_cache.Remove(context.TODO(), ids...)
 	}
 }
-
 func {{.StructName}}Cache() *redis.RedisBroker {
 	return {{lower .StructName}}_cache
 }
@@ -328,6 +372,7 @@ func {{.StructName}}Cache() *redis.RedisBroker {
 func {{.StructName}}IDsCache() *redis.RedisBroker {
 	return {{lower .StructName}}_ids_cache
 }
+{{end}}
 
 //func (p *{{.StructName}}) getInsert(cols ...string) (sql string, params []interface{}, e error) {
 //	sb := table.NewSqlBuilder()
