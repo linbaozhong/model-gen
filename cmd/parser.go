@@ -54,15 +54,14 @@ func handleFile(module, modulePath, filename string) error {
 		showError(err)
 	}
 	tempData.PackageName = file.Name
-	//
-	//functions := make(map[string]bool)
-	//for _, fun := range file.Methods {
-	//	if fun.Name == "TableName" {
-	//		functions[fun.Receiver.Type.String()] = true
-	//	}
-	//}
 
 	for _, stru := range file.Structures {
+		tempData.TableName = ""
+		tempData.HasCache = false
+		tempData.CacheData = ""
+		tempData.CacheList = ""
+		tempData.CacheLimit = ""
+		tempData.PrimaryKey = nil
 		tempData.Columns = make(map[string][]string)
 		tempData.FileName = filename
 		tempData.StructName = stru.Name
