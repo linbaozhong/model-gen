@@ -356,6 +356,10 @@ func (p *sqlBuilder) Select() (string, []interface{}, error) {
 	if sql != "" {
 		buf.WriteString(" WHERE " + sql)
 	}
+	//LIMIT
+	if p.limit != "" {
+		buf.WriteString(p.limit)
+	}
 
 	return buf.String(), params, nil
 }
@@ -393,8 +397,8 @@ func (p *sqlBuilder) GroupBy(cols ...TableField) ISqlBuilder {
 	if len(cols) == 0 {
 		return p
 	}
-	for i, col := range cols {
-		if i > 0 {
+	for _, col := range cols {
+		if p.groupBy.Len() > 0 {
 			p.groupBy.WriteByte(',')
 		}
 		p.groupBy.WriteString(col.Quote())
@@ -420,8 +424,8 @@ func (p *sqlBuilder) Asc(cols ...TableField) ISqlBuilder {
 	if len(cols) == 0 {
 		return p
 	}
-	for i, col := range cols {
-		if i > 0 {
+	for _, col := range cols {
+		if p.orderBy.Len() > 0 {
 			p.orderBy.WriteByte(',')
 		}
 		p.orderBy.WriteString(col.Quote())
@@ -434,8 +438,8 @@ func (p *sqlBuilder) Desc(cols ...TableField) ISqlBuilder {
 	if len(cols) == 0 {
 		return p
 	}
-	for i, col := range cols {
-		if i > 0 {
+	for _, col := range cols {
+		if p.orderBy.Len() > 0 {
 			p.orderBy.WriteByte(',')
 		}
 		p.orderBy.WriteString(col.Quote() + " DESC")
@@ -635,10 +639,6 @@ func (p *sqlBuilder) condition() (string, []interface{}) {
 	//ORDER BY
 	if p.orderBy.Len() > 0 {
 		buf.WriteString(" ORDER BY " + p.orderBy.String())
-	}
-	//LIMIT
-	if p.limit != "" {
-		buf.WriteString(p.limit)
 	}
 
 	return buf.String(), p.GetParams()
