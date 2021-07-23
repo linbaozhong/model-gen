@@ -17,19 +17,20 @@ import (
 
 // TempData 表示生成template所需要的数据结构
 type TempData struct {
-	Module      string
-	ModulePath  string
-	FileName    string
-	PackageName string
-	StructName  string
-	TableName   string
-	CacheData   string //数据缓存时长
-	CacheList   string //list缓存时长
-	CacheLimit  string //list缓存长度
-	Columns     map[string][]string
-	PrimaryKey  []string
-	HasTime     bool
-	HasCache    bool
+	Module        string
+	ModulePath    string
+	FileName      string
+	PackageName   string
+	StructName    string
+	TableName     string
+	CacheData     string //数据缓存时长
+	CacheList     string //list缓存时长
+	CacheLimit    string //list缓存长度
+	Columns       map[string][]string
+	PrimaryKey    []string
+	HasPrimaryKey bool
+	HasTime       bool
+	HasCache      bool
 }
 
 //handleFile 处理model文件
@@ -58,6 +59,7 @@ func handleFile(module, modulePath, filename string) error {
 	for _, stru := range file.Structures {
 		tempData.TableName = ""
 		tempData.HasCache = false
+		tempData.HasPrimaryKey = false
 		tempData.CacheData = ""
 		tempData.CacheList = ""
 		tempData.CacheLimit = ""
@@ -106,6 +108,7 @@ func handleFile(module, modulePath, filename string) error {
 			tempData.Columns[field.Name] = _namejson
 			if pk != "" {
 				tempData.PrimaryKey = _namejson
+				tempData.HasPrimaryKey = true
 			}
 		}
 		//如果struct名称为空,或者是一个私有struct,或者field为空,返回
@@ -239,9 +242,21 @@ func (d *TempData) writeToTable() error {
 	}
 	defer file.Close()
 	var buf bytes.Buffer
-	_ = d.writeTo(&buf)
-	formatted, _ := format.Source(buf.Bytes())
+	err = d.writeTo(&buf)
+	if err != nil {
+		showError(err.Error())
+		return err
+	}
+	formatted, err := format.Source(buf.Bytes())
+	if err != nil {
+		showError(err.Error())
+		return err
+	}
 	_, err = file.Write(formatted)
+	if err != nil {
+		showError(err.Error())
+		return err
+	}
 	return err
 }
 

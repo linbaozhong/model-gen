@@ -12,6 +12,7 @@ var model_str = `
 package {{.PackageName}}
 
 import (
+{{if .HasPrimaryKey}}
 	{{if or .HasTime .HasCache}}"time"{{end}}
 	{{if .HasCache}}"context"
 	"internal/cache/redis"
@@ -19,8 +20,9 @@ import (
 	"libs/utils"{{end}}
 	"internal/log"
 	"libs/types"
-	"sync"
 	"{{.ModulePath}}/table"
+{{end}}
+	"sync"
 )
 
 var (
@@ -31,7 +33,7 @@ var (
 	}
 )
 
-{{if .HasCache}}
+{{if and .HasCache .HasPrimaryKey}}
 var (
 	{{lower .StructName}}_cache     = redis.NewClient(conf.App.Mode,"{{lower .StructName}}").Expiration({{.CacheData}})
 	{{lower .StructName}}_ids_cache = redis.NewClient(conf.App.Mode, "{{lower .StructName}}_ids").Expiration({{.CacheList}})
@@ -100,7 +102,7 @@ func (p *{{.StructName}}) Free() {
 	{{end}}
 	{{lower .StructName}}Pool.Put(p)
 }
-
+{{if .HasPrimaryKey}}
 //TableName
 func (*{{.StructName}}) TableName() string {
 	return table.{{.StructName}}.TableName
@@ -389,6 +391,8 @@ func {{.StructName}}IDsCache() *redis.RedisBroker {
 //	return
 //}
 
+
+{{end}}
 	`
 
 func (d *TempData) writeToModel(fileName string) error {
