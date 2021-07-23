@@ -679,6 +679,18 @@ func (p *sqlBuilder) SetExpr(f TableField, expr string) ISqlBuilder {
 	return p
 }
 
+//String
+func (p *sqlBuilder) String() string {
+	var buf strings.Builder
+	sql, pm := p.condition()
+	buf.WriteString(sql)
+	buf.WriteString("@params:")
+	for _, i := range pm {
+		buf.WriteString(utils.Interface2String(i) + "|")
+	}
+	return buf.String()
+}
+
 ////
 //subCond 子条件
 func (p *sqlBuilder) subCond(sb ISqlBuilder) ISqlBuilder {
