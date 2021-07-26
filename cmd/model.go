@@ -120,7 +120,7 @@ func (p *{{.StructName}}) Insert(db types.Session, cols ...string) (int64,error)
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		{{lower .StructName}}_ids_cache.Empty(context.TODO())
+		p.OnListChange()
 	}
 {{end}}
 	return i64, e
@@ -138,7 +138,7 @@ func (p *{{.StructName}}) InsertBatch(db types.Session, beans []interface{}, col
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		{{lower .StructName}}_ids_cache.Empty(context.TODO())
+		p.OnListChange()
 	}
 {{end}}
 	return i64, e
@@ -367,6 +367,11 @@ func (p *{{.StructName}}) OnBatchChange(cond table.ISqlBuilder) {
 		{{lower .StructName}}_cache.Remove(context.TODO(), ids...)
 	}
 }
+//OnListChange
+func (p *{{.StructName}}) OnListChange() error {
+	return {{lower .StructName}}_ids_cache.Empty(context.TODO())
+}
+
 func {{.StructName}}Cache() *redis.RedisBroker {
 	return {{lower .StructName}}_cache
 }
