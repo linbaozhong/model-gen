@@ -109,12 +109,23 @@ func (*{{.StructName}}) TableName() string {
 }
 
 //Insert 
-func (p *{{.StructName}}) Insert(db types.Session, cols ...string) (int64,error) {
+func (p *{{.StructName}}) Insert(x interface{}, cols ...string) (int64,error) {
+	var (
+		ok bool
+		db *Session
+	)
+	
+	if db, ok = x.(*Session); ok {
+		db.Table(table.{{.StructName}}.TableName)
+	} else {
+		db = Db().Table(table.{{.StructName}}.TableName)
+	}
+
 	if len(cols) > 0 {
 		db.Cols(cols...)
 	}
 
-	i64,e := db.Table(table.{{.StructName}}.TableName).InsertOne(p)
+	i64,e := db.InsertOne(p)
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
@@ -127,12 +138,23 @@ func (p *{{.StructName}}) Insert(db types.Session, cols ...string) (int64,error)
 }
 
 //InsertBatch
-func (p *{{.StructName}}) InsertBatch(db types.Session, beans []interface{}, cols ...string) (int64, error) {
+func (p *{{.StructName}}) InsertBatch(x interface{}, beans []interface{}, cols ...string) (int64, error) {
+	var (
+		ok bool
+		db *Session
+	)
+	
+	if db, ok = x.(*Session); ok {
+		db.Table(table.{{.StructName}}.TableName)
+	} else {
+		db = Db().Table(table.{{.StructName}}.TableName)
+	}
+
 	if len(cols) > 0 {
 		db.Cols(cols...)
 	}
 
-	i64, e := db.Table(table.{{.StructName}}.TableName).Insert(beans...)
+	i64, e := db.Insert(beans...)
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
@@ -145,14 +167,22 @@ func (p *{{.StructName}}) InsertBatch(db types.Session, beans []interface{}, col
 }
 
 //Update
-func (p *{{.StructName}}) Update(db types.Session, id uint64, bean ...interface{}) (int64,error) {
+func (p *{{.StructName}}) Update(x interface{}, id uint64, bean ...interface{}) (int64,error) {
 	var (
 		i64 int64
 		e error
+		ok bool
+		db *Session
 	)
+	
+	if db, ok = x.(*Session); ok {
+		db.Table(table.{{.StructName}}.TableName)
+	} else {
+		db = Db().Table(table.{{.StructName}}.TableName)
+	}
 
-	db.Table(table.{{.StructName}}.TableName).
-		Where(table.{{.StructName}}.PrimaryKey.Eq(),id)
+
+	db.Where(table.{{.StructName}}.PrimaryKey.Eq(),id)
 
 	if len(bean) == 0 {
 		i64,e = db.Update(p)
@@ -172,13 +202,21 @@ func (p *{{.StructName}}) Update(db types.Session, id uint64, bean ...interface{
 }
 
 //UpdateBatch
-func (p *{{.StructName}}) UpdateBatch(db types.Session, cond table.ISqlBuilder, bean ...interface{}) (int64, error) {
+func (p *{{.StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder, bean ...interface{}) (int64, error) {
 	var (
 		i64 int64
 		e   error
+		ok bool
+		db *Session
 	)
+	
+	if db, ok = x.(*Session); ok {
+		db.Table(table.{{.StructName}}.TableName)
+	} else {
+		db = Db().Table(table.{{.StructName}}.TableName)
+	}
 
-	db.Table(table.{{.StructName}}.TableName)
+
 	if cond != nil {
 		query, args := cond.GetCondition()
 		if query != "" {
@@ -204,9 +242,19 @@ func (p *{{.StructName}}) UpdateBatch(db types.Session, cond table.ISqlBuilder, 
 }
 
 //Delete
-func (p *{{.StructName}}) Delete(db types.Session, id uint64) (int64,error) {
-	i64,e := db.Table(table.{{.StructName}}.TableName).
-		Where(table.{{.StructName}}.PrimaryKey.Eq(),id).
+func (p *{{.StructName}}) Delete(x interface{}, id uint64) (int64,error) {
+	var (
+		ok bool
+		db *Session
+	)
+	
+	if db, ok = x.(*Session); ok {
+		db.Table(table.{{.StructName}}.TableName)
+	} else {
+		db = Db().Table(table.{{.StructName}}.TableName)
+	}
+
+	i64,e := db.Where(table.{{.StructName}}.PrimaryKey.Eq(),id).
 		Delete(p)
 
 	if e != nil {
@@ -221,8 +269,18 @@ func (p *{{.StructName}}) Delete(db types.Session, id uint64) (int64,error) {
 }
 
 //DeleteBatch
-func (p *{{.StructName}}) DeleteBatch(db types.Session, cond table.ISqlBuilder) (int64, error) {
-	db.Table(table.{{.StructName}}.TableName)
+func (p *{{.StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilder) (int64, error) {
+	var (
+		ok bool
+		db *Session
+	)
+	
+	if db, ok = x.(*Session); ok {
+		db.Table(table.{{.StructName}}.TableName)
+	} else {
+		db = Db().Table(table.{{.StructName}}.TableName)
+	}
+
 	if cond != nil {
 		query, args := cond.GetCondition()
 		if query != "" {
@@ -242,7 +300,7 @@ func (p *{{.StructName}}) DeleteBatch(db types.Session, cond table.ISqlBuilder) 
 }
 
 //Get
-func (p *{{.StructName}}) Get(db types.Session,id uint64) (bool, error) {
+func (p *{{.StructName}}) Get(x interface{},id uint64) (bool, error) {
 {{if .HasCache}}
 	cm, e := {{lower .StructName}}_cache.Get(context.TODO(), id)
 	if e != nil {
@@ -257,7 +315,18 @@ func (p *{{.StructName}}) Get(db types.Session,id uint64) (bool, error) {
 	log.Logs.Error(Err_Type)
 	return false, e
 {{else}}
-	has, e := db.Table(table.{{.StructName}}.TableName).Where(table.{{.StructName}}.PrimaryKey.Eq(),id).
+	var (
+		ok bool
+		db *Session
+	)
+	
+	if db, ok = x.(*Session); ok {
+		db.Table(table.{{.StructName}}.TableName)
+	} else {
+		db = Db().Table(table.{{.StructName}}.TableName)
+	}
+
+	has, e := db.Where(table.{{.StructName}}.PrimaryKey.Eq(),id).
 		Get(p)
 	if e != nil {
 		log.Logs.DBError(db, e)
@@ -267,7 +336,7 @@ func (p *{{.StructName}}) Get(db types.Session,id uint64) (bool, error) {
 }
 
 //Find
-func (p *{{.StructName}}) Find(db types.Session, cond table.ISqlBuilder, size, index int) ([]*{{.StructName}}, error) {
+func (p *{{.StructName}}) Find(x interface{}, cond table.ISqlBuilder, size, index int) ([]*{{.StructName}}, error) {
 {{if .HasCache}}
 	ids, e := {{lower .StructName}}_ids_cache.LGet(context.TODO(), cond, int64(size*(index-1)), int64(size*index))
 	if len(ids) == 0 {
@@ -287,9 +356,19 @@ func (p *{{.StructName}}) Find(db types.Session, cond table.ISqlBuilder, size, i
 		}
 	}
 {{else}}
+	var (
+		ok bool
+		db *Session
+	)
+	
+	if db, ok = x.(*Session); ok {
+		db.Table(table.{{.StructName}}.TableName)
+	} else {
+		db = Db().Table(table.{{.StructName}}.TableName)
+	}
+
 	list := make([]*{{.StructName}}, 0)
 
-	db.Table(table.{{.StructName}}.TableName)
 	if cond != nil {
 		query, args := cond.GetCondition()
 		if query != "" {
