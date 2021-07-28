@@ -65,23 +65,23 @@ type ITableName interface {
 }
 
 type IInsert interface {
-	Insert(db types.Session, cols ...string) (int64, error)
-	InsertBatch(db types.Session, beans []interface{}, cols ...string) (int64, error)
+	Insert(x interface{}, cols ...string) (int64, error)
+	InsertBatch(x interface{}, beans []interface{}, cols ...string) (int64, error)
 }
 
 type IUpdate interface {
-	Update(db types.Session, id uint64, bean ...interface{}) (int64, error)
-	UpdateBatch(db types.Session, cond ISqlBuilder, bean ...interface{}) (int64, error)
+	Update(x interface{}, id uint64, bean ...interface{}) (int64, error)
+	UpdateBatch(x interface{}, cond ISqlBuilder, bean ...interface{}) (int64, error)
 }
 
 type IDelete interface {
-	Delete(db types.Session, id uint64) (int64, error)
-	DeleteBatch(db types.Session, cond ISqlBuilder) (int64, error)
+	Delete(x interface{}, id uint64) (int64, error)
+	DeleteBatch(x interface{}, cond ISqlBuilder) (int64, error)
 }
 
 type IModel interface {
-	Get(db types.Session, id uint64) (bool, error)
-	//Find(db types.Session, query string, vals []interface{}, size, index int) ([]interface{}, error)
+	Get(x interface{}, id uint64) (bool, error)
+	//Find(x interface{}, query string, vals []interface{}, size, index int) ([]interface{}, error)
 	ToMap(cols ...TableField) map[string]interface{}
 	ToJSON(cols ...TableField) types.Smap
 }
