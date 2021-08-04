@@ -335,10 +335,15 @@ func (p *{{.StructName}}) Get(x interface{},id uint64) (bool, error) {
 {{end}}
 }
 
+//IDs 读取符合条件的主键列表
+func (p *{{.StructName}}) IDs(cond table.ISqlBuilder, size, index int) ([]interface{}, error) {
+	return {{lower .StructName}}_ids_cache.LGet(context.TODO(), cond, int64(size*(index-1)), int64(size*index))
+}
+
 //Find
 func (p *{{.StructName}}) Find(x interface{}, cond table.ISqlBuilder, size, index int) ([]*{{.StructName}}, error) {
 {{if .HasCache}}
-	ids, e := {{lower .StructName}}_ids_cache.LGet(context.TODO(), cond, int64(size*(index-1)), int64(size*index))
+	ids, e := p.IDs(cond,size,index)
 	if len(ids) == 0 {
 		log.Logs.Error(e)
 		return nil, e
