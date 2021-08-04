@@ -20,9 +20,9 @@ import (
 	"internal/conf"
 	"libs/utils"{{end}}
 	"internal/log"
+{{end}}
 	"libs/types"
 	"{{.ModulePath}}/table"
-{{end}}
 )
 
 var (
