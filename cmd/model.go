@@ -315,6 +315,12 @@ func (p *{{.StructName}}) Get(x interface{},id uint64) (bool, error) {
 	log.Logs.Error(Err_Type)
 	return false, e
 {{else}}
+	return p.GetNoCache(x,id)
+{{end}}
+}
+
+//GetNoCache
+func (p *{{.StructName}}) GetNoCache(x interface{},id uint64) (bool, error) {
 	var (
 		ok bool
 		db *Session
@@ -332,18 +338,65 @@ func (p *{{.StructName}}) Get(x interface{},id uint64) (bool, error) {
 		log.Logs.DBError(db, e)
 	}
 	return has,e
-{{end}}
 }
 
 //IDs 读取符合条件的主键列表
-func (p *{{.StructName}}) IDs(cond table.ISqlBuilder, size, index int) ([]interface{}, error) {
+func (p *{{.StructName}}) IDs(x interface{}, cond table.ISqlBuilder, size, index int) ([]interface{}, error) {
+{{if .HasCache}}
+	if size == 0 {
+		size = {{.CacheLimit}}
+	}
+
+	if index == 0 {
+		index = 1
+	}
 	return {{lower .StructName}}_ids_cache.LGet(context.TODO(), cond, int64(size*(index-1)), int64(size*index))
+{{else}}
+	return p.IDsNoCache(x,cond,size,index)
+{{end}}
+}
+
+//IDsNoCache 读取符合条件的主键列表
+func (p *{{.StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder, size, index int) ([]interface{}, error) {
+	if size == 0 {
+		size = 1000
+	}
+
+	if index == 0 {
+		index = 1
+	}
+
+	var (
+		ok bool
+		db *Session
+	)
+	
+	if db, ok = x.(*Session); ok {
+		db.Table(table.{{.StructName}}.TableName)
+	} else {
+		db = Db().Table(table.{{.StructName}}.TableName)
+	}
+
+	ids := make([]interface{}, 0)
+
+	if cond != nil {
+		query, args := cond.GetCondition()
+		if query != "" {
+			db.Where(query, args...)
+		}
+	}
+	e := db.Limit(size,size*(index-1)).
+		Find(&ids)
+	if e != nil {
+		log.Logs.DBError(db, e)
+	}
+	return ids,e
 }
 
 //Find
 func (p *{{.StructName}}) Find(x interface{}, cond table.ISqlBuilder, size, index int) ([]*{{.StructName}}, error) {
 {{if .HasCache}}
-	ids, e := p.IDs(cond,size,index)
+	ids, e := p.IDs(x,cond,size,index)
 	if len(ids) == 0 {
 		log.Logs.Error(e)
 		return nil, e
@@ -360,7 +413,22 @@ func (p *{{.StructName}}) Find(x interface{}, cond table.ISqlBuilder, size, inde
 			list = append(list, mm)
 		}
 	}
+	return list, nil
 {{else}}
+	return p.FindNoCache(x,cond,size,index)
+{{end}}
+}
+
+//FindNoCache
+func (p *{{.StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilder, size, index int) ([]*{{.StructName}}, error) {
+	if size == 0 {
+		size = 1000
+	}
+
+	if index == 0 {
+		index = 1
+	}
+
 	var (
 		ok bool
 		db *Session
@@ -385,9 +453,9 @@ func (p *{{.StructName}}) Find(x interface{}, cond table.ISqlBuilder, size, inde
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
-{{end}}
 	return list, nil
 }
+
 
 //ToMap
 func (p *{{.StructName}}) ToMap(cols...table.TableField) map[string]interface{} {
