@@ -320,7 +320,7 @@ func (p *{{.StructName}}) Get(x interface{},id uint64) (bool, error) {
 }
 
 //GetNoCache
-func (p *{{.StructName}}) GetNoCache(x interface{},id uint64) (bool, error) {
+func (p *{{.StructName}}) GetNoCache(x interface{},id uint64, cols ...table.TableField) (bool, error) {
 	var (
 		ok bool
 		db *Session
@@ -330,6 +330,14 @@ func (p *{{.StructName}}) GetNoCache(x interface{},id uint64) (bool, error) {
 		db.Table(table.{{.StructName}}.TableName)
 	} else {
 		db = Db().Table(table.{{.StructName}}.TableName)
+	}
+	//
+	if len(cols) > 0 {
+		_cols := make([]string, 0, len(cols))
+		for _, col := range cols {
+			_cols = append(_cols, col.Name)
+		}
+		db.Cols(_cols...)
 	}
 
 	has, e := db.Where(table.{{.StructName}}.PrimaryKey.Eq(),id).
@@ -419,7 +427,7 @@ func (p *{{.StructName}}) Find(x interface{}, cond table.ISqlBuilder, size, inde
 }
 
 //FindNoCache
-func (p *{{.StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilder, size, index int) ([]*{{.StructName}}, error) {
+func (p *{{.StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilder, size, index int, cols ...table.TableField) ([]*{{.StructName}}, error) {
 	var (
 		ok bool
 		db *Session
@@ -429,6 +437,14 @@ func (p *{{.StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilder, siz
 		db.Table(table.{{.StructName}}.TableName)
 	} else {
 		db = Db().Table(table.{{.StructName}}.TableName)
+	}
+	//
+	if len(cols) > 0 {
+		_cols := make([]string, 0, len(cols))
+		for _, col := range cols {
+			_cols = append(_cols, col.Name)
+		}
+		db.Cols(_cols...)
 	}
 
 	list := make([]*{{.StructName}}, 0)
