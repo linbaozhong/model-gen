@@ -358,14 +358,6 @@ func (p *{{.StructName}}) IDs(x interface{}, cond table.ISqlBuilder, size, index
 
 //IDsNoCache 读取符合条件的主键列表
 func (p *{{.StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder, size, index int) ([]interface{}, error) {
-	if size == 0 {
-		size = 1000
-	}
-
-	if index == 0 {
-		index = 1
-	}
-
 	var (
 		ok bool
 		db *Session
@@ -385,8 +377,15 @@ func (p *{{.StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder, size
 			db.Where(query, args...)
 		}
 	}
-	e := db.Limit(size,size*(index-1)).
-		Find(&ids)
+
+	if size > 0 {
+		if index == 0 {
+			index = 1
+		}
+		db.Limit(size, size*(index-1))
+	}
+
+	e := db.Find(&ids)
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
@@ -421,14 +420,6 @@ func (p *{{.StructName}}) Find(x interface{}, cond table.ISqlBuilder, size, inde
 
 //FindNoCache
 func (p *{{.StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilder, size, index int) ([]*{{.StructName}}, error) {
-	if size == 0 {
-		size = 1000
-	}
-
-	if index == 0 {
-		index = 1
-	}
-
 	var (
 		ok bool
 		db *Session
@@ -448,8 +439,15 @@ func (p *{{.StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilder, siz
 			db.Where(query, args...)
 		}
 	}
-	e := db.Limit(size,size*(index-1)).
-		Find(&list)
+
+	if size > 0 {
+		if index == 0 {
+			index = 1
+		}
+		db.Limit(size, size*(index-1))
+	}
+
+	e := db.Find(&list)
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
