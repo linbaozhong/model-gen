@@ -20,9 +20,9 @@ import (
 	"internal/conf"
 	"libs/utils"{{end}}
 	"internal/log"
+{{end}}
 	"libs/types"
 	"{{.ModulePath}}/table"
-{{end}}
 )
 
 var (
@@ -108,7 +108,7 @@ func (*{{.StructName}}) TableName() string {
 	return table.{{.StructName}}.TableName
 }
 
-//Insert 
+//Insert 新增一条数据
 func (p *{{.StructName}}) Insert(x interface{}, cols ...string) (int64,error) {
 	var (
 		ok bool
@@ -137,7 +137,7 @@ func (p *{{.StructName}}) Insert(x interface{}, cols ...string) (int64,error) {
 	return i64, e
 }
 
-//InsertBatch
+//InsertBatch 批量新增数据
 func (p *{{.StructName}}) InsertBatch(x interface{}, beans []interface{}, cols ...string) (int64, error) {
 	var (
 		ok bool
@@ -166,7 +166,7 @@ func (p *{{.StructName}}) InsertBatch(x interface{}, beans []interface{}, cols .
 	return i64, e
 }
 
-//Update
+//Update 根据主键修改一条数据
 func (p *{{.StructName}}) Update(x interface{}, id uint64, bean ...interface{}) (int64,error) {
 	var (
 		i64 int64
@@ -201,7 +201,7 @@ func (p *{{.StructName}}) Update(x interface{}, id uint64, bean ...interface{}) 
 	return i64, e
 }
 
-//UpdateBatch
+//UpdateBatch 根据cond条件批量修改数据
 func (p *{{.StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder, bean ...interface{}) (int64, error) {
 	var (
 		i64 int64
@@ -241,7 +241,7 @@ func (p *{{.StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder, bea
 	return i64, e
 }
 
-//Delete
+//Delete 根据主键删除一条数据
 func (p *{{.StructName}}) Delete(x interface{}, id uint64) (int64,error) {
 	var (
 		ok bool
@@ -268,7 +268,7 @@ func (p *{{.StructName}}) Delete(x interface{}, id uint64) (int64,error) {
 	return i64, e
 }
 
-//DeleteBatch
+//DeleteBatch 根据cond条件批量删除数据
 func (p *{{.StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilder) (int64, error) {
 	var (
 		ok bool
@@ -299,7 +299,7 @@ func (p *{{.StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilder) (in
 	return i64, e
 }
 
-//Get
+//Get 根据主键从Cache中获取一条数据
 func (p *{{.StructName}}) Get(x interface{},id uint64) (bool, error) {
 {{if .HasCache}}
 	cm, e := {{lower .StructName}}_cache.Get(context.TODO(), id)
@@ -319,7 +319,7 @@ func (p *{{.StructName}}) Get(x interface{},id uint64) (bool, error) {
 {{end}}
 }
 
-//GetNoCache
+//GetNoCache 根据主键从数据库中获取一条数据
 func (p *{{.StructName}}) GetNoCache(x interface{},id uint64, cols ...table.TableField) (bool, error) {
 	var (
 		ok bool
@@ -348,7 +348,7 @@ func (p *{{.StructName}}) GetNoCache(x interface{},id uint64, cols ...table.Tabl
 	return has,e
 }
 
-//IDs 读取符合条件的主键列表
+//IDs 根据cond条件从cache中获取主键列表
 func (p *{{.StructName}}) IDs(x interface{}, cond table.ISqlBuilder, size, index int) ([]interface{}, error) {
 {{if .HasCache}}
 	if size == 0 {
@@ -364,7 +364,7 @@ func (p *{{.StructName}}) IDs(x interface{}, cond table.ISqlBuilder, size, index
 {{end}}
 }
 
-//IDsNoCache 读取符合条件的主键列表
+//IDsNoCache 根据cond条件从数据库中获取主键列表
 func (p *{{.StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder, size, index int) ([]interface{}, error) {
 	var (
 		ok bool
@@ -400,7 +400,7 @@ func (p *{{.StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder, size
 	return ids,e
 }
 
-//Find
+//Find 根据cond条件从cache中获取数据列表
 func (p *{{.StructName}}) Find(x interface{}, cond table.ISqlBuilder, size, index int) ([]*{{.StructName}}, error) {
 {{if .HasCache}}
 	ids, e := p.IDs(x,cond,size,index)
@@ -426,7 +426,7 @@ func (p *{{.StructName}}) Find(x interface{}, cond table.ISqlBuilder, size, inde
 {{end}}
 }
 
-//FindNoCache
+//FindNoCache 根据cond条件从数据库中获取数据列表
 func (p *{{.StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilder, size, index int, cols ...table.TableField) ([]*{{.StructName}}, error) {
 	var (
 		ok bool
@@ -470,47 +470,6 @@ func (p *{{.StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilder, siz
 	return list, nil
 }
 
-
-//ToMap
-func (p *{{.StructName}}) ToMap(cols...table.TableField) map[string]interface{} {
-	if len(cols) == 0{
-		return map[string]interface{}{
-			{{range $key, $value := .Columns}}table.{{$.StructName}}.{{$key}}.Name:p.{{$key}},
-			{{end}}
-		}
-	}
-
-	m := make(map[string]interface{},len(cols))
-	for _, col := range cols {
-		switch col.Name {
-		{{range $key, $value := .Columns}}case table.{{$.StructName}}.{{$key}}.Name:
-			m[col.Name] = p.{{$key}}
-		{{end}}
-		}
-	}
-	return m
-}
-
-//ToJSON
-func (p *{{.StructName}}) ToJSON(cols...table.TableField) types.Smap {
-	if len(cols) == 0{
-		return types.Smap{
-			{{range $key, $value := .Columns}}table.{{$.StructName}}.{{$key}}.Json:p.{{$key}},
-			{{end}}
-		}
-	}
-
-	m := make(types.Smap,len(cols))
-	for _, col := range cols {
-		switch col.Json {
-		{{range $key, $value := .Columns}}case table.{{$.StructName}}.{{$key}}.Json:
-			m[col.Json] = p.{{$key}}
-		{{end}}
-		}
-	}
-	return m
-}
-
 {{if .HasCache}}
 //OnChange
 func (p *{{.StructName}}) OnChange(id uint64) error {
@@ -546,24 +505,87 @@ func {{.StructName}}IDsCache() *redis.RedisBroker {
 	return {{lower .StructName}}_ids_cache
 }
 {{end}}
-
-//func (p *{{.StructName}}) getInsert(cols ...string) (sql string, params []interface{}, e error) {
-//	sb := table.NewSqlBuilder()
-//	defer sb.Free()
-//
-//	sb.Table(p)
-//
-//	m := p.ToMap(cols...)
-//	for k, v := range m {
-//		sb.Set(k, v)
-//	}
-//
-//	sql, params, e = sb.Insert()
-//	return
-//}
-
-
 {{end}}
+
+//ToMap struct转map
+func (p *{{.StructName}}) ToMap(cols...table.TableField) map[string]interface{} {
+	if len(cols) == 0{
+		return map[string]interface{}{
+			{{range $key, $value := .Columns}}table.{{$.StructName}}.{{$key}}.Name:p.{{$key}},
+			{{end}}
+		}
+	}
+
+	m := make(map[string]interface{},len(cols))
+	for _, col := range cols {
+		switch col.Name {
+		{{range $key, $value := .Columns}}case table.{{$.StructName}}.{{$key}}.Name:
+			m[col.Name] = p.{{$key}}
+		{{end}}
+		}
+	}
+	return m
+}
+
+//ToJSON struct转json
+func (p *{{.StructName}}) ToJSON(cols...table.TableField) types.Smap {
+	if len(cols) == 0{
+		return types.Smap{
+			{{range $key, $value := .Columns}}table.{{$.StructName}}.{{$key}}.Json:p.{{$key}},
+			{{end}}
+		}
+	}
+
+	m := make(types.Smap,len(cols))
+	for _, col := range cols {
+		switch col.Json {
+		{{range $key, $value := .Columns}}case table.{{$.StructName}}.{{$key}}.Json:
+			m[col.Json] = p.{{$key}}
+		{{end}}
+		}
+	}
+	return m
+}
+
+//SliceToJSON slice转json
+func (p *{{.StructName}}) SliceToJSON(sls []*{{.StructName}},cols...table.TableField) []types.Smap {
+	ms := make([]types.Smap, 0, len(sls))
+
+	if len(cols) == 0 {
+		for _, s := range sls {
+			ms = append(ms,types.Smap{
+				{{range $key, $value := .Columns}}table.{{$.StructName}}.{{$key}}.Json:s.{{$key}},
+				{{end}}
+			})
+		}
+		return ms
+	}
+
+	funs := make([]func(m *{{.StructName}}) (string, interface{}), 0, len(cols))
+	for _, col := range cols {
+		switch col.Json {
+		{{range $key, $value := .Columns}}case table.{{$.StructName}}.{{$key}}.Json:
+			funs = append(funs, func(m *{{$.StructName}}) (string, interface{}) {
+				return table.{{$.StructName}}.{{$key}}.Json, m.{{$key}}
+			})
+		{{end}}
+		}
+	}
+	return p.sliceToJSON(sls, funs)
+}
+
+func (p *{{.StructName}}) sliceToJSON(sls []*{{.StructName}}, funs []func(m *{{.StructName}}) (string, interface{})) []types.Smap {
+	ms := make([]types.Smap, 0, len(sls))
+	for _, s := range sls {
+		var m = types.Smap{}
+		for _, f := range funs {
+			k, v := f(s)
+			m[k] = v
+		}
+		ms = append(ms, m)
+	}
+	return ms
+}
 	`
 
 func (d *TempData) writeToModel(fileName string) error {
