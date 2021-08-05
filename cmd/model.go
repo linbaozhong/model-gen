@@ -561,12 +561,12 @@ func (p *{{.StructName}}) SliceToJSON(sls []*{{.StructName}},cols...table.TableF
 		return ms
 	}
 
-	funs := make([]func(m *{{.StructName}}) (string, interface{}), 0, len(cols))
+	funs := make([]func(m types.Smap, s *{{.StructName}}), 0, len(cols))
 	for _, col := range cols {
 		switch col.Json {
 		{{range $key, $value := .Columns}}case table.{{$.StructName}}.{{$key}}.Json:
-			funs = append(funs, func(m *{{$.StructName}}) (string, interface{}) {
-				return table.{{$.StructName}}.{{$key}}.Json, m.{{$key}}
+			funs = append(funs, func(m types.Smap, s *{{$.StructName}}) {
+				m[table.{{$.StructName}}.{{$key}}.Json] = s.{{$key}}
 			})
 		{{end}}
 		}
@@ -579,8 +579,7 @@ func (p *{{.StructName}}) sliceToJSON(sls []*{{.StructName}}, funs []func(m *{{.
 	for _, s := range sls {
 		var m = types.Smap{}
 		for _, f := range funs {
-			k, v := f(s)
-			m[k] = v
+			f(m, s)
 		}
 		ms = append(ms, m)
 	}
