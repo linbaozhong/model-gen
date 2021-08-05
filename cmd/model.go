@@ -574,7 +574,7 @@ func (p *{{.StructName}}) SliceToJSON(sls []*{{.StructName}},cols...table.TableF
 	return p.sliceToJSON(sls, funs)
 }
 
-func (p *{{.StructName}}) sliceToJSON(sls []*{{.StructName}}, funs []func(m *{{.StructName}}) (string, interface{})) []types.Smap {
+func (p *{{.StructName}}) sliceToJSON(sls []*{{.StructName}}, funs []func(m types.Smap, s *{{.StructName}})) []types.Smap {
 	ms := make([]types.Smap, 0, len(sls))
 	for _, s := range sls {
 		var m = types.Smap{}
