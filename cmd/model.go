@@ -67,16 +67,23 @@ func init() {
 			return nil, InvalidKey
 		}
 		
-		query, args := cond.GetCondition()
-		
 		db := Db().Table(table.{{.StructName}}.TableName).
-			Cols(table.{{.StructName}}.PrimaryKey.Name).
-			Limit({{.CacheLimit}})
-		if query != ""{
-			db.Where(query, args...)
+			Cols(table.{{.StructName}}.PrimaryKey.Name)
+		if s, args := cond.GetWhere(); s != "" {
+			db.Where(s, args...)
 		}
+		if s := cond.GetGroupBy(); s != "" {
+			db.GroupBy(s)
+		}
+		if s := cond.GetHaving(); s != "" {
+			db.Having(s)
+		}
+		if s := cond.GetOrderBy(); s != "" {
+			db.OrderBy(s)
+		}
+
 		ids := make([]uint64, 0)
-		e := db.Find(&ids)
+		e := db.Limit({{.CacheLimit}}).Find(&ids)
 		if e != nil {
 			log.Logs.DBError(db, e)
 		}
@@ -216,11 +223,9 @@ func (p *{{.StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder, bea
 		db = Db().Table(table.{{.StructName}}.TableName)
 	}
 
-
 	if cond != nil {
-		query, args := cond.GetCondition()
-		if query != "" {
-			db.Where(query, args...)
+		if s, args := cond.GetWhere(); s != "" {
+			db.Where(s, args...)
 		}
 	}
 
@@ -282,9 +287,8 @@ func (p *{{.StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilder) (in
 	}
 
 	if cond != nil {
-		query, args := cond.GetCondition()
-		if query != "" {
-			db.Where(query, args...)
+		if s, args := cond.GetWhere(); s != "" {
+			db.Where(s, args...)
 		}
 	}
 	i64, e := db.Delete(p)
@@ -380,9 +384,17 @@ func (p *{{.StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder, size
 	ids := make([]interface{}, 0)
 
 	if cond != nil {
-		query, args := cond.GetCondition()
-		if query != "" {
-			db.Where(query, args...)
+		if s, args := cond.GetWhere(); s != "" {
+			db.Where(s, args...)
+		}
+		if s := cond.GetGroupBy(); s != "" {
+			db.GroupBy(s)
+		}
+		if s := cond.GetHaving(); s != "" {
+			db.Having(s)
+		}
+		if s := cond.GetOrderBy(); s != "" {
+			db.OrderBy(s)
 		}
 	}
 
@@ -450,9 +462,17 @@ func (p *{{.StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilder, siz
 	list := make([]*{{.StructName}}, 0)
 
 	if cond != nil {
-		query, args := cond.GetCondition()
-		if query != "" {
-			db.Where(query, args...)
+		if s, args := cond.GetWhere(); s != "" {
+			db.Where(s, args...)
+		}
+		if s := cond.GetGroupBy(); s != "" {
+			db.GroupBy(s)
+		}
+		if s := cond.GetHaving(); s != "" {
+			db.Having(s)
+		}
+		if s := cond.GetOrderBy(); s != "" {
+			db.OrderBy(s)
 		}
 	}
 
