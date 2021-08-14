@@ -498,16 +498,17 @@ func (p *{{.StructName}}) OnChange(id uint64) error {
 
 //OnBatchChange
 func (p *{{.StructName}}) OnBatchChange(cond table.ISqlBuilder) {
+	db := Db().Table(table.{{.StructName}}.TableName)
+	if cond != nil {
+		if s, args := cond.GetWhere(); s != "" {
+			db.Where(s, args...)
+		}
+	}
 	ids := make([]interface{}, 0)
-
-	query, args := cond.GetCondition()
-	db := Db().Table(table.{{.StructName}}.TableName).Where(query, args...)
 	e := db.Find(&ids)
-
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
-
 	if len(ids) > 0 {
 		{{lower .StructName}}_cache.Remove(context.TODO(), ids...)
 	}
