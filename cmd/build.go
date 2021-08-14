@@ -86,6 +86,12 @@ type IModel interface {
 	ToJSON(cols ...TableField) types.Smap
 }
 
+type query struct {
+	Where string
+	Group string
+	Order string
+}
+
 type ISqlBuilder interface {
 	Table(m interface{}) ISqlBuilder
 	GetCondition() (string, []interface{})
@@ -119,14 +125,20 @@ type ISqlBuilder interface {
 	Or() ISqlBuilder
 	OrWhere(sb ISqlBuilder) ISqlBuilder
 
-	GetWhere() string
+	GetWhere() (string, []interface{})
+	GetWhereString() string
 	GetParams() []interface{}
 
 	GroupBy(cols ...TableField) ISqlBuilder
-	Having(sb ISqlBuilder) ISqlBuilder
+	GetGroupBy() string
+
+	Having(s string) ISqlBuilder
+	GetHaving() string
+
 	OrderBy(cols ...TableField) ISqlBuilder
 	Asc(cols ...TableField) ISqlBuilder
 	Desc(cols ...TableField) ISqlBuilder
+	GetOrderBy() string
 
 	//
 	Set(f TableField, v interface{}) ISqlBuilder
@@ -137,17 +149,17 @@ type ISqlBuilder interface {
 	Free()
 }
 type sqlBuilder struct {
-	table        string
-	distinct     bool
-	cols         []TableField
-	where        strings.Builder
-	params       []interface{}
-	groupBy      strings.Builder
-	having       strings.Builder
-	havingParams []interface{}
-	orderBy      strings.Builder
-	limit        string
-	join         string
+	table       string
+	distinct    bool
+	cols        []TableField
+	where       strings.Builder
+	whereParams []interface{}
+	groupBy     strings.Builder
+	having      strings.Builder
+	//havingParams []interface{}
+	orderBy strings.Builder
+	limit   string
+	join    string
 
 	andOr bool
 
@@ -175,10 +187,10 @@ func (p *sqlBuilder) Free() {
 	p.distinct = false
 	p.cols = []TableField{}
 	p.where.Reset()
-	p.params = []interface{}{}
+	p.whereParams = []interface{}{}
 	p.groupBy.Reset()
 	p.having.Reset()
-	p.havingParams = []interface{}{}
+	//p.havingParams = []interface{}{}
 	p.orderBy.Reset()
 	p.limit = ""
 	p.join = ""
@@ -406,12 +418,25 @@ func (p *sqlBuilder) GroupBy(cols ...TableField) ISqlBuilder {
 	return p
 }
 
+func (p *sqlBuilder) GetGroupBy() string {
+	return p.groupBy.String()
+}
+
 //HAVING
-func (p *sqlBuilder) Having(sb ISqlBuilder) ISqlBuilder {
-	defer sb.Free()
-	p.having.WriteString(sb.GetWhere())
-	p.havingParams = sb.GetParams()
+func (p *sqlBuilder) Having(s string) ISqlBuilder {
+	if s == "" {
+		return p
+	}
+	p.having.WriteString(s)
 	return p
+}
+
+func (p *sqlBuilder) GetHaving() string {
+	return p.having.String()
+}
+
+func (p *sqlBuilder) GetOrderBy() string {
+	return p.orderBy.String()
 }
 
 //OrderBy
@@ -469,7 +494,7 @@ func (p *sqlBuilder) Null(f TableField) ISqlBuilder {
 func (p *sqlBuilder) Rlike(f TableField, v interface{}) ISqlBuilder {
 	p.prepare()
 	p.where.WriteString(f.Quote() + " LIKE CONCAT(" + placeholder + ",'%')")
-	p.params = append(p.params, v)
+	p.whereParams = append(p.whereParams, v)
 
 	p.andOr = false
 	return p
@@ -479,7 +504,7 @@ func (p *sqlBuilder) Rlike(f TableField, v interface{}) ISqlBuilder {
 func (p *sqlBuilder) Llike(f TableField, v interface{}) ISqlBuilder {
 	p.prepare()
 	p.where.WriteString(f.Quote() + " LIKE CONCAT('%'," + placeholder + ")")
-	p.params = append(p.params, v)
+	p.whereParams = append(p.whereParams, v)
 
 	p.andOr = false
 	return p
@@ -489,7 +514,7 @@ func (p *sqlBuilder) Llike(f TableField, v interface{}) ISqlBuilder {
 func (p *sqlBuilder) Like(f TableField, v interface{}) ISqlBuilder {
 	p.prepare()
 	p.where.WriteString(f.Quote() + " LIKE CONCAT('%'," + placeholder + ",'%')")
-	p.params = append(p.params, v)
+	p.whereParams = append(p.whereParams, v)
 
 	p.andOr = false
 	return p
@@ -499,7 +524,7 @@ func (p *sqlBuilder) Like(f TableField, v interface{}) ISqlBuilder {
 func (p *sqlBuilder) Bt(f TableField, v1, v2 interface{}) ISqlBuilder {
 	p.prepare()
 	p.where.WriteString(f.Quote() + " BETWEEN " + placeholder + " AND " + placeholder)
-	p.params = append(p.params, v1, v2)
+	p.whereParams = append(p.whereParams, v1, v2)
 
 	p.andOr = false
 	return p
@@ -512,7 +537,7 @@ func (p *sqlBuilder) In(f TableField, v ...interface{}) ISqlBuilder {
 	}
 	p.prepare()
 	p.where.WriteString(f.Quote() + " IN (" + strings.Repeat(placeholder+",", len(v))[:2*len(v)-1] + ") ")
-	p.params = append(p.params, v...)
+	p.whereParams = append(p.whereParams, v...)
 
 	p.andOr = false
 	return p
@@ -525,7 +550,7 @@ func (p *sqlBuilder) UnIn(f TableField, v ...interface{}) ISqlBuilder {
 	}
 	p.prepare()
 	p.where.WriteString(f.Quote() + " NOT IN (" + strings.Repeat(placeholder+",", len(v))[:2*len(v)-1] + ") ")
-	p.params = append(p.params, v...)
+	p.whereParams = append(p.whereParams, v...)
 
 	p.andOr = false
 	return p
@@ -580,7 +605,7 @@ func (p *sqlBuilder) And() ISqlBuilder {
 func (p *sqlBuilder) AndWhere(sb ISqlBuilder) ISqlBuilder {
 	defer sb.Free()
 
-	if sb.GetWhere() == "" {
+	if sb.GetWhereString() == "" {
 		return p
 	}
 
@@ -600,7 +625,7 @@ func (p *sqlBuilder) Or() ISqlBuilder {
 //OrWhere
 func (p *sqlBuilder) OrWhere(sb ISqlBuilder) ISqlBuilder {
 	defer sb.Free()
-	if sb.GetWhere() == "" {
+	if sb.GetWhereString() == "" {
 		return p
 	}
 
@@ -609,24 +634,31 @@ func (p *sqlBuilder) OrWhere(sb ISqlBuilder) ISqlBuilder {
 }
 
 //GetWhere
-func (p *sqlBuilder) GetWhere() string {
+func (p *sqlBuilder) GetWhere() (string, []interface{}) {
+	return p.where.String(), p.whereParams
+}
+
+//GetWhereString
+func (p *sqlBuilder) GetWhereString() string {
 	return p.where.String()
 }
 
 //GetParams
 func (p *sqlBuilder) GetParams() []interface{} {
-	params := []interface{}{}
-	params = append(params, p.params...)
-	params = append(params, p.havingParams...)
-
-	return params
+	//params := []interface{}{}
+	//params = append(params, p.whereParams...)
+	//params = append(params, p.havingParams...)
+	//
+	//return params
+	return p.whereParams
 }
-//GetCondition
+
+//condition
 func (p *sqlBuilder) condition() (string, []interface{}) {
 	var buf strings.Builder
 	//WHERE
 	if p.where.Len() > 0 {
-		buf.WriteString(p.GetWhere())
+		buf.WriteString(p.GetWhereString())
 	}
 	//GROUP BY
 	if p.groupBy.Len() > 0 {
@@ -694,12 +726,17 @@ func (p *sqlBuilder) String() string {
 ////
 //subCond 子条件
 func (p *sqlBuilder) subCond(sb ISqlBuilder) ISqlBuilder {
+	s := sb.GetWhereString()
+	if s == "" {
+		return p
+	}
+
 	p.where.WriteString(" ( ")
-	p.where.WriteString(sb.GetWhere())
+	p.where.WriteString(s)
 	p.where.WriteString(" ) ")
 
 	if len(sb.GetParams()) > 0 {
-		p.params = append(p.params, sb.GetParams()...)
+		p.whereParams = append(p.whereParams, sb.GetParams()...)
 	}
 
 	p.andOr = false
@@ -709,7 +746,7 @@ func (p *sqlBuilder) subCond(sb ISqlBuilder) ISqlBuilder {
 func (p *sqlBuilder) toWhere(f TableField, v interface{}, op string) *sqlBuilder {
 	p.prepare()
 	p.where.WriteString(f.generate(op))
-	p.params = append(p.params, v)
+	p.whereParams = append(p.whereParams, v)
 
 	p.andOr = false
 	return p
