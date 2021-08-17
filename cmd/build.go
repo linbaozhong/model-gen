@@ -32,7 +32,6 @@ package table
 
 import (
 	"errors"
-	types2 "go/types"
 	"libs/types"
 	"reflect"
 	"libs/utils"
