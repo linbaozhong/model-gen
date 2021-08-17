@@ -191,20 +191,32 @@ func parseDocs(tmp *TempData, docs []string) {
 			tmp.TableName = strings.TrimSpace(strings.TrimLeft(doc, "tablename"))
 			continue
 		}
-		if strings.HasPrefix(doc, "cachedata") {
+		if strings.HasPrefix(doc, "cache") {
 			tmp.HasCache = true
-			tmp.CacheData = strings.TrimSpace(strings.TrimLeft(doc, "cachedata"))
+			cache := strings.Replace(strings.TrimSpace(strings.TrimLeft(doc, "cache")), "  ", " ", -1)
+			caches := strings.Split(cache, " ")
+			if len(caches) >= 3 {
+				tmp.CacheData = caches[0]
+				tmp.CacheList = caches[1]
+				tmp.CacheLimit = caches[2]
+			}
 			continue
-		}
-		if strings.HasPrefix(doc, "cachelist") {
-			tmp.HasCache = true
-			tmp.CacheList = strings.TrimSpace(strings.TrimLeft(doc, "cachelist"))
-			continue
-		}
-		if strings.HasPrefix(doc, "cachelimit") {
-			tmp.HasCache = true
-			tmp.CacheLimit = strings.TrimSpace(strings.TrimLeft(doc, "cachelimit"))
-			continue
+		} else {
+			if strings.HasPrefix(doc, "cachedata") {
+				tmp.HasCache = true
+				tmp.CacheData = strings.TrimSpace(strings.TrimLeft(doc, "cachedata"))
+				continue
+			}
+			if strings.HasPrefix(doc, "cachelist") {
+				tmp.HasCache = true
+				tmp.CacheList = strings.TrimSpace(strings.TrimLeft(doc, "cachelist"))
+				continue
+			}
+			if strings.HasPrefix(doc, "cachelimit") {
+				tmp.HasCache = true
+				tmp.CacheLimit = strings.TrimSpace(strings.TrimLeft(doc, "cachelimit"))
+				continue
+			}
 		}
 	}
 }
