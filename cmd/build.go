@@ -538,9 +538,8 @@ func (p *sqlBuilder) In(f TableField, v ...interface{}) ISqlBuilder {
 		return p
 	}
 
-	switch v[0].(type) {
-	case types2.Slice:
-		vv := reflect.ValueOf(v[0])
+	vv := reflect.ValueOf(v[0])
+	if vv.Kind() == reflect.Slice {
 		l := vv.Len()
 		if l == 0 {
 			return p
@@ -550,12 +549,11 @@ func (p *sqlBuilder) In(f TableField, v ...interface{}) ISqlBuilder {
 		for i := 0; i < l; i++ {
 			p.whereParams = append(p.whereParams, vv.Index(i).Interface())
 		}
-	default:
+	} else {
 		p.prepare()
 		p.where.WriteString(f.Quote() + " IN (" + strings.Repeat(placeholder+",", len(v))[:2*len(v)-1] + ") ")
 		p.whereParams = append(p.whereParams, v...)
 	}
-
 	p.andOr = false
 	return p
 }
