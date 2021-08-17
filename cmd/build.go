@@ -535,9 +535,24 @@ func (p *sqlBuilder) In(f TableField, v ...interface{}) ISqlBuilder {
 	if len(v) == 0 {
 		return p
 	}
-	p.prepare()
-	p.where.WriteString(f.Quote() + " IN (" + strings.Repeat(placeholder+",", len(v))[:2*len(v)-1] + ") ")
-	p.whereParams = append(p.whereParams, v...)
+
+	switch v[0].(type) {
+	case types2.Slice:
+		vv := reflect.ValueOf(v[0])
+		l := vv.Len()
+		if l == 0 {
+			return p
+		}
+		p.prepare()
+		p.where.WriteString(f.Quote() + " IN (" + strings.Repeat(placeholder+",", l)[:2*l-1] + ") ")
+		for i := 0; i < l; i++ {
+			p.whereParams = append(p.whereParams, vv.Index(i).Interface())
+		}
+	default:
+		p.prepare()
+		p.where.WriteString(f.Quote() + " IN (" + strings.Repeat(placeholder+",", len(v))[:2*len(v)-1] + ") ")
+		p.whereParams = append(p.whereParams, v...)
+	}
 
 	p.andOr = false
 	return p
