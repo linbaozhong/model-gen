@@ -191,7 +191,7 @@ func parseDocs(tmp *TempData, docs []string) {
 			tmp.TableName = strings.TrimSpace(strings.TrimLeft(doc, "tablename"))
 			continue
 		}
-		if strings.HasPrefix(doc, "cache") {
+		if strings.HasPrefix(doc, "cache ") {
 			tmp.HasCache = true
 			cache := strings.Replace(strings.TrimSpace(strings.TrimLeft(doc, "cache")), "  ", " ", -1)
 			caches := strings.Split(cache, " ")
