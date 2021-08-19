@@ -34,8 +34,8 @@ import (
 	"errors"
 	types2 "go/types"
 	"libs/types"
-	"reflect"
 	"libs/utils"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -97,13 +97,14 @@ type query struct {
 type ISqlBuilder interface {
 	Table(m interface{}) ISqlBuilder
 	GetCondition() (string, []interface{})
-	Select() (string, []interface{}, error)
-	Insert() (string, []interface{}, error)
-	Update() (string, []interface{}, error)
-	Delete() (string, []interface{}, error)
+	Select() ([]interface{}, error)
+	Insert() ([]interface{}, error)
+	Update() ([]interface{}, error)
+	Delete() ([]interface{}, error)
 
 	Distinct() ISqlBuilder
-	Cols(args ...TableField) ISqlBuilder
+	Cols(args ...interface{}) ISqlBuilder
+	GetCols() []string
 	Eq(f TableField, v interface{}) ISqlBuilder
 	Gt(f TableField, v interface{}) ISqlBuilder
 	Gte(f TableField, v interface{}) ISqlBuilder
@@ -119,6 +120,7 @@ type ISqlBuilder interface {
 	Null(f TableField) ISqlBuilder
 	UnNull(f TableField) ISqlBuilder
 	Join(t JoinType, l, r TableField) ISqlBuilder
+	GetJoin() string
 	Limit(size int, offset ...int) ISqlBuilder
 
 	And() ISqlBuilder
@@ -153,7 +155,7 @@ type ISqlBuilder interface {
 type sqlBuilder struct {
 	table       string
 	distinct    bool
-	cols        []TableField
+	cols        []interface{}
 	where       strings.Builder
 	whereParams []interface{}
 	groupBy     strings.Builder
@@ -179,6 +181,10 @@ var (
 	}}
 )
 
+func X() *sqlBuilder {
+	return sqlBuilderPool.Get().(*sqlBuilder)
+}
+
 func NewSqlBuilder() *sqlBuilder {
 	return sqlBuilderPool.Get().(*sqlBuilder)
 }
@@ -187,7 +193,7 @@ func NewSqlBuilder() *sqlBuilder {
 func (p *sqlBuilder) Free() {
 	p.table = ""
 	p.distinct = false
-	p.cols = []TableField{}
+	p.cols = []interface{}{}
 	p.where.Reset()
 	p.whereParams = []interface{}{}
 	p.groupBy.Reset()
@@ -218,14 +224,14 @@ func (p *sqlBuilder) Table(m interface{}) ISqlBuilder {
 }
 
 //Insert
-func (p *sqlBuilder) Insert() (string, []interface{}, error) {
+func (p *sqlBuilder) Insert() ([]interface{}, error) {
 	defer p.Free()
 
 	if p.table == "" {
-		return "", nil, ErrTableEmpty
+		return nil, ErrTableEmpty
 	}
 	if len(p.updateCols) == 0 && len(p.updateExprCols) == 0 {
-		return "", nil, ErrUpdateEmpty
+		return nil, ErrUpdateEmpty
 	}
 
 	var buf strings.Builder
@@ -257,18 +263,22 @@ func (p *sqlBuilder) Insert() (string, []interface{}, error) {
 	}
 	buf.WriteString(" ) ")
 
-	return buf.String(), p.updateParams, nil
+	r := make([]interface{}, 0, len(p.updateParams)+1)
+	r = append(r, buf.String())
+	r = append(r, p.updateParams...)
+
+	return r, nil
 }
 
 //Update
-func (p *sqlBuilder) Update() (string, []interface{}, error) {
+func (p *sqlBuilder) Update() ([]interface{}, error) {
 	defer p.Free()
 
 	if p.table == "" {
-		return "", nil, ErrTableEmpty
+		return nil, ErrTableEmpty
 	}
 	if len(p.updateCols) == 0 && len(p.updateExprCols) == 0 {
-		return "", nil, ErrUpdateEmpty
+		return nil, ErrUpdateEmpty
 	}
 
 	var buf strings.Builder
@@ -307,15 +317,19 @@ func (p *sqlBuilder) Update() (string, []interface{}, error) {
 		copy(_params[len(p.updateParams):], params)
 	}
 
-	return buf.String(), _params, nil
+	r := make([]interface{}, 0, len(_params)+1)
+	r = append(r, buf.String())
+	r = append(r, _params...)
+
+	return r, nil
 }
 
 //Delete
-func (p *sqlBuilder) Delete() (string, []interface{}, error) {
+func (p *sqlBuilder) Delete() ([]interface{}, error) {
 	defer p.Free()
 
 	if p.table == "" {
-		return "", nil, ErrTableEmpty
+		return nil, ErrTableEmpty
 	}
 
 	var buf strings.Builder
@@ -333,15 +347,19 @@ func (p *sqlBuilder) Delete() (string, []interface{}, error) {
 		copy(_params[len(p.updateParams):], params)
 	}
 
-	return buf.String(), _params, nil
+	r := make([]interface{}, 0, len(_params)+1)
+	r = append(r, buf.String())
+	r = append(r, _params...)
+
+	return r, nil
 }
 
 //Select
-func (p *sqlBuilder) Select() (string, []interface{}, error) {
+func (p *sqlBuilder) Select() ([]interface{}, error) {
 	defer p.Free()
 
 	if p.table == "" {
-		return "", nil, ErrTableEmpty
+		return nil, ErrTableEmpty
 	}
 	var buf strings.Builder
 	//SELECT
@@ -352,12 +370,7 @@ func (p *sqlBuilder) Select() (string, []interface{}, error) {
 		if p.distinct {
 			buf.WriteString("DISTINCT ")
 		}
-		for i, col := range p.cols {
-			if i > 0 {
-				buf.WriteByte(',')
-			}
-			buf.WriteString(col.Quote())
-		}
+		buf.WriteString(p.getColString())
 	}
 	//FROM TABLE
 	buf.WriteString(" FROM " + Quote_Char + p.table + Quote_Char)
@@ -365,6 +378,9 @@ func (p *sqlBuilder) Select() (string, []interface{}, error) {
 	if p.join != "" {
 		buf.WriteString(p.join)
 	}
+	//if len(p.join) == 3 {
+	//	buf.WriteString(p.join[0] + p.join[1] + " ON " + p.join[2])
+	//}
 	//WHERE
 	sql, params := p.condition()
 	if sql != "" {
@@ -375,7 +391,11 @@ func (p *sqlBuilder) Select() (string, []interface{}, error) {
 		buf.WriteString(p.limit)
 	}
 
-	return buf.String(), params, nil
+	r := make([]interface{}, 0, len(params)+1)
+	r = append(r, buf.String())
+	r = append(r, params...)
+
+	return r, nil
 }
 
 //GetCondition
@@ -393,7 +413,12 @@ func (p *sqlBuilder) Distinct() ISqlBuilder {
 //JOIN
 func (p *sqlBuilder) Join(t JoinType, l, r TableField) ISqlBuilder {
 	p.join = string(t) + Quote_Char + r.Table + Quote_Char + " ON " + r.Quote() + " = " + l.Quote()
+	//p.join = append(p.join, string(t), Quote_Char+r.Table+Quote_Char, r.Quote()+" = "+l.Quote())
 	return p
+}
+
+func (p *sqlBuilder) GetJoin() string {
+	return p.join
 }
 
 //LIMIT
@@ -538,8 +563,9 @@ func (p *sqlBuilder) In(f TableField, v ...interface{}) ISqlBuilder {
 		return p
 	}
 
-	vv := reflect.ValueOf(v[0])
-	if vv.Kind() == reflect.Slice {
+	switch v[0].(type) {
+	case types2.Slice:
+		vv := reflect.ValueOf(v[0])
 		l := vv.Len()
 		if l == 0 {
 			return p
@@ -549,11 +575,12 @@ func (p *sqlBuilder) In(f TableField, v ...interface{}) ISqlBuilder {
 		for i := 0; i < l; i++ {
 			p.whereParams = append(p.whereParams, vv.Index(i).Interface())
 		}
-	} else {
+	default:
 		p.prepare()
 		p.where.WriteString(f.Quote() + " IN (" + strings.Repeat(placeholder+",", len(v))[:2*len(v)-1] + ") ")
 		p.whereParams = append(p.whereParams, v...)
 	}
+
 	p.andOr = false
 	return p
 }
@@ -602,9 +629,42 @@ func (p *sqlBuilder) Eq(f TableField, v interface{}) ISqlBuilder {
 }
 
 //Cols
-func (p *sqlBuilder) Cols(args ...TableField) ISqlBuilder {
+func (p *sqlBuilder) Cols(args ...interface{}) ISqlBuilder {
 	p.cols = args
 	return p
+}
+
+func (p *sqlBuilder) GetCols() []string {
+	if len(p.cols) == 0 {
+		return []string{}
+	}
+	s := make([]string, 0, len(p.cols))
+	for _, col := range p.cols {
+		if _f, ok := col.(TableField); ok {
+			s = append(s, _f.Quote())
+		} else if _f, ok := col.(string); ok {
+			s = append(s, _f)
+		}
+	}
+	return s
+}
+
+func (p *sqlBuilder) getColString() string {
+	if len(p.cols) == 0 {
+		return ""
+	}
+	buf := strings.Builder{}
+	for i, col := range p.cols {
+		if i > 0 {
+			buf.WriteByte(',')
+		}
+		if _f, ok := col.(TableField); ok {
+			buf.WriteString(_f.Quote())
+		} else if _f, ok := col.(string); ok {
+			buf.WriteString(_f)
+		}
+	}
+	return buf.String()
 }
 
 //And 算术方法之间默认为 AND 逻辑
