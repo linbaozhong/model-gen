@@ -180,6 +180,10 @@ var (
 	}}
 )
 
+func X() *sqlBuilder {
+	return sqlBuilderPool.Get().(*sqlBuilder)
+}
+
 func NewSqlBuilder() *sqlBuilder {
 	return sqlBuilderPool.Get().(*sqlBuilder)
 }
