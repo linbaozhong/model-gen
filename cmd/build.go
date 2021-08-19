@@ -32,7 +32,6 @@ package table
 
 import (
 	"errors"
-	types2 "go/types"
 	"libs/types"
 	"libs/utils"
 	"reflect"
@@ -557,15 +556,15 @@ func (p *sqlBuilder) Bt(f TableField, v1, v2 interface{}) ISqlBuilder {
 	return p
 }
 
+
 //In
 func (p *sqlBuilder) In(f TableField, v ...interface{}) ISqlBuilder {
 	if len(v) == 0 {
 		return p
 	}
 
-	switch v[0].(type) {
-	case types2.Slice:
-		vv := reflect.ValueOf(v[0])
+	vv := reflect.ValueOf(v[0])
+	if vv.Kind() == reflect.Slice {
 		l := vv.Len()
 		if l == 0 {
 			return p
@@ -575,7 +574,7 @@ func (p *sqlBuilder) In(f TableField, v ...interface{}) ISqlBuilder {
 		for i := 0; i < l; i++ {
 			p.whereParams = append(p.whereParams, vv.Index(i).Interface())
 		}
-	default:
+	} else {
 		p.prepare()
 		p.where.WriteString(f.Quote() + " IN (" + strings.Repeat(placeholder+",", len(v))[:2*len(v)-1] + ") ")
 		p.whereParams = append(p.whereParams, v...)
@@ -590,10 +589,23 @@ func (p *sqlBuilder) UnIn(f TableField, v ...interface{}) ISqlBuilder {
 	if len(v) == 0 {
 		return p
 	}
-	p.prepare()
-	p.where.WriteString(f.Quote() + " NOT IN (" + strings.Repeat(placeholder+",", len(v))[:2*len(v)-1] + ") ")
-	p.whereParams = append(p.whereParams, v...)
-
+	
+	vv := reflect.ValueOf(v[0])
+	if vv.Kind() == reflect.Slice {
+		l := vv.Len()
+		if l == 0 {
+			return p
+		}
+		p.prepare()
+		p.where.WriteString(f.Quote() + " NOT IN (" + strings.Repeat(placeholder+",", l)[:2*l-1] + ") ")
+		for i := 0; i < l; i++ {
+			p.whereParams = append(p.whereParams, vv.Index(i).Interface())
+		}
+	} else {
+		p.prepare()
+		p.where.WriteString(f.Quote() + " NOT IN (" + strings.Repeat(placeholder+",", len(v))[:2*len(v)-1] + ") ")
+		p.whereParams = append(p.whereParams, v...)
+	}
 	p.andOr = false
 	return p
 }
