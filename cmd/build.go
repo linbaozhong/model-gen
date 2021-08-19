@@ -120,6 +120,7 @@ type ISqlBuilder interface {
 	Null(f TableField) ISqlBuilder
 	UnNull(f TableField) ISqlBuilder
 	Join(t JoinType, l, r TableField) ISqlBuilder
+	GetJoin() string
 	Limit(size int, offset ...int) ISqlBuilder
 
 	And() ISqlBuilder
@@ -414,6 +415,10 @@ func (p *sqlBuilder) Join(t JoinType, l, r TableField) ISqlBuilder {
 	p.join = string(t) + Quote_Char + r.Table + Quote_Char + " ON " + r.Quote() + " = " + l.Quote()
 	//p.join = append(p.join, string(t), Quote_Char+r.Table+Quote_Char, r.Quote()+" = "+l.Quote())
 	return p
+}
+
+func (p *sqlBuilder) GetJoin() string {
+	return p.join
 }
 
 //LIMIT
