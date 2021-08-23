@@ -417,7 +417,6 @@ func (p *{{.StructName}}) Find(x interface{}, cond table.ISqlBuilder, size, inde
 {{if .HasCache}}
 	ids, e := p.IDs(x,cond,size,index)
 	if len(ids) == 0 {
-		log.Logs.Error(e)
 		return nil, e
 	}
 
