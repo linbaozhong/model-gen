@@ -67,8 +67,13 @@ func init() {
 			return nil, InvalidKey
 		}
 		
-		db := Db().Table(table.{{.StructName}}.TableName).
-			Cols(table.{{.StructName}}.PrimaryKey.Name)
+		db := Db().Table(table.{{.StructName}}.TableName)
+		
+		if cols := cond.GetCols(); len(cols) == 0 {
+			db.Cols(table.PurposeJob.PrimaryKey.Name)
+		}else{
+			db.Cols(cols...)
+		}
 		if s, args := cond.GetWhere(); s != "" {
 			db.Where(s, args...)
 		}
@@ -439,7 +444,7 @@ func (p *{{.StructName}}) Find(x interface{}, cond table.ISqlBuilder, size, inde
 }
 
 //FindNoCache 根据cond条件从数据库中获取数据列表
-func (p *{{.StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilder, size, index int, cols ...table.TableField) ([]*{{.StructName}}, error) {
+func (p *{{.StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilder, size, index int) ([]*{{.StructName}}, error) {
 	var (
 		ok bool
 		db *Session
@@ -450,18 +455,13 @@ func (p *{{.StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilder, siz
 	} else {
 		db = Db().Table(table.{{.StructName}}.TableName)
 	}
-	//
-	if len(cols) > 0 {
-		_cols := make([]string, 0, len(cols))
-		for _, col := range cols {
-			_cols = append(_cols, col.Name)
-		}
-		db.Cols(_cols...)
-	}
 
 	list := make([]*{{.StructName}}, 0)
 
 	if cond != nil {
+		if cols := cond.GetCols(); len(cols) > 0 {
+			db.Cols(cols...)
+		}
 		if s, args := cond.GetWhere(); s != "" {
 			db.Where(s, args...)
 		}
