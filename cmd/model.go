@@ -89,12 +89,13 @@ func init() {
 		}
 		return ids, e
 	}).DeserializeFunc(func(bean interface{}) (interface{}, error) {
-		ids := make([]uint64, 0)
-		e := utils.JSON.UnmarshalFromString(utils.Interface2String(bean), &ids)
-		if e != nil {
-			log.Logs.Error(e)
-		}
-		return ids, e
+		return bean, nil
+		//ids := make([]uint64, 0)
+		//e := utils.JSON.UnmarshalFromString(utils.Interface2String(bean), &ids)
+		//if e != nil {
+		//	log.Logs.Error(e)
+		//}
+		//return ids, e
 	})
 }
 {{end}}
