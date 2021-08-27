@@ -65,13 +65,9 @@ func init() {
 			return nil, InvalidKey
 		}
 		
-		db := Db().Table(table.{{.StructName}}.TableName)
-		
-		//if cols := cond.GetCols(); len(cols) == 0 {
-			db.Cols(table.PurposeJob.PrimaryKey.Name)
-		//}else{
-		//	db.Cols(cols...)
-		//}
+		db := Db().Table(table.{{.StructName}}.TableName).
+			Cols(table.PurposeJob.PrimaryKey.Name)
+
 		if s, args := cond.GetWhere(); s != "" {
 			db.Where(s, args...)
 		}
