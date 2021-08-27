@@ -17,8 +17,7 @@ import (
 {{if .HasPrimaryKey}}
 	{{if .HasCache}}"context"
 	"internal/cache/redis"
-	"internal/conf"
-	"libs/utils"{{end}}
+	"internal/conf"{{end}}
 	"internal/log"
 {{end}}
 	"libs/types"
@@ -41,14 +40,13 @@ var (
 
 func init() {
 	{{lower .StructName}}_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
-		id := utils.Interface2Uint64(k, 0)
-		if id < 1 {
+		if k == nil {
 			return nil, InvalidKey
 		}
 
 		m := New{{.StructName}}()
 		db := Db().Table(table.{{.StructName}}.TableName)
-		has, e := db.Where(table.{{.StructName}}.PrimaryKey.Eq(),id).
+		has, e := db.Where(table.{{.StructName}}.PrimaryKey.Eq(),k).
 			Get(m)
 		if has {
 			return m, nil
@@ -68,7 +66,8 @@ func init() {
 		}
 		
 		db := Db().Table(table.{{.StructName}}.TableName).
-			Cols(table.{{.StructName}}.PrimaryKey.Name)
+			Cols(table.PurposeJob.PrimaryKey.Name)
+
 		if s, args := cond.GetWhere(); s != "" {
 			db.Where(s, args...)
 		}
@@ -82,17 +81,10 @@ func init() {
 			db.OrderBy(s)
 		}
 
-		ids := make([]uint64, 0)
+		ids := make([]interface{}, 0)
 		e := db.Limit({{.CacheLimit}}).Find(&ids)
 		if e != nil {
 			log.Logs.DBError(db, e)
-		}
-		return ids, e
-	}).DeserializeFunc(func(bean interface{}) (interface{}, error) {
-		ids := make([]uint64, 0)
-		e := utils.JSON.UnmarshalFromString(utils.Interface2String(bean), &ids)
-		if e != nil {
-			log.Logs.Error(e)
 		}
 		return ids, e
 	})
@@ -417,7 +409,6 @@ func (p *{{.StructName}}) Find(x interface{}, cond table.ISqlBuilder, size, inde
 {{if .HasCache}}
 	ids, e := p.IDs(x,cond,size,index)
 	if len(ids) == 0 {
-		log.Logs.Error(e)
 		return nil, e
 	}
 
@@ -439,7 +430,7 @@ func (p *{{.StructName}}) Find(x interface{}, cond table.ISqlBuilder, size, inde
 }
 
 //FindNoCache 根据cond条件从数据库中获取数据列表
-func (p *{{.StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilder, size, index int, cols ...table.TableField) ([]*{{.StructName}}, error) {
+func (p *{{.StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilder, size, index int) ([]*{{.StructName}}, error) {
 	var (
 		ok bool
 		db *Session
@@ -450,18 +441,13 @@ func (p *{{.StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilder, siz
 	} else {
 		db = Db().Table(table.{{.StructName}}.TableName)
 	}
-	//
-	if len(cols) > 0 {
-		_cols := make([]string, 0, len(cols))
-		for _, col := range cols {
-			_cols = append(_cols, col.Name)
-		}
-		db.Cols(_cols...)
-	}
 
 	list := make([]*{{.StructName}}, 0)
 
 	if cond != nil {
+		if cols := cond.GetCols(); len(cols) > 0 {
+			db.Cols(cols...)
+		}
 		if s, args := cond.GetWhere(); s != "" {
 			db.Where(s, args...)
 		}

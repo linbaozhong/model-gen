@@ -141,6 +141,7 @@ type ISqlBuilder interface {
 	OrderBy(cols ...TableField) ISqlBuilder
 	Asc(cols ...TableField) ISqlBuilder
 	Desc(cols ...TableField) ISqlBuilder
+	Rand() ISqlBuilder
 	GetOrderBy() string
 
 	//
@@ -411,7 +412,7 @@ func (p *sqlBuilder) Distinct() ISqlBuilder {
 
 //JOIN
 func (p *sqlBuilder) Join(t JoinType, l, r TableField) ISqlBuilder {
-	p.join = string(t) + Quote_Char + r.Table + Quote_Char + " ON " + r.Quote() + " = " + l.Quote()
+	p.join += string(t) + Quote_Char + r.Table + Quote_Char + " ON " + l.Quote() + " = " + r.Quote() + " "
 	//p.join = append(p.join, string(t), Quote_Char+r.Table+Quote_Char, r.Quote()+" = "+l.Quote())
 	return p
 }
@@ -495,6 +496,12 @@ func (p *sqlBuilder) Desc(cols ...TableField) ISqlBuilder {
 		}
 		p.orderBy.WriteString(col.Quote() + " DESC")
 	}
+	return p
+}
+
+//orderby rand()
+func (p *sqlBuilder) Rand() ISqlBuilder {
+	p.orderBy.WriteString(" rand()")
 	return p
 }
 
