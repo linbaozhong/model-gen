@@ -17,8 +17,7 @@ import (
 {{if .HasPrimaryKey}}
 	{{if .HasCache}}"context"
 	"internal/cache/redis"
-	"internal/conf"
-	"libs/utils"{{end}}
+	"internal/conf"{{end}}
 	"internal/log"
 {{end}}
 	"libs/types"
@@ -41,14 +40,13 @@ var (
 
 func init() {
 	{{lower .StructName}}_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
-		id := utils.Interface2Uint64(k, 0)
-		if id < 1 {
+		if k == nil {
 			return nil, InvalidKey
 		}
 
 		m := New{{.StructName}}()
 		db := Db().Table(table.{{.StructName}}.TableName)
-		has, e := db.Where(table.{{.StructName}}.PrimaryKey.Eq(),id).
+		has, e := db.Where(table.{{.StructName}}.PrimaryKey.Eq(),k).
 			Get(m)
 		if has {
 			return m, nil
@@ -69,11 +67,11 @@ func init() {
 		
 		db := Db().Table(table.{{.StructName}}.TableName)
 		
-		if cols := cond.GetCols(); len(cols) == 0 {
+		//if cols := cond.GetCols(); len(cols) == 0 {
 			db.Cols(table.PurposeJob.PrimaryKey.Name)
-		}else{
-			db.Cols(cols...)
-		}
+		//}else{
+		//	db.Cols(cols...)
+		//}
 		if s, args := cond.GetWhere(); s != "" {
 			db.Where(s, args...)
 		}
@@ -87,20 +85,12 @@ func init() {
 			db.OrderBy(s)
 		}
 
-		ids := make([]uint64, 0)
+		ids := make([]interface{}, 0)
 		e := db.Limit({{.CacheLimit}}).Find(&ids)
 		if e != nil {
 			log.Logs.DBError(db, e)
 		}
 		return ids, e
-	}).DeserializeFunc(func(bean interface{}) (interface{}, error) {
-		return bean, nil
-		//ids := make([]uint64, 0)
-		//e := utils.JSON.UnmarshalFromString(utils.Interface2String(bean), &ids)
-		//if e != nil {
-		//	log.Logs.Error(e)
-		//}
-		//return ids, e
 	})
 }
 {{end}}
