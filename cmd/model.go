@@ -476,6 +476,26 @@ func (p *{{.StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilder, siz
 	return list, nil
 }
 
+//FindOne 根据cond条件从cache中获取一条数据
+func (p *{{.StructName}}) FindOne(x interface{}, cond table.ISqlBuilder) (bool, error) {
+	f, e := p.Find(x, cond, 1, 1)
+	if e != nil || len(f) == 0 {
+		return false, e
+	}
+	*p = *f[0]
+	return true, e
+}
+
+//FindOneNoCache 根据cond条件从数据库中获取一条数据
+func (p *{{.StructName}}) FindOneNoCache(x interface{}, cond table.ISqlBuilder) (bool, error) {
+	f, e := p.FindNoCache(x, cond, 1, 1)
+	if e != nil || len(f) == 0 {
+		return false, e
+	}
+	*p = *f[0]
+	return true, e
+}
+
 {{if .HasCache}}
 //OnChange
 func (p *{{.StructName}}) OnChange(id uint64) error {
