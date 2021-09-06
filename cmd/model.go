@@ -66,7 +66,7 @@ func init() {
 		}
 		
 		db := Db().Table(table.{{.StructName}}.TableName).
-			Cols(table.PurposeJob.PrimaryKey.Name)
+			Cols(table.{{.StructName}}.PrimaryKey.Name)
 
 		if s, args := cond.GetWhere(); s != "" {
 			db.Where(s, args...)
@@ -504,7 +504,8 @@ func (p *{{.StructName}}) OnChange(id uint64) error {
 
 //OnBatchChange
 func (p *{{.StructName}}) OnBatchChange(cond table.ISqlBuilder) {
-	db := Db().Table(table.{{.StructName}}.TableName)
+	db := Db().Table(table.{{.StructName}}.TableName).
+			Cols(table.{{.StructName}}.PrimaryKey.Name)
 	if cond != nil {
 		if s, args := cond.GetWhere(); s != "" {
 			db.Where(s, args...)
