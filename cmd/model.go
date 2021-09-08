@@ -109,16 +109,7 @@ func (*{{.StructName}}) TableName() string {
 
 //Insert 新增一条数据
 func (p *{{.StructName}}) Insert(x interface{}, cols ...string) (int64,error) {
-	var (
-		ok bool
-		db *Session
-	)
-	
-	if db, ok = x.(*Session); ok {
-		db.Table(table.{{.StructName}}.TableName)
-	} else {
-		db = Db().Table(table.{{.StructName}}.TableName)
-	}
+	db := p.getDB(x)
 
 	if len(cols) > 0 {
 		db.Cols(cols...)
@@ -138,16 +129,7 @@ func (p *{{.StructName}}) Insert(x interface{}, cols ...string) (int64,error) {
 
 //InsertBatch 批量新增数据
 func (p *{{.StructName}}) InsertBatch(x interface{}, beans []interface{}, cols ...string) (int64, error) {
-	var (
-		ok bool
-		db *Session
-	)
-	
-	if db, ok = x.(*Session); ok {
-		db.Table(table.{{.StructName}}.TableName)
-	} else {
-		db = Db().Table(table.{{.StructName}}.TableName)
-	}
+	db := p.getDB(x)
 
 	if len(cols) > 0 {
 		db.Cols(cols...)
@@ -170,16 +152,9 @@ func (p *{{.StructName}}) Update(x interface{}, id uint64, bean ...interface{}) 
 	var (
 		i64 int64
 		e error
-		ok bool
-		db *Session
 	)
 	
-	if db, ok = x.(*Session); ok {
-		db.Table(table.{{.StructName}}.TableName)
-	} else {
-		db = Db().Table(table.{{.StructName}}.TableName)
-	}
-
+	db := p.getDB(x)
 
 	db.Where(table.{{.StructName}}.PrimaryKey.Eq(),id)
 
@@ -205,15 +180,9 @@ func (p *{{.StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder, bea
 	var (
 		i64 int64
 		e   error
-		ok bool
-		db *Session
 	)
 	
-	if db, ok = x.(*Session); ok {
-		db.Table(table.{{.StructName}}.TableName)
-	} else {
-		db = Db().Table(table.{{.StructName}}.TableName)
-	}
+	db := p.getDB(x)
 
 	if cond != nil {
 		if s, args := cond.GetWhere(); s != "" {
@@ -240,16 +209,7 @@ func (p *{{.StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder, bea
 
 //Delete 根据主键删除一条数据
 func (p *{{.StructName}}) Delete(x interface{}, id uint64) (int64,error) {
-	var (
-		ok bool
-		db *Session
-	)
-	
-	if db, ok = x.(*Session); ok {
-		db.Table(table.{{.StructName}}.TableName)
-	} else {
-		db = Db().Table(table.{{.StructName}}.TableName)
-	}
+	db := p.getDB(x)
 
 	i64,e := db.Where(table.{{.StructName}}.PrimaryKey.Eq(),id).
 		Delete(p)
@@ -267,16 +227,7 @@ func (p *{{.StructName}}) Delete(x interface{}, id uint64) (int64,error) {
 
 //DeleteBatch 根据cond条件批量删除数据
 func (p *{{.StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilder) (int64, error) {
-	var (
-		ok bool
-		db *Session
-	)
-	
-	if db, ok = x.(*Session); ok {
-		db.Table(table.{{.StructName}}.TableName)
-	} else {
-		db = Db().Table(table.{{.StructName}}.TableName)
-	}
+	db := p.getDB(x)
 
 	if cond != nil {
 		if s, args := cond.GetWhere(); s != "" {
@@ -317,16 +268,7 @@ func (p *{{.StructName}}) Get(x interface{},id uint64) (bool, error) {
 
 //GetNoCache 根据主键从数据库中获取一条数据
 func (p *{{.StructName}}) GetNoCache(x interface{},id uint64, cols ...table.TableField) (bool, error) {
-	var (
-		ok bool
-		db *Session
-	)
-	
-	if db, ok = x.(*Session); ok {
-		db.Table(table.{{.StructName}}.TableName)
-	} else {
-		db = Db().Table(table.{{.StructName}}.TableName)
-	}
+	db := p.getDB(x)
 	//
 	if len(cols) > 0 {
 		_cols := make([]string, 0, len(cols))
@@ -362,16 +304,7 @@ func (p *{{.StructName}}) IDs(x interface{}, cond table.ISqlBuilder, size, index
 
 //IDsNoCache 根据cond条件从数据库中获取主键列表
 func (p *{{.StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder, size, index int) ([]interface{}, error) {
-	var (
-		ok bool
-		db *Session
-	)
-	
-	if db, ok = x.(*Session); ok {
-		db.Table(table.{{.StructName}}.TableName)
-	} else {
-		db = Db().Table(table.{{.StructName}}.TableName)
-	}
+	db := p.getDB(x)
 
 	ids := make([]interface{}, 0)
 
@@ -431,16 +364,7 @@ func (p *{{.StructName}}) Find(x interface{}, cond table.ISqlBuilder, size, inde
 
 //FindNoCache 根据cond条件从数据库中获取数据列表
 func (p *{{.StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilder, size, index int) ([]*{{.StructName}}, error) {
-	var (
-		ok bool
-		db *Session
-	)
-	
-	if db, ok = x.(*Session); ok {
-		db.Table(table.{{.StructName}}.TableName)
-	} else {
-		db = Db().Table(table.{{.StructName}}.TableName)
-	}
+	db := p.getDB(x)
 
 	list := make([]*{{.StructName}}, 0)
 
@@ -613,6 +537,14 @@ func (p *{{.StructName}}) sliceToJSON(sls []*{{.StructName}}, funs []func(m type
 	}
 	return ms
 }
+
+func (p *{{.StructName}}) getDB(x interface{}) *Session {
+	if db, ok = x.(*Session); ok && db == nil  {
+		return Db().Table(table.{{.StructName}}.TableName)
+	} 
+	return db.Table(table.{{.StructName}}.TableName)
+}
+
 	`
 
 func (d *TempData) writeToModel(fileName string) error {
