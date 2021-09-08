@@ -541,9 +541,9 @@ func (p *{{.StructName}}) sliceToJSON(sls []*{{.StructName}}, funs []func(m type
 func (p *{{.StructName}}) getDB(x interface{}) *Session {
 	db, ok := x.(*Session)
 	if ok && db == nil  {
-		return Db().Table(table.Orders.TableName)
+		return Db().Table(table.{{.StructName}}.TableName)
 	} 
-	return db.Table(table.Orders.TableName)
+	return db.Table(table.{{.StructName}}.TableName)
 }
 
 	`
