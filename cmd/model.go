@@ -488,8 +488,9 @@ func (p *{{.StructName}}) FindOneNoCache(x interface{}, cond table.ISqlBuilder) 
 
 {{if .HasCache}}
 //OnChange
-func (p *{{.StructName}}) OnChange(id uint64) error {
-	return {{lower .StructName}}_cache.Remove(context.TODO(), id)
+func (p *{{.StructName}}) OnChange(id uint64) {
+	{{lower .StructName}}_cache.Remove(context.TODO(), id)
+	//p.OnListChange()
 }
 
 //OnBatchChange
@@ -508,11 +509,13 @@ func (p *{{.StructName}}) OnBatchChange(cond table.ISqlBuilder) {
 	}
 	if len(ids) > 0 {
 		{{lower .StructName}}_cache.Remove(context.TODO(), ids...)
+		//p.OnListChange()
 	}
 }
 //OnListChange
-func (p *{{.StructName}}) OnListChange() error {
-	return {{lower .StructName}}_ids_cache.Empty(context.TODO())
+func (p *{{.StructName}}) OnListChange() {
+	{{lower .StructName}}_ids_cache.Empty(context.TODO())
+	{{lower .StructName}}_count_cache.Empty(context.TODO())
 }
 
 func {{.StructName}}Cache() *redis.RedisBroker {
