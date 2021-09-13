@@ -36,6 +36,7 @@ var (
 var (
 	{{lower .StructName}}_cache     = redis.NewClient(conf.App.Mode,"{{lower .StructName}}").Expiration({{.CacheData}})
 	{{lower .StructName}}_ids_cache = redis.NewClient(conf.App.Mode, "{{lower .StructName}}_ids").Expiration({{.CacheList}})
+	{{lower .StructName}}_count_cache = redis.NewClient(conf.App.Mode, "{{lower .StructName}}_count").Expiration({{.CacheList}})
 )
 
 func init() {
@@ -87,6 +88,31 @@ func init() {
 			log.Logs.DBError(db, e)
 		}
 		return ids, e
+	})
+	//
+	{{lower .StructName}}_count_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
+		cond, ok := k.(table.ISqlBuilder)
+		if !ok {
+			return nil, InvalidKey
+		}
+		
+		db := Db().Table(table.{{.StructName}}.TableName)
+
+		if s, args := cond.GetWhere(); s != "" {
+			db.Where(s, args...)
+		}
+		if s := cond.GetGroupBy(); s != "" {
+			db.GroupBy(s)
+		}
+		if s := cond.GetHaving(); s != "" {
+			db.Having(s)
+		}
+
+		i64, e := db.Count()
+		if e != nil {
+			log.Logs.DBError(db, e)
+		}
+		return i64, e
 	})
 }
 {{end}}
@@ -335,6 +361,46 @@ func (p *{{.StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder, size
 		log.Logs.DBError(db, e)
 	}
 	return ids,e
+}
+
+//Count 根据cond条件从cache中获取数据总数
+func (p *{{.StructName}}) Count(x interface{}, cond table.ISqlBuilder) (int64, error) {
+{{if .HasCache}}
+	i, e := {{lower .StructName}}_count_cache.Get(context.TODO(), cond)
+	if e != nil {
+		log.Logs.Error(e)
+		return 0, e
+	}
+	if i64, ok := i.(int64); ok {
+		return i64, nil
+	}
+	return 0, nil
+{{else}}
+	return p.CountNoCache(x,cond)
+{{end}}
+}
+
+
+//CoundNoCache 根据cond条件从数据库中获取数据列表
+func (p *{{.StructName}}) CountNoCache(x interface{}, cond table.ISqlBuilder) (int64, error) {
+	db := p.getDB(x)
+
+	if cond != nil {
+		if s, args := cond.GetWhere(); s != "" {
+			db.Where(s, args...)
+		}
+		if s := cond.GetGroupBy(); s != "" {
+			db.GroupBy(s)
+		}
+		if s := cond.GetHaving(); s != "" {
+			db.Having(s)
+		}
+	}
+	i64, e := db.Count()
+	if e != nil {
+		log.Logs.DBError(db, e)
+	}
+	return i64, nil
 }
 
 //Find 根据cond条件从cache中获取数据列表
