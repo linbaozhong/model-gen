@@ -363,6 +363,63 @@ func (p *{{.StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder, size
 	return ids,e
 }
 
+//Sum 对某个字段进行求和
+func (p *{{.StructName}}) Sum(x interface{}, cond table.ISqlBuilder, col table.TableField) (float64, error) {
+	db := p.getDB(x)
+
+	if cond != nil {
+		if s, args := cond.GetWhere(); s != "" {
+			db.Where(s, args...)
+		}
+		if s := cond.GetGroupBy(); s != "" {
+			db.GroupBy(s)
+		}
+		if s := cond.GetHaving(); s != "" {
+			db.Having(s)
+		}
+	}
+
+	sum, e := db.Sum(p, col.Name)
+	if e != nil {
+		log.Logs.Error(e)
+		return 0, e
+	}
+	return sum, nil
+}
+
+//Sums 对某几个字段进行求和
+func (p *{{.StructName}}) Sums(x interface{}, cond table.ISqlBuilder, args ...table.TableField) ([]float64, error) {
+	if len(args) == 0 {
+		return nil, Param_Missing
+	}
+	
+	cols := make([]string, len(args))
+	for i := 0; i < len(args); i++ {
+		cols[i] = args[i].Name
+	}
+
+	db := p.getDB(x)
+
+	if cond != nil {
+		if s, args := cond.GetWhere(); s != "" {
+			db.Where(s, args...)
+		}
+		if s := cond.GetGroupBy(); s != "" {
+			db.GroupBy(s)
+		}
+		if s := cond.GetHaving(); s != "" {
+			db.Having(s)
+		}
+	}
+
+	sums, e := db.Sums(p, cols...)
+	if e != nil {
+		log.Logs.Error(e)
+		return nil, e
+	}
+	return sums, nil
+}
+
 //Count 根据cond条件从cache中获取数据总数
 func (p *{{.StructName}}) Count(x interface{}, cond table.ISqlBuilder) (int64, error) {
 {{if .HasCache}}
