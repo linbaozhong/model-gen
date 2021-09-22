@@ -182,7 +182,8 @@ func (p *{{.StructName}}) Update(x interface{}, id uint64, bean ...interface{}) 
 	
 	db := p.getDB(x)
 
-	db.Where(table.{{.StructName}}.PrimaryKey.Eq(),id)
+	db.Where(table.{{.StructName}}.PrimaryKey.Eq(),id).
+		Limit(1)
 
 	if len(bean) == 0 {
 		i64,e = db.Update(p)
@@ -198,6 +199,35 @@ func (p *{{.StructName}}) Update(x interface{}, id uint64, bean ...interface{}) 
 		p.OnChange(id)
 	}
 {{end}}
+	return i64, e
+}
+
+//UpdateOne 根据cond条件修改一条数据
+func (p *Bills) UpdateOne(x interface{}, cond table.ISqlBuilder, bean ...interface{}) (int64, error) {
+	var (
+		i64 int64
+		e   error
+	)
+
+	db := p.getDB(x)
+
+	if cond != nil {
+		if s, args := cond.GetWhere(); s != "" {
+			db.Where(s, args...)
+		}
+	}
+	db.Limit(1)
+
+	if len(bean) == 0 {
+		i64, e = db.Update(p)
+	} else {
+		i64, e = db.Update(bean[0])
+	}
+
+	if e != nil {
+		log.Logs.DBError(db, e)
+	}
+
 	return i64, e
 }
 
@@ -238,6 +268,7 @@ func (p *{{.StructName}}) Delete(x interface{}, id uint64) (int64,error) {
 	db := p.getDB(x)
 
 	i64,e := db.Where(table.{{.StructName}}.PrimaryKey.Eq(),id).
+		Limit(1).
 		Delete(p)
 
 	if e != nil {
@@ -304,7 +335,7 @@ func (p *{{.StructName}}) GetNoCache(x interface{},id uint64, cols ...table.Tabl
 		db.Cols(_cols...)
 	}
 
-	has, e := db.Where(table.{{.StructName}}.PrimaryKey.Eq(),id).
+	has, e := db.Where(table.{{.StructName}}.PrimaryKey.Eq(),id).Limit(1).
 		Get(p)
 	if e != nil {
 		log.Logs.DBError(db, e)

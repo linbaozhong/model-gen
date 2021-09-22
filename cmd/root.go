@@ -33,6 +33,7 @@ var (
 在需要生成的struct上增加注释 //tablename [表名]
 				`,
 		Run: func(cmd *cobra.Command, args []string) {
+			//
 			dir, e := ioutil.ReadDir(path)
 			if e != nil {
 				showError(e.Error())
@@ -95,7 +96,6 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&path, "path", "p", "./models", "models路径")
 	rootCmd.PersistentFlags().StringVarP(&module, "module", "m", "", "module名称")
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "true:调试模式")
-
 }
 
 func showError(msg interface{}) {
