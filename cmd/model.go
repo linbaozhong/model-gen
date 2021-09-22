@@ -202,35 +202,6 @@ func (p *{{.StructName}}) Update(x interface{}, id uint64, bean ...interface{}) 
 	return i64, e
 }
 
-//UpdateOne 根据cond条件修改一条数据
-func (p *Bills) UpdateOne(x interface{}, cond table.ISqlBuilder, bean ...interface{}) (int64, error) {
-	var (
-		i64 int64
-		e   error
-	)
-
-	db := p.getDB(x)
-
-	if cond != nil {
-		if s, args := cond.GetWhere(); s != "" {
-			db.Where(s, args...)
-		}
-	}
-	db.Limit(1)
-
-	if len(bean) == 0 {
-		i64, e = db.Update(p)
-	} else {
-		i64, e = db.Update(bean[0])
-	}
-
-	if e != nil {
-		log.Logs.DBError(db, e)
-	}
-
-	return i64, e
-}
-
 //UpdateBatch 根据cond条件批量修改数据
 func (p *{{.StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder, bean ...interface{}) (int64, error) {
 	var (
@@ -243,6 +214,9 @@ func (p *{{.StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder, bea
 	if cond != nil {
 		if s, args := cond.GetWhere(); s != "" {
 			db.Where(s, args...)
+		}
+		if size, start := cond.GetLimit(); size > 0 {
+			db.Limit(size, start)
 		}
 	}
 
@@ -289,6 +263,9 @@ func (p *{{.StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilder) (in
 	if cond != nil {
 		if s, args := cond.GetWhere(); s != "" {
 			db.Where(s, args...)
+		}
+		if size, start := cond.GetLimit(); size > 0 {
+			db.Limit(size, start)
 		}
 	}
 	i64, e := db.Delete(p)
@@ -377,6 +354,9 @@ func (p *{{.StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder, size
 		}
 		if s := cond.GetOrderBy(); s != "" {
 			db.OrderBy(s)
+		}
+		if size, start := cond.GetLimit(); size > 0 {
+			db.Limit(size, start)
 		}
 	}
 
@@ -537,6 +517,9 @@ func (p *{{.StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilder, siz
 		}
 		if s := cond.GetOrderBy(); s != "" {
 			db.OrderBy(s)
+		}
+		if size, start := cond.GetLimit(); size > 0 {
+			db.Limit(size, start)
 		}
 	}
 

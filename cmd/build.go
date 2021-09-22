@@ -120,7 +120,9 @@ type ISqlBuilder interface {
 	UnNull(f TableField) ISqlBuilder
 	Join(t JoinType, l, r TableField) ISqlBuilder
 	GetJoin() string
-	Limit(size int, offset ...int) ISqlBuilder
+
+	Limit(size int, start ...int) ISqlBuilder
+	GetLimit() (size int, start int)
 
 	And() ISqlBuilder
 	AndWhere(sb ISqlBuilder) ISqlBuilder
@@ -163,6 +165,8 @@ type sqlBuilder struct {
 	//havingParams []interface{}
 	orderBy strings.Builder
 	limit   string
+	limitSize  int
+	limitStart int
 	join    string
 
 	andOr bool
@@ -201,6 +205,8 @@ func (p *sqlBuilder) Free() {
 	//p.havingParams = []interface{}{}
 	p.orderBy.Reset()
 	p.limit = ""
+	p.limitStart = 0
+	p.limitSize = 0
 	p.join = ""
 
 	p.andOr = true
@@ -422,13 +428,21 @@ func (p *sqlBuilder) GetJoin() string {
 }
 
 //LIMIT
-func (p *sqlBuilder) Limit(size int, offset ...int) ISqlBuilder {
-	if len(offset) == 0 {
-		p.limit = " LIMIT " + strconv.Itoa(size)
-	} else {
-		p.limit = " LIMIT " + strconv.Itoa(size) + " OFFSET " + strconv.Itoa(offset[0])
+func (p *sqlBuilder) Limit(size int, start ...int) ISqlBuilder {
+	p.limitSize = size
+	if len(start) > 0 {
+		p.limitStart = start[0]
 	}
+	p.limit = " LIMIT " + strconv.Itoa(p.limitSize) + " OFFSET " + strconv.Itoa(p.limitStart)
+
 	return p
+}
+
+//GetLimit
+func (p *sqlBuilder) GetLimit() (size int, start int) {
+	size = p.limitSize
+	start = p.limitStart
+	return
 }
 
 //GROUPBY
