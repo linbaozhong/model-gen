@@ -87,12 +87,6 @@ type IModel interface {
 	ToJSON(cols ...TableField) types.Smap
 }
 
-type query struct {
-	Where string
-	Group string
-	Order string
-}
-
 type ISqlBuilder interface {
 	Table(m interface{}) ISqlBuilder
 	GetCondition() (string, []interface{})
@@ -104,23 +98,39 @@ type ISqlBuilder interface {
 	Distinct() ISqlBuilder
 	Cols(args ...interface{}) ISqlBuilder
 	GetCols() []string
+	Where(sql string, v interface{}) *sqlBuilder
+	//等于
 	Eq(f TableField, v interface{}) ISqlBuilder
+	//大于
 	Gt(f TableField, v interface{}) ISqlBuilder
+	//大于等于
 	Gte(f TableField, v interface{}) ISqlBuilder
+	//小于
 	Lt(f TableField, v interface{}) ISqlBuilder
+	//小于等于
 	Lte(f TableField, v interface{}) ISqlBuilder
+	//IN
 	In(f TableField, v ...interface{}) ISqlBuilder
+	//NOT IN
 	UnIn(f TableField, v ...interface{}) ISqlBuilder
+	//不等于
 	Ue(f TableField, v interface{}) ISqlBuilder
+	//BETWEEN
 	Bt(f TableField, v1, v2 interface{}) ISqlBuilder
+	//LIKE
 	Like(f TableField, v interface{}) ISqlBuilder
+	//
 	Llike(f TableField, v interface{}) ISqlBuilder
+	//
 	Rlike(f TableField, v interface{}) ISqlBuilder
+	//IS NULL
 	Null(f TableField) ISqlBuilder
+	//IS NOT NULL
 	UnNull(f TableField) ISqlBuilder
+	//JOIN
 	Join(t JoinType, l, r TableField) ISqlBuilder
 	GetJoin() string
-
+	//LIMIT
 	Limit(size int, start ...int) ISqlBuilder
 	GetLimit() (size int, start int)
 
@@ -185,10 +195,12 @@ var (
 	}}
 )
 
+//X NewSqlBuilder的简称
 func X() *sqlBuilder {
 	return sqlBuilderPool.Get().(*sqlBuilder)
 }
 
+//NewSqlBuilder 实例化一个 *sqlBuilder
 func NewSqlBuilder() *sqlBuilder {
 	return sqlBuilderPool.Get().(*sqlBuilder)
 }
@@ -659,6 +671,16 @@ func (p *sqlBuilder) Gt(f TableField, v interface{}) ISqlBuilder {
 //Eq
 func (p *sqlBuilder) Eq(f TableField, v interface{}) ISqlBuilder {
 	return p.toWhere(f, v, " = ")
+}
+
+//Where
+func (p *sqlBuilder) Where(sql string, v interface{}) *sqlBuilder {
+	p.prepare()
+	p.where.WriteString(sql)
+	p.whereParams = append(p.whereParams, v)
+
+	p.andOr = false
+	return p
 }
 
 //Cols
