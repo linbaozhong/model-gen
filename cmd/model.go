@@ -16,6 +16,7 @@ import (
 	{{if or .HasTime .HasCache}}"time"{{end}}
 {{if .HasPrimaryKey}}
 	{{if .HasCache}}"context"
+	"libs/utils"
 	"internal/cache/redis"
 	"internal/conf"{{end}}
 	"internal/log"
@@ -113,6 +114,8 @@ func init() {
 			log.Logs.DBError(db, e)
 		}
 		return i64, e
+	}).DeserializeFunc(func(i interface{}) (interface{}, error) {
+		return utils.Interface2Int64(i), nil
 	})
 }
 {{end}}
