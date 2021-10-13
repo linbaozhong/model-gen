@@ -114,8 +114,6 @@ func init() {
 			log.Logs.DBError(db, e)
 		}
 		return i64, e
-	}).DeserializeFunc(func(i interface{}) (interface{}, error) {
-		return utils.Interface2Int64(i), nil
 	})
 }
 {{end}}
@@ -370,7 +368,7 @@ func (p *{{.StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder, size
 		db.Limit(size, size*(index-1))
 	}
 
-	e := db.Find(&ids)
+	e := db.Cols(table.{{.StructName}}.PrimaryKey.Name).Find(&ids)
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
@@ -442,10 +440,7 @@ func (p *{{.StructName}}) Count(x interface{}, cond table.ISqlBuilder) (int64, e
 		log.Logs.Error(e)
 		return 0, e
 	}
-	if i64, ok := i.(int64); ok {
-		return i64, nil
-	}
-	return 0, nil
+	return utils.Interface2Int64(i), nil
 {{else}}
 	return p.CountNoCache(x,cond)
 {{end}}
