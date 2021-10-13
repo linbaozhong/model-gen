@@ -368,7 +368,7 @@ func (p *{{.StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder, size
 		db.Limit(size, size*(index-1))
 	}
 
-	e := db.Cols(table.Companys.PrimaryKey.Name).Find(&ids)
+	e := db.Cols(table.{{.StructName}}.PrimaryKey.Name).Find(&ids)
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
