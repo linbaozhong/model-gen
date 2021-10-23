@@ -70,6 +70,11 @@ func init() {
 		db := Db().Table(table.{{.StructName}}.TableName).
 			Cols(table.{{.StructName}}.PrimaryKey.Name)
 
+		if joins := cond.GetJoin(); len(joins) > 0 {
+			for _, join := range joins {
+				db.Join(join[0], join[1], join[2])
+			}
+		}
 		if s, args := cond.GetWhere(); s != "" {
 			db.Where(s, args...)
 		}
@@ -99,6 +104,11 @@ func init() {
 		
 		db := Db().Table(table.{{.StructName}}.TableName)
 
+		if joins := cond.GetJoin(); len(joins) > 0 {
+			for _, join := range joins {
+				db.Join(join[0], join[1], join[2])
+			}
+		}
 		if s, args := cond.GetWhere(); s != "" {
 			db.Where(s, args...)
 		}
@@ -344,6 +354,11 @@ func (p *{{.StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder, size
 	ids := make([]interface{}, 0)
 
 	if cond != nil {
+		if joins := cond.GetJoin(); len(joins) > 0 {
+			for _, join := range joins {
+				db.Join(join[0], join[1], join[2])
+			}
+		}
 		if s, args := cond.GetWhere(); s != "" {
 			db.Where(s, args...)
 		}
@@ -380,6 +395,11 @@ func (p *{{.StructName}}) Sum(x interface{}, cond table.ISqlBuilder, col table.T
 	db := p.getDB(x)
 
 	if cond != nil {
+		if joins := cond.GetJoin(); len(joins) > 0 {
+			for _, join := range joins {
+				db.Join(join[0], join[1], join[2])
+			}
+		}
 		if s, args := cond.GetWhere(); s != "" {
 			db.Where(s, args...)
 		}
@@ -413,6 +433,11 @@ func (p *{{.StructName}}) Sums(x interface{}, cond table.ISqlBuilder, args ...ta
 	db := p.getDB(x)
 
 	if cond != nil {
+		if joins := cond.GetJoin(); len(joins) > 0 {
+			for _, join := range joins {
+				db.Join(join[0], join[1], join[2])
+			}
+		}
 		if s, args := cond.GetWhere(); s != "" {
 			db.Where(s, args...)
 		}
@@ -452,6 +477,11 @@ func (p *{{.StructName}}) CountNoCache(x interface{}, cond table.ISqlBuilder) (i
 	db := p.getDB(x)
 
 	if cond != nil {
+		if joins := cond.GetJoin(); len(joins) > 0 {
+			for _, join := range joins {
+				db.Join(join[0], join[1], join[2])
+			}
+		}
 		if s, args := cond.GetWhere(); s != "" {
 			db.Where(s, args...)
 		}
@@ -501,6 +531,11 @@ func (p *{{.StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilder, siz
 	list := make([]*{{.StructName}}, 0)
 
 	if cond != nil {
+		if joins := cond.GetJoin(); len(joins) > 0 {
+			for _, join := range joins {
+				db.Join(join[0], join[1], join[2])
+			}
+		}
 		if cols := cond.GetCols(); len(cols) > 0 {
 			db.Cols(cols...)
 		}

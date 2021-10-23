@@ -129,7 +129,7 @@ type ISqlBuilder interface {
 	UnNull(f TableField) ISqlBuilder
 	//JOIN
 	Join(t JoinType, l, r TableField) ISqlBuilder
-	GetJoin() string
+	GetJoin() [][3]string
 	//LIMIT
 	Limit(size int, start ...int) ISqlBuilder
 	GetLimit() (size int, start int)
@@ -173,11 +173,11 @@ type sqlBuilder struct {
 	groupBy     strings.Builder
 	having      strings.Builder
 	//havingParams []interface{}
-	orderBy strings.Builder
-	limit   string
+	orderBy    strings.Builder
+	limit      string
 	limitSize  int
 	limitStart int
-	join    string
+	join       [][3]string
 
 	andOr bool
 
@@ -219,7 +219,7 @@ func (p *sqlBuilder) Free() {
 	p.limit = ""
 	p.limitStart = 0
 	p.limitSize = 0
-	p.join = ""
+	p.join = [][3]string{}
 
 	p.andOr = true
 
@@ -393,12 +393,14 @@ func (p *sqlBuilder) Select() ([]interface{}, error) {
 	//FROM TABLE
 	buf.WriteString(" FROM " + Quote_Char + p.table + Quote_Char)
 	//JOIN
-	if p.join != "" {
-		buf.WriteString(p.join)
-	}
-	//if len(p.join) == 3 {
-	//	buf.WriteString(p.join[0] + p.join[1] + " ON " + p.join[2])
+	//if p.join != "" {
+	//	buf.WriteString(p.join)
 	//}
+	if len(p.join) > 0 {
+		for _, j := range p.join {
+			buf.WriteString(j[0] + j[1] + " ON " + j[2] + " ")
+		}
+	}
 	//WHERE
 	sql, params := p.condition()
 	if sql != "" {
@@ -430,12 +432,17 @@ func (p *sqlBuilder) Distinct() ISqlBuilder {
 
 //JOIN
 func (p *sqlBuilder) Join(t JoinType, l, r TableField) ISqlBuilder {
-	p.join += string(t) + Quote_Char + r.Table + Quote_Char + " ON " + l.Quote() + " = " + r.Quote() + " "
+	p.join = append(p.join, [3]string{
+		string(t),
+		Quote_Char + r.Table + Quote_Char,
+		l.Quote() + " = " + r.Quote(),
+	})
+	//p.join += string(t) + Quote_Char + r.Table + Quote_Char + " ON " + l.Quote() + " = " + r.Quote() + " "
 	//p.join = append(p.join, string(t), Quote_Char+r.Table+Quote_Char, r.Quote()+" = "+l.Quote())
 	return p
 }
 
-func (p *sqlBuilder) GetJoin() string {
+func (p *sqlBuilder) GetJoin() [][3]string {
 	return p.join
 }
 
@@ -589,7 +596,6 @@ func (p *sqlBuilder) Bt(f TableField, v1, v2 interface{}) ISqlBuilder {
 	return p
 }
 
-
 //In
 func (p *sqlBuilder) In(f TableField, v ...interface{}) ISqlBuilder {
 	if len(v) == 0 {
@@ -622,7 +628,7 @@ func (p *sqlBuilder) UnIn(f TableField, v ...interface{}) ISqlBuilder {
 	if len(v) == 0 {
 		return p
 	}
-	
+
 	vv := reflect.ValueOf(v[0])
 	if vv.Kind() == reflect.Slice {
 		l := vv.Len()
