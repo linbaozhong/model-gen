@@ -68,7 +68,7 @@ func init() {
 		}
 		
 		db := Db().Table(table.{{.StructName}}.TableName).
-			Cols(table.{{.StructName}}.PrimaryKey.Name)
+			Cols(table.{{.StructName}}.PrimaryKey.Quote())
 
 		if joins := cond.GetJoin(); len(joins) > 0 {
 			for _, join := range joins {
@@ -383,7 +383,7 @@ func (p *{{.StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder, size
 		db.Limit(size, size*(index-1))
 	}
 
-	e := db.Cols(table.{{.StructName}}.PrimaryKey.Name).Find(&ids)
+	e := db.Cols(table.{{.StructName}}.PrimaryKey.Quote()).Find(&ids)
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
@@ -600,7 +600,7 @@ func (p *{{.StructName}}) OnChange(id uint64) {
 //OnBatchChange
 func (p *{{.StructName}}) OnBatchChange(cond table.ISqlBuilder) {
 	db := Db().Table(table.{{.StructName}}.TableName).
-			Cols(table.{{.StructName}}.PrimaryKey.Name)
+			Cols(table.{{.StructName}}.PrimaryKey.Quote())
 	if cond != nil {
 		if s, args := cond.GetWhere(); s != "" {
 			db.Where(s, args...)

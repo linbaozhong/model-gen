@@ -43,9 +43,9 @@ import (
 type JoinType string
 
 const (
-	Inner_Join JoinType = " INNER JOIN "
-	Left_Join  JoinType = " LEFT JOIN "
-	Right_Join JoinType = " RIGHT JOIN "
+	Inner_Join JoinType = " INNER"
+	Left_Join  JoinType = " LEFT"
+	Right_Join JoinType = " RIGHT"
 
 	operator_and = " AND "
 	operator_or  = " OR "
@@ -398,7 +398,7 @@ func (p *sqlBuilder) Select() ([]interface{}, error) {
 	//}
 	if len(p.join) > 0 {
 		for _, j := range p.join {
-			buf.WriteString(j[0] + j[1] + " ON " + j[2] + " ")
+			buf.WriteString(j[0] + " JOIN " + j[1] + " ON " + j[2] + " ")
 		}
 	}
 	//WHERE
