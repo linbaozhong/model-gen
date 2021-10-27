@@ -590,6 +590,23 @@ func (p *{{.StructName}}) FindOneNoCache(x interface{}, cond table.ISqlBuilder) 
 	return true, e
 }
 
+//Exists 是否存在符合条件cond的记录
+func (p *{{.StructName}}) Exists(x interface{}, cond table.ISqlBuilder) (bool, error) {
+	db := p.getDB(x)
+
+	db.Cols(table.{{.StructName}}.PrimaryKey.Name)
+	if cond != nil {
+		if s, args := cond.GetWhere(); s != "" {
+			db.Where(s, args...)
+		}
+	}
+	has, e := db.Limit(1).Get(p)
+	if e != nil {
+		log.Logs.DBError(db, e)
+	}
+	return has, e
+}
+
 {{if .HasCache}}
 //OnChange
 func (p *{{.StructName}}) OnChange(id uint64) {
