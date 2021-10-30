@@ -87,9 +87,14 @@ func init() {
 		if s := cond.GetOrderBy(); s != "" {
 			db.OrderBy(s)
 		}
+		if size, start := cond.GetLimit(); size > 0 {
+			db.Limit(size, start)
+		} else {
+			db.Limit({{.CacheLimit}})
+		}
 
 		ids := make([]interface{}, 0)
-		e := db.Limit({{.CacheLimit}}).Find(&ids)
+		e := db.Find(&ids)
 		if e != nil {
 			log.Logs.DBError(db, e)
 		}
@@ -572,6 +577,9 @@ func (p *{{.StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilder, siz
 
 //FindOne 根据cond条件从cache中获取一条数据
 func (p *{{.StructName}}) FindOne(x interface{}, cond table.ISqlBuilder) (bool, error) {
+	if cond != nil {
+		cond.Limit(1)
+	}
 	f, e := p.Find(x, cond, 1, 1)
 	if e != nil || len(f) == 0 {
 		return false, e
@@ -582,6 +590,9 @@ func (p *{{.StructName}}) FindOne(x interface{}, cond table.ISqlBuilder) (bool, 
 
 //FindOneNoCache 根据cond条件从数据库中获取一条数据
 func (p *{{.StructName}}) FindOneNoCache(x interface{}, cond table.ISqlBuilder) (bool, error) {
+	if cond != nil {
+		cond.Limit(1)
+	}
 	f, e := p.FindNoCache(x, cond, 1, 1)
 	if e != nil || len(f) == 0 {
 		return false, e
