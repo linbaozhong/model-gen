@@ -67,80 +67,80 @@ var baseTpl = `
 			Table string
 		}
 		//Eq 等于
-		func (f *TableField) Eq() string {
+		func (f TableField) Eq() string {
 			return f.generate("=")
 		}
 		//Gt 大于
-		func (f *TableField) Gt() string {
+		func (f TableField) Gt() string {
 			return f.generate(">")
 		}
 		//Gte 大于等于
-		func (f *TableField) Gte() string {
+		func (f TableField) Gte() string {
 			return f.generate(">=")
 		}
 		//Lt 小于
-		func (f *TableField) Lt() string {
+		func (f TableField) Lt() string {
 			return f.generate("<")
 		}
 		//Lte 小于等于
-		func (f *TableField) Lte() string {
+		func (f TableField) Lte() string {
 			return f.generate("<=")
 		}
 		//Ue 不等于
-		func (f *TableField)Ue() string {
+		func (f TableField)Ue() string {
 			return f.generate("<>")
 		}
 		//Bt BETWEEN
-		func (f *TableField)Bt() string {
+		func (f TableField)Bt() string {
 			return f.Quote() + " BETWEEN ? AND ?"
 		}
 		//Like LIKE
-		func (f *TableField) Like() string {
+		func (f TableField) Like() string {
 			return f.Quote() + " LIKE CONCAT('%',?,'%')"
 		}
 
 		//Like 左like
-		func (f *TableField) Llike() string {
+		func (f TableField) Llike() string {
 			return f.Quote() + " LIKE CONCAT('%',?)"
 		}
 		
 		//Like 右like
-		func (f *TableField) Rlike() string {
+		func (f TableField) Rlike() string {
 			return f.Quote() + " LIKE CONCAT(?,'%')"
 		}
 
 		//Null is null
-		func (f *TableField) Null() string {
+		func (f TableField) Null() string {
 			return f.Quote() + " IS NULL"
 		}
 
 		//UnNull is not null
-		func (f *TableField) UnNull() string {
+		func (f TableField) UnNull() string {
 			return f.Quote() + " IS NOT NULL"
 		}
 
 		//JOIN
-		func (f *TableField) Join(joinOp string, col TableField) (string, string, string) {
+		func (f TableField) Join(joinOp string, col TableField) (string, string, string) {
 			return strings.ToUpper(joinOp), col.Table, col.Quote() + "=" + f.Quote()
 		}
 
 		//AsName
-		func (f *TableField) AsName(s string) string {
+		func (f TableField) AsName(s string) string {
 			return f.Quote() + " AS " + s
 		}
 
-		func (f *TableField) QuoteName() string {
+		func (f TableField) QuoteName() string {
 			return Quote_Char + f.Name + Quote_Char
 		}
 
-		func (f *TableField) Quote() string {
+		func (f TableField) Quote() string {
 			if f.Table == "" {
 				return f.QuoteName()
 			}
 			return f.Table + "." + f.QuoteName()
 		}
 
-		func (f *TableField) generate(op string) string {
+		func (f TableField) generate(op string) string {
 			return f.Quote() + op + "?"
 		}
 
