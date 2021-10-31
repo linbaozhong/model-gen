@@ -80,7 +80,7 @@ type IDelete interface {
 	DeleteBatch(x interface{}, cond ISqlBuilder) (int64, error)
 }
 
-type IModel interface {
+type IDataAccess interface {
 	Get(x interface{}, id uint64) (bool, error)
 	//Find(x interface{}, query string, vals []interface{}, size, index int) ([]interface{}, error)
 	ToMap(cols ...TableField) map[string]interface{}
