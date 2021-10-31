@@ -67,9 +67,13 @@ func init() {
 			return nil, InvalidKey
 		}
 		
-		db := Db().Table(table.{{.StructName}}.TableName).
-			Cols(table.{{.StructName}}.PrimaryKey.Quote())
+		db := Db().Table(table.{{.StructName}}.TableName)
 
+		if cols := cond.GetCols(); len(cols) == 0 {
+			db.Cols(table.{{.StructName}}.PrimaryKey.Quote())
+		} else {
+			db.Cols(cols[0])
+		}
 		if joins := cond.GetJoin(); len(joins) > 0 {
 			for _, join := range joins {
 				db.Join(join[0], join[1], join[2])
@@ -228,6 +232,9 @@ func (p *{{.StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder, bea
 	db := p.getDB(x)
 
 	if cond != nil {
+		if cols := cond.GetCols(); len(cols) > 0 {
+			db.Cols(cols...)
+		}
 		if s, args := cond.GetWhere(); s != "" {
 			db.Where(s, args...)
 		}
@@ -336,6 +343,15 @@ func (p *{{.StructName}}) GetNoCache(x interface{},id uint64, cols ...table.Tabl
 	return has,e
 }
 
+//Scalar 根据cond条件读取第一行第一列数据
+func (p *{{.StructName}}) Scalar(x interface{}, cond table.ISqlBuilder) (interface{}, error) {
+	ids, e := p.IDs(x, cond, 1, 1)
+	if ids == nil {
+		return ids, e
+	}
+	return ids[0], e
+}
+
 //IDs 根据cond条件从cache中获取主键列表
 func (p *{{.StructName}}) IDs(x interface{}, cond table.ISqlBuilder, size, index int) ([]interface{}, error) {
 {{if .HasCache}}
@@ -358,7 +374,20 @@ func (p *{{.StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder, size
 
 	ids := make([]interface{}, 0)
 
-	if cond != nil {
+	if cond == nil {
+		db.Cols(table.{{.StructName}}.PrimaryKey.Quote())
+		if size > 0 {
+			if index == 0 {
+				index = 1
+			}
+			db.Limit(size, size*(index-1))
+		}
+	} else {
+		if cols := cond.GetCols(); len(cols) == 0 {
+			db.Cols(table.{{.StructName}}.PrimaryKey.Quote())
+		} else {
+			db.Cols(cols[0])
+		}
 		if joins := cond.GetJoin(); len(joins) > 0 {
 			for _, join := range joins {
 				db.Join(join[0], join[1], join[2])
@@ -376,19 +405,12 @@ func (p *{{.StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder, size
 		if s := cond.GetOrderBy(); s != "" {
 			db.OrderBy(s)
 		}
-		if size, start := cond.GetLimit(); size > 0 {
-			db.Limit(size, start)
+		if i, start := cond.GetLimit(); i > 0 {
+			db.Limit(i, start)
 		}
 	}
 
-	if size > 0 {
-		if index == 0 {
-			index = 1
-		}
-		db.Limit(size, size*(index-1))
-	}
-
-	e := db.Cols(table.{{.StructName}}.PrimaryKey.Quote()).Find(&ids)
+	e := db.Find(&ids)
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
@@ -535,7 +557,14 @@ func (p *{{.StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilder, siz
 
 	list := make([]*{{.StructName}}, 0)
 
-	if cond != nil {
+	if cond == nil {
+		if size > 0 {
+			if index == 0 {
+				index = 1
+			}
+			db.Limit(size, size*(index-1))
+		}
+	} else {
 		if joins := cond.GetJoin(); len(joins) > 0 {
 			for _, join := range joins {
 				db.Join(join[0], join[1], join[2])
@@ -556,8 +585,8 @@ func (p *{{.StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilder, siz
 		if s := cond.GetOrderBy(); s != "" {
 			db.OrderBy(s)
 		}
-		if size, start := cond.GetLimit(); size > 0 {
-			db.Limit(size, start)
+		if i, start := cond.GetLimit(); i > 0 {
+			db.Limit(i, start)
 		}
 	}
 
