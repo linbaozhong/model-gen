@@ -352,7 +352,7 @@ func (p *{{.StructName}}) Scalar(x interface{}, cond table.ISqlBuilder) (interfa
 	return ids[0], e
 }
 
-//IDs 根据cond条件从cache中获取主键列表
+//IDs 根据cond条件从cache中获取单列slice，默认主键slice
 func (p *{{.StructName}}) IDs(x interface{}, cond table.ISqlBuilder, size, index int) ([]interface{}, error) {
 {{if .HasCache}}
 	if size == 0 {
@@ -368,7 +368,7 @@ func (p *{{.StructName}}) IDs(x interface{}, cond table.ISqlBuilder, size, index
 {{end}}
 }
 
-//IDsNoCache 根据cond条件从数据库中获取主键列表
+//IDsNoCache 根据cond条件从数据库中单列slice，默认主键slice
 func (p *{{.StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder, size, index int) ([]interface{}, error) {
 	db := p.getDB(x)
 
