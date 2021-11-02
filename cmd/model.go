@@ -68,12 +68,8 @@ func init() {
 		}
 		
 		db := Db().Table(table.{{.StructName}}.TableName)
+		db.Cols(table.{{.StructName}}.PrimaryKey.Quote())
 
-		if cols := cond.GetCols(); len(cols) == 0 {
-			db.Cols(table.{{.StructName}}.PrimaryKey.Quote())
-		} else {
-			db.Cols(cols[0])
-		}
 		if joins := cond.GetJoin(); len(joins) > 0 {
 			for _, join := range joins {
 				db.Join(join[0], join[1], join[2])
@@ -343,15 +339,6 @@ func (p *{{.StructName}}) GetNoCache(x interface{},id uint64, cols ...table.Tabl
 	return has,e
 }
 
-//Scalar 根据cond条件读取第一行第一列数据
-func (p *{{.StructName}}) Scalar(x interface{}, cond table.ISqlBuilder) (interface{}, error) {
-	ids, e := p.IDs(x, cond, 1, 1)
-	if ids == nil {
-		return ids, e
-	}
-	return ids[0], e
-}
-
 //IDs 根据cond条件从cache中获取单列slice，默认主键slice
 func (p *{{.StructName}}) IDs(x interface{}, cond table.ISqlBuilder, size, index int) ([]interface{}, error) {
 {{if .HasCache}}
@@ -371,11 +358,11 @@ func (p *{{.StructName}}) IDs(x interface{}, cond table.ISqlBuilder, size, index
 //IDsNoCache 根据cond条件从数据库中单列slice，默认主键slice
 func (p *{{.StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder, size, index int) ([]interface{}, error) {
 	db := p.getDB(x)
+	db.Cols(table.{{.StructName}}.PrimaryKey.Quote())
 
 	ids := make([]interface{}, 0)
 
 	if cond == nil {
-		db.Cols(table.{{.StructName}}.PrimaryKey.Quote())
 		if size > 0 {
 			if index == 0 {
 				index = 1
@@ -383,11 +370,6 @@ func (p *{{.StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder, size
 			db.Limit(size, size*(index-1))
 		}
 	} else {
-		if cols := cond.GetCols(); len(cols) == 0 {
-			db.Cols(table.{{.StructName}}.PrimaryKey.Quote())
-		} else {
-			db.Cols(cols[0])
-		}
 		if joins := cond.GetJoin(); len(joins) > 0 {
 			for _, join := range joins {
 				db.Join(join[0], join[1], join[2])
@@ -405,7 +387,12 @@ func (p *{{.StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder, size
 		if s := cond.GetOrderBy(); s != "" {
 			db.OrderBy(s)
 		}
-		if i, start := cond.GetLimit(); i > 0 {
+		if size > 0 {
+			if index == 0 {
+				index = 1
+			}
+			db.Limit(size, size*(index-1))
+		} else if i, start := cond.GetLimit(); i > 0 {
 			db.Limit(i, start)
 		}
 	}
@@ -585,16 +572,14 @@ func (p *{{.StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilder, siz
 		if s := cond.GetOrderBy(); s != "" {
 			db.OrderBy(s)
 		}
-		if i, start := cond.GetLimit(); i > 0 {
+		if size > 0 {
+			if index == 0 {
+				index = 1
+			}
+			db.Limit(size, size*(index-1))
+		} else if i, start := cond.GetLimit(); i > 0 {
 			db.Limit(i, start)
 		}
-	}
-
-	if size > 0 {
-		if index == 0 {
-			index = 1
-		}
-		db.Limit(size, size*(index-1))
 	}
 
 	e := db.Find(&list)
