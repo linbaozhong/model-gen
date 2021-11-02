@@ -68,12 +68,13 @@ func init() {
 		}
 		
 		db := Db().Table(table.{{.StructName}}.TableName)
+		db.Cols(table.{{.StructName}}.PrimaryKey.Quote())
 
-		if cols := cond.GetCols(); len(cols) == 0 {
-			db.Cols(table.{{.StructName}}.PrimaryKey.Quote())
-		} else {
-			db.Cols(cols[0])
-		}
+		//if cols := cond.GetCols(); len(cols) == 0 {
+		//	db.Cols(table.{{.StructName}}.PrimaryKey.Quote())
+		//} else {
+		//	db.Cols(cols[0])
+		//}
 		if joins := cond.GetJoin(); len(joins) > 0 {
 			for _, join := range joins {
 				db.Join(join[0], join[1], join[2])
