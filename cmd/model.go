@@ -190,7 +190,7 @@ func (p *{{.StructName}}) InsertBatch(x interface{}, beans []interface{}, cols .
 }
 
 //Update 根据主键修改一条数据
-func (p *{{.StructName}}) Update(x interface{}, id uint64, bean ...interface{}) (int64,error) {
+func (p *{{.StructName}}) Update(x interface{}, id types.BigUint, bean ...interface{}) (int64,error) {
 	var (
 		i64 int64
 		e error
@@ -257,7 +257,7 @@ func (p *{{.StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder, bea
 }
 
 //Delete 根据主键删除一条数据
-func (p *{{.StructName}}) Delete(x interface{}, id uint64) (int64,error) {
+func (p *{{.StructName}}) Delete(x interface{}, id types.BigUint) (int64,error) {
 	db := p.getDB(x)
 
 	i64,e := db.Where(table.{{.StructName}}.PrimaryKey.Eq(),id).
@@ -300,7 +300,7 @@ func (p *{{.StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilder) (in
 }
 
 //Get 根据主键从Cache中获取一条数据
-func (p *{{.StructName}}) Get(x interface{},id uint64) (bool, error) {
+func (p *{{.StructName}}) Get(x interface{},id types.BigUint) (bool, error) {
 {{if .HasCache}}
 	cm, e := {{lower .StructName}}_cache.Get(context.TODO(), id)
 	if e != nil {
@@ -320,7 +320,7 @@ func (p *{{.StructName}}) Get(x interface{},id uint64) (bool, error) {
 }
 
 //GetNoCache 根据主键从数据库中获取一条数据
-func (p *{{.StructName}}) GetNoCache(x interface{},id uint64, cols ...table.TableField) (bool, error) {
+func (p *{{.StructName}}) GetNoCache(x interface{},id types.BigUint, cols ...table.TableField) (bool, error) {
 	db := p.getDB(x)
 	//
 	if len(cols) > 0 {
@@ -634,7 +634,7 @@ func (p *{{.StructName}}) Exists(x interface{}, cond table.ISqlBuilder) (bool, e
 
 {{if .HasCache}}
 //OnChange
-func (p *{{.StructName}}) OnChange(id uint64) {
+func (p *{{.StructName}}) OnChange(id types.BigUint) {
 	{{lower .StructName}}_cache.Remove(context.TODO(), id)
 	//p.OnListChange()
 }
