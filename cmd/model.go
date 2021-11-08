@@ -339,7 +339,7 @@ func (p *{{.StructName}}) GetNoCache(x interface{},id types.BigUint, cols ...tab
 	return has,e
 }
 
-//IDs 根据cond条件从cache中获取单列slice，默认主键slice
+//IDs 根据cond条件从cache中获取主键slice
 func (p *{{.StructName}}) IDs(x interface{}, cond table.ISqlBuilder, size, index int) ([]interface{}, error) {
 {{if .HasCache}}
 	if size == 0 {
@@ -355,13 +355,17 @@ func (p *{{.StructName}}) IDs(x interface{}, cond table.ISqlBuilder, size, index
 {{end}}
 }
 
-//IDsNoCache 根据cond条件从数据库中单列slice，默认主键slice
+//IDsNoCache 根据cond条件从数据库中获取主键slice
 func (p *{{.StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder, size, index int) ([]interface{}, error) {
+	return p.GetColumn(x, table.{{.StructName}}.PrimaryKey, cond, size, index)
+}
+
+//GetColumn 根据cond条件从数据库中单列slice
+func (p *{{.StructName}}) GetColumn(x interface{}, col table.TableField, cond table.ISqlBuilder, size, index int) ([]interface{}, error) {
 	db := p.getDB(x)
-	db.Cols(table.{{.StructName}}.PrimaryKey.Quote())
+	cls := make([]interface{}, 0)
 
-	ids := make([]interface{}, 0)
-
+	db.Cols(col.Quote())
 	if cond == nil {
 		if size > 0 {
 			if index == 0 {
@@ -397,11 +401,11 @@ func (p *{{.StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder, size
 		}
 	}
 
-	e := db.Find(&ids)
+	e := db.Find(&cls)
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
-	return ids,e
+	return cls, e
 }
 
 //Sum 对某个字段进行求和
