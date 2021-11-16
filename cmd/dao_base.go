@@ -34,6 +34,7 @@ package dao
 import (
 	"{{.}}"
 	"{{.}}/table"
+	"database/sql"
 	"errors"
 	"internal/log"
 )
@@ -41,6 +42,7 @@ import (
 var (
 	InvalidKey    = errors.New("The key is invalid")
 	Err_Type      = errors.New("The type is wrong")
+	Err_NoRows    = sql.ErrNoRows
 	Param_Missing = errors.New("Parameters are missing")
 )
 
