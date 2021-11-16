@@ -136,6 +136,15 @@ func handleFile(module, modulePath, filename string) error {
 			showError(err.Error())
 			return err
 		}
+
+		//写dao文件
+		if tempData.HasPrimaryKey {
+			err = tempData.writeToDao(filename)
+			if err != nil {
+				showError(err)
+				return err
+			}
+		}
 	}
 
 	return err

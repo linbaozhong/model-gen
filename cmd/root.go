@@ -62,11 +62,24 @@ var (
 				module = module[:pos]
 			}
 
-			_ = os.Mkdir(filepath.Join(path, "table"), os.ModePerm)
-			if e = writeBaseFile(filepath.Join(path, "table", "base_sorm.go")); e != nil {
-				return
+			if e = os.Mkdir(filepath.Join(path, "dao"), os.ModePerm); !os.IsExist(e) {
+				showError(e.Error())
+				//return
 			}
-			writeBuildFile(filepath.Join(path, "table", "build_sorm.go"))
+			if e = writeDaoBaseFile(filepath.Join(path, "dao", "a_base.go"), module_path); e != nil {
+				showError(e.Error())
+			}
+			if e = os.Mkdir(filepath.Join(path, "table"), os.ModePerm); !os.IsExist(e) {
+				showError(e.Error())
+				//return
+			}
+			if e = writeBaseFile(filepath.Join(path, "table", "base_sorm.go")); e != nil {
+				showError(e.Error())
+				//return
+			}
+			if e = writeBuildFile(filepath.Join(path, "table", "build_sorm.go")); e != nil {
+				showError(e.Error())
+			}
 
 			for _, f := range dir {
 				if f.IsDir() {
