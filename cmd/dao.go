@@ -204,7 +204,7 @@ func (p {{lower .StructName}}) Update(x interface{}, id types.BigUint, bean inte
 }
 
 //UpdateBatch 根据cond条件批量修改数据
-func (p {{lower .StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder, bean ...interface{}) (int64, error) {
+func (p {{lower .StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder, bean interface{}) (int64, error) {
 	var (
 		i64 int64
 		e   error
@@ -222,7 +222,7 @@ func (p {{lower .StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder
 			db.Limit(size, start)
 		}
 	}
-	i64, e = db.Update(bean[0])
+	i64, e = db.Update(bean)
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
@@ -456,14 +456,12 @@ func (p {{lower .StructName}}) CountNoCache(x interface{}, cond table.ISqlBuilde
 	return i64, nil
 }
 
-//Find 根据cond条件从cache中获取数据列表
-func (p {{lower .StructName}}) Find(x interface{}, cond table.ISqlBuilder, size, index int) ([]*models.{{.StructName}}, error) {
+// Gets
+func (p {{lower .StructName}}) Gets(x interface{}, ids []interface{}) ([]*models.{{.StructName}}, error) {
 {{if .HasCache}}
-	ids, e := p.IDs(x,cond,size,index)
 	if len(ids) == 0 {
-		return nil, e
+		return nil, nil
 	}
-
 	ms, e := {{lower .StructName}}_cache.Gets(context.TODO(), ids...)
 	if e != nil {
 		log.Logs.Error(e)
@@ -476,6 +474,35 @@ func (p {{lower .StructName}}) Find(x interface{}, cond table.ISqlBuilder, size,
 		}
 	}
 	return list, nil
+{{else}}
+	return p.GetsNoCache(x, ids)
+{{end}}
+}
+
+// GetsNoCache
+func (p {{lower .StructName}}) GetsNoCache(x interface{}, ids []interface{}) ([]*models.{{.StructName}}, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	db := getDB(x, table.{{.StructName}}.TableName)
+
+	list := make([]*models.{{.StructName}}, 0)
+	e := db.In(table.{{.StructName}}.PrimaryKey.Name,ids...).Find(&list)
+	if e != nil {
+		log.Logs.DBError(db, e)
+	}
+	return list, nil
+}
+
+//Find 根据cond条件从cache中获取数据列表
+func (p {{lower .StructName}}) Find(x interface{}, cond table.ISqlBuilder, size, index int) ([]*models.{{.StructName}}, error) {
+{{if .HasCache}}
+	ids, e := p.IDs(x,cond,size,index)
+	if len(ids) == 0 {
+		return nil, e
+	}
+
+	return p.Gets(x, ids)
 {{else}}
 	return p.FindNoCache(x,cond,size,index)
 {{end}}
