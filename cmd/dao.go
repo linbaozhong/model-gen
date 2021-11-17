@@ -52,6 +52,7 @@ func init() {
 		if has {
 			return m, nil
 		}
+		m.Free()
 		if e != nil {
 			log.Logs.DBError(db, e)
 		}
