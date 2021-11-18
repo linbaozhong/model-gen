@@ -29,6 +29,7 @@ type TempData struct {
 	Columns       map[string][]string
 	PrimaryKey    []string
 	HasPrimaryKey bool
+	HasState      bool
 	HasTime       bool
 	HasCache      bool
 }
@@ -60,6 +61,7 @@ func handleFile(module, modulePath, filename string) error {
 		tempData.TableName = ""
 		tempData.HasCache = false
 		tempData.HasPrimaryKey = false
+		tempData.HasState = false
 		tempData.CacheData = ""
 		tempData.CacheList = ""
 		tempData.CacheLimit = ""
@@ -109,6 +111,9 @@ func handleFile(module, modulePath, filename string) error {
 			if pk != "" {
 				tempData.PrimaryKey = _namejson
 				tempData.HasPrimaryKey = true
+			}
+			if _namejson[0] == "state" {
+				tempData.HasState = true
 			}
 		}
 		//如果struct名称为空,或者是一个私有struct,或者field为空,返回

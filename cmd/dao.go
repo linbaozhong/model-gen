@@ -183,6 +183,9 @@ func (p {{lower .StructName}}) InsertBatch(x interface{}, beans []*models.{{.Str
 
 //Update 根据主键修改一条数据
 func (p {{lower .StructName}}) Update(x interface{}, id types.BigUint, bean interface{}) (int64,error) {
+	if bean == nil {
+		return 0, Param_Missing
+	}
 	var (
 		i64   int64
 		e     error
@@ -191,7 +194,28 @@ func (p {{lower .StructName}}) Update(x interface{}, id types.BigUint, bean inte
 	db := getDB(x, table.{{.StructName}}.TableName)
 	db.Where(table.{{.StructName}}.PrimaryKey.Eq(), id).
 		Limit(1)
-	i64, e = db.Update(bean)
+	if build, ok := bean.(table.ISqlBuilder); ok {
+		sm := types.Smap{}
+		cols, args := build.GetUpdate()
+		for i := 0; i < len(cols); i++ {
+			sm.Set(cols[i], args[i])
+		}
+		exprs := build.GetIncr()
+		for _, expr := range exprs {
+			db.Incr(expr.ColName, expr.Arg)
+		}
+		exprs = build.GetDecr()
+		for _, expr := range exprs {
+			db.Decr(expr.ColName, expr.Arg)
+		}
+		exprs = build.GetExpr()
+		for _, expr := range exprs {
+			db.SetExpr(expr.ColName, expr.Arg)
+		}
+		i64, e = db.Update(sm)
+	} else {
+		i64, e = db.Update(bean)
+	}
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
@@ -205,6 +229,9 @@ func (p {{lower .StructName}}) Update(x interface{}, id types.BigUint, bean inte
 
 //UpdateBatch 根据cond条件批量修改数据
 func (p {{lower .StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder, bean interface{}) (int64, error) {
+	if bean == nil {
+		return 0, Param_Missing
+	}
 	var (
 		i64 int64
 		e   error
@@ -220,6 +247,18 @@ func (p {{lower .StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder
 		}
 		if size, start := cond.GetLimit(); size > 0 {
 			db.Limit(size, start)
+		}
+		exprs := cond.GetIncr()
+		for _, expr := range exprs {
+			db.Incr(expr.ColName, expr.Arg)
+		}
+		exprs = cond.GetDecr()
+		for _, expr := range exprs {
+			db.Decr(expr.ColName, expr.Arg)
+		}
+		exprs = cond.GetExpr()
+		for _, expr := range exprs {
+			db.SetExpr(expr.ColName, expr.Arg)
 		}
 	}
 	i64, e = db.Update(bean)
@@ -276,6 +315,54 @@ func (p {{lower .StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilder
 {{end}}
 	return i64, e
 }
+{{if .HasState}}
+//SoftDelete 软删除：根据主键删除一条数据，数据表中必须要state字段 -1=软删除
+func (p {{lower .StructName}}) SoftDelete(x interface{}, id types.BigUint) (int64,error) {
+	db := getDB(x, table.{{.StructName}}.TableName)
+
+	i64,e := db.Where(table.{{.StructName}}.PrimaryKey.Eq(),id).
+		Limit(1).
+		Update(types.Smap{
+			table.{{.StructName}}.State.Name : -1,
+		})
+
+	if e != nil {
+		log.Logs.DBError(db, e)
+	}
+{{if .HasCache}}
+	if i64 > 0 {
+		p.OnChange(id)
+	}
+{{end}}
+	return i64, e
+}
+
+//SoftDeleteBatch 软删除：根据cond条件批量删除数据，数据表中必须要state字段 -1=软删除
+func (p {{lower .StructName}}) SoftDeleteBatch(x interface{}, cond table.ISqlBuilder) (int64, error) {
+	db := getDB(x, table.{{.StructName}}.TableName)
+
+	if cond != nil {
+		if s, args := cond.GetWhere(); s != "" {
+			db.Where(s, args...)
+		}
+		if size, start := cond.GetLimit(); size > 0 {
+			db.Limit(size, start)
+		}
+	}
+	i64, e := db.Update(types.Smap{
+			table.{{.StructName}}.State.Name : -1,
+		})
+	if e != nil {
+		log.Logs.DBError(db, e)
+	}
+{{if .HasCache}}
+	if i64 > 0 {
+		p.OnBatchChange(cond)
+	}
+{{end}}
+	return i64, e
+}
+{{end}}
 
 //Get 根据主键从Cache中获取一条数据
 func (p {{lower .StructName}}) Get(x interface{},id types.BigUint) (*models.{{.StructName}}, error) {
@@ -456,7 +543,7 @@ func (p {{lower .StructName}}) CountNoCache(x interface{}, cond table.ISqlBuilde
 	return i64, nil
 }
 
-// Gets
+// Gets 根据主键列表从cache中获取一组数据
 func (p {{lower .StructName}}) Gets(x interface{}, ids []interface{}) ([]*models.{{.StructName}}, error) {
 {{if .HasCache}}
 	if len(ids) == 0 {
@@ -479,7 +566,7 @@ func (p {{lower .StructName}}) Gets(x interface{}, ids []interface{}) ([]*models
 {{end}}
 }
 
-// GetsNoCache
+// GetsNoCache 根据主键列表从数据库中获取一组数据
 func (p {{lower .StructName}}) GetsNoCache(x interface{}, ids []interface{}) ([]*models.{{.StructName}}, error) {
 	if len(ids) == 0 {
 		return nil, nil
