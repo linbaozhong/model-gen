@@ -13,10 +13,10 @@ package {{.PackageName}}
 
 import (
 	"sync"
+	"libs/utils"
 	{{if or .HasTime .HasCache}}"time"{{end}}
 {{if .HasPrimaryKey}}
 	{{if .HasCache}}"context"
-	"libs/utils"
 	"internal/cache/redis"
 	"internal/conf"{{end}}
 	"internal/log"
@@ -139,6 +139,9 @@ func New{{.StructName}}() *{{.StructName}} {
 
 //Free 
 func (p *{{.StructName}}) Free() {
+	if p == nil {
+		return
+	}
 	{{range $key, $value := .Columns}}p.{{$key}} = {{getTypeValue $value}}				
 	{{end}}
 	{{lower .StructName}}Pool.Put(p)
@@ -678,6 +681,11 @@ func {{.StructName}}IDsCache() *redis.RedisBroker {
 {{end}}
 {{end}}
 
+//Comment
+func (p *{{.StructName}}) Comment(col table.TableField) string {
+	return table.{{.StructName}}.ColumnName2Comment[col.Name]
+}
+
 //ToMap struct转map
 func (p *{{.StructName}}) ToMap(cols...table.TableField) map[string]interface{} {
 	if len(cols) == 0{
@@ -700,59 +708,100 @@ func (p *{{.StructName}}) ToMap(cols...table.TableField) map[string]interface{} 
 
 //ToJSON struct转json
 func (p *{{.StructName}}) ToJSON(cols...table.TableField) types.Smap {
+	m := p.ToMap()
 	if len(cols) == 0{
-		return types.Smap{
-			{{range $key, $value := .Columns}}table.{{$.StructName}}.{{$key}}.Json:p.{{$key}},
-			{{end}}
+		l := len(table.{{.StructName}}.ColumnNames)
+		sm := make(types.Smap, l)
+		var cn string
+		for i := 0; i < l; i++ {
+			cn = table.{{.StructName}}.ColumnNames[i]
+			sm.Set(table.{{.StructName}}.ColumnName2Json[cn], m[cn])
 		}
+		return sm
 	}
 
-	m := make(types.Smap,len(cols))
+	sm := make(types.Smap,len(cols))
 	for _, col := range cols {
-		switch col.Json {
-		{{range $key, $value := .Columns}}case table.{{$.StructName}}.{{$key}}.Json:
-			m[col.Json] = p.{{$key}}
-		{{end}}
-		}
+		sm.Set(table.{{.StructName}}.ColumnName2Json[col.Name], m[col.Name])
 	}
-	return m
+	return sm
+}
+
+//ToCnJSON struct转json，key被替换为字段描述
+func (p *{{.StructName}}) ToCnJSON(cols...table.TableField) types.Smap {
+	m := p.ToMap()
+	if len(cols) == 0{
+		l := len(table.{{.StructName}}.ColumnNames)
+		sm := make(types.Smap, l)
+		var cn string
+		for i := 0; i < l; i++ {
+			cn = table.{{.StructName}}.ColumnNames[i]
+			sm.Set(table.{{.StructName}}.ColumnName2Comment[cn], m[cn])
+		}
+		return sm
+	}
+
+	sm := make(types.Smap,len(cols))
+	for _, col := range cols {
+		sm.Set(table.{{.StructName}}.ColumnName2Comment[col.Name], m[col.Name])
+	}
+	return sm
+}
+
+//TranslateJson 将json格式对象的key从列名转为列描述
+func (p *{{.StructName}}) TranslateJson(bean interface{}) (types.Smap, error) {
+	var m types.Smap
+	if s, ok := bean.(map[string]interface{}); ok {
+		m = s
+	} else if s, ok := bean.(types.Smap); ok {
+		m = s
+	} else if s, ok := bean.(string); ok {
+		e := utils.JSON.Unmarshal([]byte(s), &m)
+		if e != nil {
+			return nil, e
+		}
+	} else if s, ok := bean.(*{{.StructName}}); ok {
+		m = s.ToMap()
+	} else {
+		return nil, Err_Type
+	}
+	sm := types.Smap{}
+	for k, v := range m {
+		sm.Set(table.{{.StructName}}.ColumnName2Comment[k], v)
+	}
+	return sm, Err_Type
 }
 
 //SliceToJSON slice转json
 func (p *{{.StructName}}) SliceToJSON(sls []*{{.StructName}},cols...table.TableField) []types.Smap {
 	ms := make([]types.Smap, 0, len(sls))
-
 	if len(cols) == 0 {
+		var (
+			cn string
+			sm types.Smap
+			m map[string]interface{}
+		)
+		l := len(table.{{.StructName}}.ColumnNames)
 		for _, s := range sls {
-			ms = append(ms,types.Smap{
-				{{range $key, $value := .Columns}}table.{{$.StructName}}.{{$key}}.Json:s.{{$key}},
-				{{end}}
-			})
+			m = s.ToMap()
+			sm = make(types.Smap, l)
+			for i := 0; i < l; i++ {
+				cn = table.{{.StructName}}.ColumnNames[i]
+				sm.Set(table.{{.StructName}}.ColumnName2Json[cn], m[cn])
+			}
+			
+			ms = append(ms, sm)
 		}
 		return ms
 	}
-
-	funs := make([]func(m types.Smap, s *{{.StructName}}), 0, len(cols))
-	for _, col := range cols {
-		switch col.Json {
-		{{range $key, $value := .Columns}}case table.{{$.StructName}}.{{$key}}.Json:
-			funs = append(funs, func(m types.Smap, s *{{$.StructName}}) {
-				m[table.{{$.StructName}}.{{$key}}.Json] = s.{{$key}}
-			})
-		{{end}}
-		}
-	}
-	return p.sliceToJSON(sls, funs)
-}
-
-func (p *{{.StructName}}) sliceToJSON(sls []*{{.StructName}}, funs []func(m types.Smap, s *{{.StructName}})) []types.Smap {
-	ms := make([]types.Smap, 0, len(sls))
 	for _, s := range sls {
-		var m = types.Smap{}
-		for _, f := range funs {
-			f(m, s)
+		m := s.ToMap()
+		sm := make(types.Smap, len(cols))
+		for _, col := range cols{
+			sm.Set(table.{{.StructName}}.ColumnName2Json[col.Name], m[col.Name])
 		}
-		ms = append(ms, m)
+
+		ms = append(ms, sm)
 	}
 	return ms
 }

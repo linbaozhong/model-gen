@@ -17,20 +17,22 @@ import (
 
 // TempData 表示生成template所需要的数据结构
 type TempData struct {
-	Module        string
-	ModulePath    string
-	FileName      string
-	PackageName   string
-	StructName    string
-	TableName     string
-	CacheData     string //数据缓存时长
-	CacheList     string //list缓存时长
-	CacheLimit    string //list缓存长度
-	Columns       map[string][]string
-	PrimaryKey    []string
-	HasPrimaryKey bool
-	HasTime       bool
-	HasCache      bool
+	Module         string
+	ModulePath     string
+	FileName       string
+	PackageName    string
+	StructName     string
+	TableName      string
+	CacheData      string //数据缓存时长
+	CacheList      string //list缓存时长
+	CacheLimit     string //list缓存长度
+	Columns        map[string][]string
+	PrimaryKey     []string
+	PrimaryKeyName string //struct pk属性名
+	HasPrimaryKey  bool
+	HasState       bool
+	HasTime        bool
+	HasCache       bool
 }
 
 //handleFile 处理model文件
@@ -60,10 +62,12 @@ func handleFile(module, modulePath, filename string) error {
 		tempData.TableName = ""
 		tempData.HasCache = false
 		tempData.HasPrimaryKey = false
+		tempData.HasState = false
 		tempData.CacheData = ""
 		tempData.CacheList = ""
 		tempData.CacheLimit = ""
 		tempData.PrimaryKey = nil
+		tempData.PrimaryKeyName = ""
 		tempData.Columns = make(map[string][]string)
 		tempData.FileName = filename
 		tempData.StructName = stru.Name
@@ -76,10 +80,12 @@ func handleFile(module, modulePath, filename string) error {
 
 		for _, field := range stru.Fields {
 			var pk string
-			var _namejson = make([]string, 3)
+			var _namejson = make([]string, 4)
 			for k, v := range field.Tags {
 				if k == "json" {
 					_namejson[1] = v[0] //json_name
+				} else if k == "comment" {
+					_namejson[3] = v[0]
 				} else if k == XORM_TAG {
 					_namejson[0], pk = parseTagsForXORM(v) //column_name
 				} else if k == GORM_TAG {
@@ -105,10 +111,18 @@ func handleFile(module, modulePath, filename string) error {
 					_namejson[0] = _namejson[1]
 				}
 			}
+			if _namejson[3] == "" {
+				_namejson[3] = field.Name
+			}
+
 			tempData.Columns[field.Name] = _namejson
 			if pk != "" {
 				tempData.PrimaryKey = _namejson
 				tempData.HasPrimaryKey = true
+				tempData.PrimaryKeyName = field.Name
+			}
+			if _namejson[0] == "state" {
+				tempData.HasState = true
 			}
 		}
 		//如果struct名称为空,或者是一个私有struct,或者field为空,返回
@@ -122,19 +136,26 @@ func handleFile(module, modulePath, filename string) error {
 			return tempData.writeTo(os.Stdout)
 		}
 		//写model文件
-		//if !functions["*"+stru.Name] && !functions[stru.Name] {
 		err = tempData.writeToModel(filename)
 		if err != nil {
 			showError(err)
 			return err
 		}
-		//}
 
 		//写table文件
 		err := tempData.writeToTable()
 		if err != nil {
 			showError(err.Error())
 			return err
+		}
+
+		//写dao文件
+		if tempData.HasPrimaryKey {
+			err = tempData.writeToDao(filename)
+			if err != nil {
+				showError(err)
+				return err
+			}
 		}
 	}
 
