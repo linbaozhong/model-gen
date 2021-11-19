@@ -13,11 +13,10 @@ package {{.PackageName}}
 
 import (
 	"sync"
-	{{if .HasTime}}"time"{{end}}
+	"libs/utils"
 	{{if or .HasTime .HasCache}}"time"{{end}}
 {{if .HasPrimaryKey}}
 	{{if .HasCache}}"context"
-	"libs/utils"
 	"internal/cache/redis"
 	"internal/conf"{{end}}
 	"internal/log"
