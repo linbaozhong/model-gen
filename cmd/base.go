@@ -65,6 +65,7 @@ var baseTpl = `
 			Name string
 			Json string
 			Table string
+			//Comment string
 		}
 		//Eq 等于
 		func (f TableField) Eq() string {

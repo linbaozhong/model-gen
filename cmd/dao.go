@@ -581,6 +581,37 @@ func (p {{lower .StructName}}) GetsNoCache(x interface{}, ids []interface{}) ([]
 	return list, nil
 }
 
+// GetsMap 根据主键列表从cache中获取一组数据，返回一个 map
+func (p {{lower .StructName}}) GetsMap(x interface{}, ids []interface{}) (map[types.BigUint]*models.{{.StructName}}, error) {
+{{if .HasCache}}
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	ms, e := {{lower .StructName}}_cache.Gets(context.TODO(), ids...)
+	if e != nil {
+		log.Logs.Error(e)
+		return nil, e
+	}
+	list := make(map[types.BigUint]*models.{{.StructName}}, len(ms))
+	for _, m := range ms {
+		if mm, ok := m.(*models.{{.StructName}}); ok {
+			list[mm.{{.PrimaryKeyName}}] = mm
+		}
+	}
+	return list, nil
+{{else}}
+	ms, e := p.GetsNoCache(x, ids)
+	if e != nil || len(ms) == 0{
+		return nil, e
+	}
+	list := make(map[types.BigUint]*models.{{.StructName}}, len(ms))
+	for _, m := range ms {
+		list[m.{{.PrimaryKeyName}}] = m
+	}
+	return list, nil
+{{end}}
+}
+
 //Find 根据cond条件从cache中获取数据列表
 func (p {{lower .StructName}}) Find(x interface{}, cond table.ISqlBuilder, size, index int) ([]*models.{{.StructName}}, error) {
 {{if .HasCache}}
@@ -646,6 +677,28 @@ func (p {{lower .StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilder
 	return list, nil
 }
 
+//FindMap 根据cond条件从cache中获取数据列表，返回一个 map
+func (p {{lower .StructName}}) FindMap(x interface{}, cond table.ISqlBuilder, size, index int) (map[types.BigUint]*models.{{.StructName}}, error) {
+{{if .HasCache}}
+	ids, e := p.IDs(x,cond,size,index)
+	if len(ids) == 0 {
+		return nil, e
+	}
+
+	return p.GetsMap(x, ids)
+{{else}}
+	ms, e := p.FindNoCache(x,cond,size,index)
+	if e != nil || len(ms) == 0{
+		return nil, e
+	}
+	list := make(map[types.BigUint]*models.{{.StructName}}, len(ms))
+	for _, m := range ms {
+		list[m.{{.PrimaryKeyName}}] = m
+	}
+	return list, nil
+{{end}}
+}
+
 //FindOne 根据cond条件从cache中获取一条数据
 func (p {{lower .StructName}}) FindOne(x interface{}, cond table.ISqlBuilder) (*models.{{.StructName}}, error) {
 	if cond != nil {
@@ -676,6 +729,16 @@ func (p {{lower .StructName}}) FindOneNoCache(x interface{}, cond table.ISqlBuil
 	return nil, nil
 }
 
+//FindAndCound
+func (p {{lower .StructName}}) FindAndCount(x interface{}, cond table.ISqlBuilder, size, index int) (i64 int64, ms []*models.{{.StructName}}, e error) {
+	i64, e = p.Count(x, cond)
+	if e != nil || i64 == 0 {
+		return i64, nil, e
+	}
+	ms, e = p.Find(x, cond, size, index)
+	return
+}
+
 //Exists 是否存在符合条件cond的记录
 func (p {{lower .StructName}}) Exists(x interface{}, cond table.ISqlBuilder) (bool, error) {
 	db := getDB(x, table.{{.StructName}}.TableName)
@@ -704,22 +767,24 @@ func (p {{lower .StructName}}) OnChange(id types.BigUint) {
 
 //OnBatchChange
 func (p {{lower .StructName}}) OnBatchChange(cond table.ISqlBuilder) {
-	db := models.Db().Table(table.{{.StructName}}.TableName).
-			Cols(table.{{.StructName}}.PrimaryKey.Quote())
-	if cond != nil {
-		if s, args := cond.GetWhere(); s != "" {
-			db.Where(s, args...)
+	go func() {
+		db := models.Db().Table(table.{{.StructName}}.TableName).
+				Cols(table.{{.StructName}}.PrimaryKey.Quote())
+		if cond != nil {
+			if s, args := cond.GetWhere(); s != "" {
+				db.Where(s, args...)
+			}
 		}
-	}
-	ids := make([]interface{}, 0)
-	e := db.Find(&ids)
-	if e != nil {
-		log.Logs.DBError(db, e)
-	}
-	if len(ids) > 0 {
-		{{lower .StructName}}_cache.Remove(context.TODO(), ids...)
-		//p.OnListChange()
-	}
+		ids := make([]interface{}, 0)
+		e := db.Find(&ids)
+		if e != nil {
+			log.Logs.DBError(db, e)
+		}
+		if len(ids) > 0 {
+			{{lower .StructName}}_cache.Remove(context.TODO(), ids...)
+			//p.OnListChange()
+		}
+	}()
 }
 //OnListChange
 func (p {{lower .StructName}}) OnListChange() {

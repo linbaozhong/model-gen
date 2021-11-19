@@ -898,7 +898,7 @@ func (p *sqlBuilder) GetUpdate() ([]string, []interface{}) {
 //String
 func (p *sqlBuilder) String() string {
 	var buf strings.Builder
-	buf.WriteString(p.getColString() + "@")
+	//buf.WriteString(p.getColString() + "@")
 	sql, pm := p.condition()
 	buf.WriteString(sql)
 	buf.WriteString("@params:")
