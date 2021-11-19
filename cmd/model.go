@@ -681,11 +681,6 @@ func {{.StructName}}IDsCache() *redis.RedisBroker {
 {{end}}
 {{end}}
 
-//Comment
-func (p *{{.StructName}}) Comment(col table.TableField) string {
-	return table.{{.StructName}}.ColumnName2Comment[col.Name]
-}
-
 //ToMap struct转map
 func (p *{{.StructName}}) ToMap(cols...table.TableField) map[string]interface{} {
 	if len(cols) == 0{
