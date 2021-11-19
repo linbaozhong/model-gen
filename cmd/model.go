@@ -24,8 +24,6 @@ import (
 {{end}}
 	"libs/types"
 	"{{.ModulePath}}/table"
-	"libs/utils"
-
 )
 
 var (
