@@ -743,8 +743,8 @@ func (p *{{.StructName}}) ToCnJSON(cols...table.TableField) types.Smap {
 	return sm
 }
 
-//TranslateJson 将json格式对象的key从列名转为列描述
-func (p *{{.StructName}}) TranslateJson(bean interface{}) (types.Smap, error) {
+//TranslateJSON 将json格式对象的key从列名转为列描述
+func (p *{{.StructName}}) TranslateJSON(bean interface{}) (types.Smap, error) {
 	var m types.Smap
 	if s, ok := bean.(map[string]interface{}); ok {
 		m = s
