@@ -595,7 +595,7 @@ func (p {{lower .StructName}}) GetsMap(x interface{}, ids []interface{}) (map[ty
 	list := make(map[types.BigUint]*models.{{.StructName}}, len(ms))
 	for _, m := range ms {
 		if mm, ok := m.(*models.{{.StructName}}); ok {
-			list[mm.{{.PrimaryKeyName}}] = mm
+			list[types.BigUint(mm.{{.PrimaryKeyName}})] = mm
 		}
 	}
 	return list, nil
@@ -606,7 +606,7 @@ func (p {{lower .StructName}}) GetsMap(x interface{}, ids []interface{}) (map[ty
 	}
 	list := make(map[types.BigUint]*models.{{.StructName}}, len(ms))
 	for _, m := range ms {
-		list[m.{{.PrimaryKeyName}}] = m
+		list[types.BigUint(m.{{.PrimaryKeyName}})] = m
 	}
 	return list, nil
 {{end}}
@@ -693,7 +693,7 @@ func (p {{lower .StructName}}) FindMap(x interface{}, cond table.ISqlBuilder, si
 	}
 	list := make(map[types.BigUint]*models.{{.StructName}}, len(ms))
 	for _, m := range ms {
-		list[m.{{.PrimaryKeyName}}] = m
+		list[types.BigUint(m.{{.PrimaryKeyName}})] = m
 	}
 	return list, nil
 {{end}}

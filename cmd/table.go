@@ -38,7 +38,7 @@ var (
 		{{ $.StructName}}.{{$key}} = TableField{
 			Name: "{{index $value 0}}",
 			Json: "{{index $value 1}}",
-			//Comment: "{{index $value 3}}",
+			Comment: "{{index $value 3}}",
 			Table: {{$.StructName}}.TableName,
 		} 
 		{{ $.StructName}}.ColumnNames = append({{ $.StructName}}.ColumnNames,"{{index $value 0}}")
