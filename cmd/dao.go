@@ -13,11 +13,9 @@ package dao
 
 import (
 {{if .HasPrimaryKey}}
-	{{if .HasCache}}"time"
-	"context"
+	{{if .HasCache}}"context"
 	"libs/utils"
-	"internal/cache/redis"
-	"internal/conf"{{end}}
+	"internal/cache/redis"{{end}}
 {{end}}
 	"internal/log"
 	"libs/types"
@@ -33,104 +31,104 @@ var (
 )
 
 {{if and .HasCache .HasPrimaryKey}}
-var (
-	{{lower .StructName}}_cache     = redis.NewClient(conf.App.Mode,"{{lower .StructName}}").Expiration({{.CacheData}})
-	{{lower .StructName}}_ids_cache = redis.NewClient(conf.App.Mode, "{{lower .StructName}}_ids").Expiration({{.CacheList}})
-	{{lower .StructName}}_count_cache = redis.NewClient(conf.App.Mode, "{{lower .StructName}}_count").Expiration({{.CacheList}})
-)
-
-func init() {
-	{{lower .StructName}}_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
-		if k == nil {
-			return nil, InvalidKey
-		}
-
-		m := models.New{{.StructName}}()
-		db := models.Db().Table(table.{{.StructName}}.TableName)
-		has, e := db.Where(table.{{.StructName}}.PrimaryKey.Eq(),k).
-			Get(m)
-		if has {
-			return m, nil
-		}
-		m.Free()
-		if e != nil {
-			log.Logs.DBError(db, e)
-		}
-		return nil, e
-	}).DeserializeModel(func() interface{} {
-		return models.New{{.StructName}}()
-	})
-	//
-	{{lower .StructName}}_ids_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
-		cond, ok := k.(table.ISqlBuilder)
-		if !ok {
-			return nil, InvalidKey
-		}
-		
-		db := models.Db().Table(table.{{.StructName}}.TableName)
-		db.Cols(table.{{.StructName}}.PrimaryKey.Quote())
-
-		if joins := cond.GetJoin(); len(joins) > 0 {
-			for _, join := range joins {
-				db.Join(join[0], join[1], join[2])
-			}
-		}
-		if s, args := cond.GetWhere(); s != "" {
-			db.Where(s, args...)
-		}
-		if s := cond.GetGroupBy(); s != "" {
-			db.GroupBy(s)
-		}
-		if s := cond.GetHaving(); s != "" {
-			db.Having(s)
-		}
-		if s := cond.GetOrderBy(); s != "" {
-			db.OrderBy(s)
-		}
-		if size, start := cond.GetLimit(); size > 0 {
-			db.Limit(size, start)
-		} else {
-			db.Limit({{.CacheLimit}})
-		}
-
-		ids := make([]interface{}, 0)
-		e := db.Find(&ids)
-		if e != nil {
-			log.Logs.DBError(db, e)
-		}
-		return ids, e
-	})
-	//
-	{{lower .StructName}}_count_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
-		cond, ok := k.(table.ISqlBuilder)
-		if !ok {
-			return nil, InvalidKey
-		}
-		
-		db := models.Db().Table(table.{{.StructName}}.TableName)
-
-		if joins := cond.GetJoin(); len(joins) > 0 {
-			for _, join := range joins {
-				db.Join(join[0], join[1], join[2])
-			}
-		}
-		if s, args := cond.GetWhere(); s != "" {
-			db.Where(s, args...)
-		}
-		if s := cond.GetGroupBy(); s != "" {
-			db.GroupBy(s)
-		}
-		if s := cond.GetHaving(); s != "" {
-			db.Having(s)
-		}
-
-		i64, e := db.Count()
-		if e != nil {
-			log.Logs.DBError(db, e)
-		}
-		return i64, e
-	})
-}
+//var (
+//	{{lower .StructName}}_cache     = redis.NewClient(conf.App.Mode,"{{lower .StructName}}").Expiration({{.CacheData}})
+//	{{lower .StructName}}_ids_cache = redis.NewClient(conf.App.Mode, "{{lower .StructName}}_ids").Expiration({{.CacheList}})
+//	{{lower .StructName}}_count_cache = redis.NewClient(conf.App.Mode, "{{lower .StructName}}_count").Expiration({{.CacheList}})
+//)
+//
+//func init() {
+//	{{lower .StructName}}_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
+//		if k == nil {
+//			return nil, InvalidKey
+//		}
+//
+//		m := models.New{{.StructName}}()
+//		db := models.Db().Table(table.{{.StructName}}.TableName)
+//		has, e := db.Where(table.{{.StructName}}.PrimaryKey.Eq(),k).
+//			Get(m)
+//		if has {
+//			return m, nil
+//		}
+//		m.Free()
+//		if e != nil {
+//			log.Logs.DBError(db, e)
+//		}
+//		return nil, e
+//	}).DeserializeModel(func() interface{} {
+//		return models.New{{.StructName}}()
+//	})
+//	//
+//	{{lower .StructName}}_ids_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
+//		cond, ok := k.(table.ISqlBuilder)
+//		if !ok {
+//			return nil, InvalidKey
+//		}
+//		
+//		db := models.Db().Table(table.{{.StructName}}.TableName)
+//		db.Cols(table.{{.StructName}}.PrimaryKey.Quote())
+//
+//		if joins := cond.GetJoin(); len(joins) > 0 {
+//			for _, join := range joins {
+//				db.Join(join[0], join[1], join[2])
+//			}
+//		}
+//		if s, args := cond.GetWhere(); s != "" {
+//			db.Where(s, args...)
+//		}
+//		if s := cond.GetGroupBy(); s != "" {
+//			db.GroupBy(s)
+//		}
+//		if s := cond.GetHaving(); s != "" {
+//			db.Having(s)
+//		}
+//		if s := cond.GetOrderBy(); s != "" {
+//			db.OrderBy(s)
+//		}
+//		if size, start := cond.GetLimit(); size > 0 {
+//			db.Limit(size, start)
+//		} else {
+//			db.Limit({{.CacheLimit}})
+//		}
+//
+//		ids := make([]interface{}, 0)
+//		e := db.Find(&ids)
+//		if e != nil {
+//			log.Logs.DBError(db, e)
+//		}
+//		return ids, e
+//	})
+//	//
+//	{{lower .StructName}}_count_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
+//		cond, ok := k.(table.ISqlBuilder)
+//		if !ok {
+//			return nil, InvalidKey
+//		}
+//		
+//		db := models.Db().Table(table.{{.StructName}}.TableName)
+//
+//		if joins := cond.GetJoin(); len(joins) > 0 {
+//			for _, join := range joins {
+//				db.Join(join[0], join[1], join[2])
+//			}
+//		}
+//		if s, args := cond.GetWhere(); s != "" {
+//			db.Where(s, args...)
+//		}
+//		if s := cond.GetGroupBy(); s != "" {
+//			db.GroupBy(s)
+//		}
+//		if s := cond.GetHaving(); s != "" {
+//			db.Having(s)
+//		}
+//
+//		i64, e := db.Count()
+//		if e != nil {
+//			log.Logs.DBError(db, e)
+//		}
+//		return i64, e
+//	})
+//}
 {{end}}
 
 {{if .HasPrimaryKey}}
@@ -367,7 +365,7 @@ func (p {{lower .StructName}}) SoftDeleteBatch(x interface{}, cond table.ISqlBui
 //Get 根据主键从Cache中获取一条数据
 func (p {{lower .StructName}}) Get(x interface{},id types.BigUint) (*models.{{.StructName}}, error) {
 {{if .HasCache}}
-	cm, e := {{lower .StructName}}_cache.Get(context.TODO(), id)
+	cm, e := models.{{.StructName}}Cache().Get(context.TODO(), id)
 	if e != nil {
 		log.Logs.Error(e)
 		return nil, e
@@ -418,7 +416,7 @@ func (p {{lower .StructName}}) IDs(x interface{}, cond table.ISqlBuilder, size, 
 	if index == 0 {
 		index = 1
 	}
-	return {{lower .StructName}}_ids_cache.LGet(context.TODO(), cond, int64(size*(index-1)), int64(size*index))
+	return models.{{.StructName}}IDsCache().LGet(context.TODO(), cond, int64(size*(index-1)), int64(size*index))
 {{else}}
 	return p.IDsNoCache(x,cond,size,index)
 {{end}}
@@ -504,7 +502,7 @@ func (p {{lower .StructName}}) Sums(x interface{}, cond table.ISqlBuilder, args 
 //Count 根据cond条件从cache中获取数据总数
 func (p {{lower .StructName}}) Count(x interface{}, cond table.ISqlBuilder) (int64, error) {
 {{if .HasCache}}
-	i, e := {{lower .StructName}}_count_cache.Get(context.TODO(), cond)
+	i, e := models.{{.StructName}}CountCache().Get(context.TODO(), cond)
 	if e != nil {
 		log.Logs.Error(e)
 		return 0, e
@@ -549,7 +547,7 @@ func (p {{lower .StructName}}) Gets(x interface{}, ids []interface{}) ([]*models
 	if len(ids) == 0 {
 		return nil, nil
 	}
-	ms, e := {{lower .StructName}}_cache.Gets(context.TODO(), ids...)
+	ms, e := models.{{.StructName}}Cache().Gets(context.TODO(), ids...)
 	if e != nil {
 		log.Logs.Error(e)
 		return nil, e
@@ -587,7 +585,7 @@ func (p {{lower .StructName}}) GetsMap(x interface{}, ids []interface{}) (map[ty
 	if len(ids) == 0 {
 		return nil, nil
 	}
-	ms, e := {{lower .StructName}}_cache.Gets(context.TODO(), ids...)
+	ms, e := models.{{.StructName}}Cache().Gets(context.TODO(), ids...)
 	if e != nil {
 		log.Logs.Error(e)
 		return nil, e
@@ -761,7 +759,7 @@ func (p {{lower .StructName}}) Exists(x interface{}, cond table.ISqlBuilder) (bo
 {{if .HasCache}}
 //OnChange
 func (p {{lower .StructName}}) OnChange(id types.BigUint) {
-	{{lower .StructName}}_cache.Remove(context.TODO(), id)
+	models.{{.StructName}}Cache().Remove(context.TODO(), id)
 	//p.OnListChange()
 }
 
@@ -781,23 +779,27 @@ func (p {{lower .StructName}}) OnBatchChange(cond table.ISqlBuilder) {
 			log.Logs.DBError(db, e)
 		}
 		if len(ids) > 0 {
-			{{lower .StructName}}_cache.Remove(context.TODO(), ids...)
+			models.{{.StructName}}Cache().Remove(context.TODO(), ids...)
 			//p.OnListChange()
 		}
 	}()
 }
 //OnListChange
 func (p {{lower .StructName}}) OnListChange() {
-	{{lower .StructName}}_ids_cache.Empty(context.TODO())
-	{{lower .StructName}}_count_cache.Empty(context.TODO())
+	models.{{.StructName}}IDsCache().Empty(context.TODO())
+	models.{{.StructName}}CountCache().Empty(context.TODO())
 }
 
 func (p {{lower .StructName}})Cache() *redis.RedisBroker {
-	return {{lower .StructName}}_cache
+	return models.{{.StructName}}Cache()
 }
 
 func (p {{lower .StructName}})IDsCache() *redis.RedisBroker {
-	return {{lower .StructName}}_ids_cache
+	return models.{{.StructName}}IDsCache()
+}
+
+func (p {{lower .StructName}})CountCache() *redis.RedisBroker {
+	return models.{{.StructName}}CountCache()
 }
 {{end}}
 {{end}}

@@ -53,6 +53,7 @@ func init() {
 		if has {
 			return m, nil
 		}
+		m.Free()
 		if e != nil {
 			log.Logs.DBError(db, e)
 		}
@@ -667,8 +668,8 @@ func (p *{{.StructName}}) OnBatchChange(cond table.ISqlBuilder) {
 }
 //OnListChange
 func (p *{{.StructName}}) OnListChange() {
-	{{lower .StructName}}_ids_cache.Empty(context.TODO())
 	{{lower .StructName}}_count_cache.Empty(context.TODO())
+	{{lower .StructName}}_ids_cache.Empty(context.TODO())
 }
 
 func {{.StructName}}Cache() *redis.RedisBroker {
@@ -677,6 +678,10 @@ func {{.StructName}}Cache() *redis.RedisBroker {
 
 func {{.StructName}}IDsCache() *redis.RedisBroker {
 	return {{lower .StructName}}_ids_cache
+}
+
+func {{.StructName}}CountCache() *redis.RedisBroker {
+	return {{lower .StructName}}_count_cache
 }
 {{end}}
 {{end}}
