@@ -724,6 +724,8 @@ func (p *sqlBuilder) GetCols() []string {
 			s = append(s, _f.Quote())
 		} else if _f, ok := col.(string); ok {
 			s = append(s, _f)
+		} else if _fs, ok := col.([]string); ok {
+			s = append(s, _fs...)
 		}
 	}
 	return s
@@ -861,7 +863,7 @@ func (p *sqlBuilder) GetUpdate() ([]string, []interface{}) {
 //String
 func (p *sqlBuilder) String() string {
 	var buf strings.Builder
-	//buf.WriteString(p.getColString() + "@")
+
 	sql, pm := p.condition()
 	buf.WriteString(sql)
 	buf.WriteString("@params:")
@@ -891,23 +893,23 @@ func (p *sqlBuilder) subCond(sb ISqlBuilder) ISqlBuilder {
 	return p
 }
 
-func (p *sqlBuilder) getColString() string {
-	if len(p.cols) == 0 {
-		return ""
-	}
-	buf := strings.Builder{}
-	for i, col := range p.cols {
-		if i > 0 {
-			buf.WriteByte(',')
-		}
-		if _f, ok := col.(TableField); ok {
-			buf.WriteString(_f.Quote())
-		} else if _f, ok := col.(string); ok {
-			buf.WriteString(_f)
-		}
-	}
-	return buf.String()
-}
+//func (p *sqlBuilder) getColString() string {
+//	if len(p.cols) == 0 {
+//		return ""
+//	}
+//	buf := strings.Builder{}
+//	for i, col := range p.cols {
+//		if i > 0 {
+//			buf.WriteByte(',')
+//		}
+//		if _f, ok := col.(TableField); ok {
+//			buf.WriteString(_f.Quote())
+//		} else if _f, ok := col.(string); ok {
+//			buf.WriteString(_f)
+//		}
+//	}
+//	return buf.String()
+//}
 
 //condition
 func (p *sqlBuilder) condition() (string, []interface{}) {
@@ -977,7 +979,7 @@ func (p *sqlBuilder) getInsert() (string, []interface{}, error) {
 	copy(cols, p.updateCols)
 
 	buf.WriteString(" ( " + strings.Join(cols, ", ") + " ) VALUES ( ")
-	for i := 0; i < len(p.updateCols); i++ {
+	for i := 0; i < len(cols); i++ {
 		if i > 0 {
 			buf.WriteString(",")
 		}
@@ -993,6 +995,7 @@ func (p *sqlBuilder) getUpdate() (string, []interface{}, error) {
 	if p.table == "" {
 		return "", nil, ErrTableEmpty
 	}
+
 	if len(p.updateCols) == 0 &&
 		len(p.incrCols) == 0 &&
 		len(p.decrCols) == 0 &&
@@ -1004,47 +1007,23 @@ func (p *sqlBuilder) getUpdate() (string, []interface{}, error) {
 	//UPDATE
 	buf.WriteString(string(command_update) + Quote_Char + p.table + Quote_Char + " SET ")
 	//SET
-	for i, col := range p.updateCols {
-		if i > 0 {
-			buf.WriteString(", ")
-		}
-		buf.WriteString(col + " = ?")
+	cols := make([]string, 0, 5)
+	for _, col := range p.updateCols {
+		cols = append(cols, col+" = ?")
 	}
-	if len(p.incrCols) > 0 {
-		if len(p.updateCols) > 0 {
-			buf.WriteString(", ")
-		}
-		for i, col := range p.incrCols {
-			if i > 0 {
-				buf.WriteString(", ")
-			}
-			buf.WriteString(col.ColName + " = " + col.ColName + " + ?")
-			p.updateParams = append(p.updateParams, col.Arg)
-		}
+	for _, col := range p.incrCols {
+		cols = append(cols, col.ColName+" = "+col.ColName+" + ?")
+		p.updateParams = append(p.updateParams, col.Arg)
 	}
-	if len(p.decrCols) > 0 {
-		if len(p.incrCols) > 0 {
-			buf.WriteString(", ")
-		}
-		for i, col := range p.exprCols {
-			if i > 0 {
-				buf.WriteString(", ")
-			}
-			buf.WriteString(col.ColName + " = " + col.ColName + " - ?")
-			p.updateParams = append(p.updateParams, col.Arg)
-		}
+	for _, col := range p.decrCols {
+		cols = append(cols, col.ColName+" = "+col.ColName+" - ?")
+		p.updateParams = append(p.updateParams, col.Arg)
 	}
-	if len(p.exprCols) > 0 {
-		if len(p.decrCols) > 0 {
-			buf.WriteString(", ")
-		}
-		for i, col := range p.exprCols {
-			if i > 0 {
-				buf.WriteString(", ")
-			}
-			buf.WriteString(col.ColName + " = " + utils.Interface2String(col.Arg))
-		}
+	for _, col := range p.exprCols {
+		cols = append(cols, col.ColName+" = "+utils.Interface2String(col.Arg))
 	}
+
+	buf.WriteString(strings.Join(cols, ", "))
 	//WHERE
 	sql, params := p.condition()
 	var _params = make([]interface{}, len(p.updateParams)+len(params))
@@ -1067,15 +1046,12 @@ func (p *sqlBuilder) getDelete() (string, []interface{}, error) {
 	buf.WriteString(string(command_delete) + Quote_Char + p.table + Quote_Char + " ")
 	//WHERE
 	sql, params := p.condition()
-	var _params = make([]interface{}, len(p.updateParams)+len(params))
-	copy(_params, p.updateParams)
 
 	if sql != "" {
 		buf.WriteString(" WHERE " + sql)
-		copy(_params[len(p.updateParams):], params)
 	}
 
-	return buf.String(), _params, nil
+	return buf.String(), params, nil
 }
 
 func (p *sqlBuilder) getSelect() (string, []interface{}, error) {
@@ -1091,7 +1067,7 @@ func (p *sqlBuilder) getSelect() (string, []interface{}, error) {
 		if p.distinct {
 			buf.WriteString("DISTINCT ")
 		}
-		buf.WriteString(p.getColString())
+		buf.WriteString(strings.Join(p.GetCols(), ","))
 	}
 	//FROM TABLE
 	buf.WriteString(" FROM " + Quote_Char + p.table + Quote_Char)
