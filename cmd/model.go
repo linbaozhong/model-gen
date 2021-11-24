@@ -175,6 +175,10 @@ func (p *{{.StructName}}) Insert(x interface{}, cols ...string) (int64,error) {
 
 //InsertBatch 批量新增数据
 func (p *{{.StructName}}) InsertBatch(x interface{}, beans []interface{}, cols ...string) (int64, error) {
+	l := len(beans)
+	if l == 0 {
+		return 0, Param_Missing
+	}
 	db := p.getDB(x)
 
 	if len(cols) > 0 {

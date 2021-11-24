@@ -156,7 +156,7 @@ func (p {{lower .StructName}}) Insert(x interface{}, bean *models.{{.StructName}
 func (p {{lower .StructName}}) InsertBatch(x interface{}, beans []*models.{{.StructName}}, cols ...string) (int64, error) {
 	l := len(beans)
 	if l == 0 {
-		return 0, Err_Type
+		return 0, Param_Missing
 	}
 	db := getDB(x, table.{{.StructName}}.TableName)
 
