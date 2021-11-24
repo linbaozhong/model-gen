@@ -176,6 +176,113 @@ type ISqlBuilder interface {
 	Free()
 }
 
+//Insert
+func I(t interface{}) ISqlBuilder {
+	return get(t, command_insert)
+}
+
+//Update
+func U(t interface{}) ISqlBuilder {
+	return get(t, command_update)
+}
+
+//Delete
+func D(t interface{}) ISqlBuilder {
+	return get(t, command_delete)
+}
+
+//Select
+func S(t interface{}) ISqlBuilder {
+	return get(t, command_select)
+}
+
+func get(t interface{}, cmd command) ISqlBuilder {
+	p := sqlBuilderPool.Get().(*sqlBuilder)
+	p.setTable(t)
+	p.setCmd(cmd)
+	return p
+}
+
+//Table
+func Table(t interface{}) ISqlBuilder {
+	return NewSqlBuilder().setTable(t)
+}
+
+//UnNull Is Not Null
+func UnNull(f TableField) ISqlBuilder {
+	return NewSqlBuilder().UnNull(f)
+}
+
+//Null Is Null
+func Null(f TableField) ISqlBuilder {
+	return NewSqlBuilder().Null(f)
+}
+
+//Rlike
+func Rlike(f TableField, v interface{}) ISqlBuilder {
+	return NewSqlBuilder().Rlike(f, v)
+}
+
+//Llike
+func Llike(f TableField, v interface{}) ISqlBuilder {
+	return NewSqlBuilder().Llike(f, v)
+}
+
+//Like
+func Like(f TableField, v interface{}) ISqlBuilder {
+	return NewSqlBuilder().Like(f, v)
+}
+
+//Bt Between
+func Bt(f TableField, v1, v2 interface{}) ISqlBuilder {
+	return NewSqlBuilder().Bt(f, v1, v2)
+}
+
+//In
+func In(f TableField, v ...interface{}) ISqlBuilder {
+	return NewSqlBuilder().In(f, v...)
+}
+
+//UnIn Not In
+func UnIn(f TableField, v ...interface{}) ISqlBuilder {
+	return NewSqlBuilder().UnIn(f, v...)
+}
+
+//Ue !=
+func Ue(f TableField, v interface{}) ISqlBuilder {
+	return NewSqlBuilder().toWhere(f, v, " <> ")
+}
+
+//Lte <=
+func Lte(f TableField, v interface{}) ISqlBuilder {
+	return NewSqlBuilder().toWhere(f, v, " <= ")
+}
+
+//Lt <
+func Lt(f TableField, v interface{}) ISqlBuilder {
+	return NewSqlBuilder().toWhere(f, v, " < ")
+}
+
+//Gte >=
+func Gte(f TableField, v interface{}) ISqlBuilder {
+	return NewSqlBuilder().toWhere(f, v, " >= ")
+}
+
+//Gt >
+func Gt(f TableField, v interface{}) ISqlBuilder {
+	return NewSqlBuilder().toWhere(f, v, " > ")
+}
+
+//Eq =
+func Eq(f TableField, v interface{}) ISqlBuilder {
+	return NewSqlBuilder().toWhere(f, v, " = ")
+}
+
+//Where
+func Where(sql string, v interface{}) *sqlBuilder {
+	return NewSqlBuilder().Where(sql, v)
+}
+
 // Expr represents an SQL express
 type Expr struct {
 	ColName string
@@ -225,33 +332,6 @@ func NewSqlBuilder() *sqlBuilder {
 	return sqlBuilderPool.Get().(*sqlBuilder)
 }
 
-//Insert
-func I(t interface{}) ISqlBuilder {
-	return get(t, command_insert)
-}
-
-//Update
-func U(t interface{}) ISqlBuilder {
-	return get(t, command_update)
-}
-
-//Delete
-func D(t interface{}) ISqlBuilder {
-	return get(t, command_delete)
-}
-
-//Select
-func S(t interface{}) ISqlBuilder {
-	return get(t, command_select)
-}
-
-func get(t interface{}, cmd command) ISqlBuilder {
-	p := sqlBuilderPool.Get().(*sqlBuilder)
-	p.setTable(t)
-	p.setCmd(cmd)
-	return p
-}
-
 //Free
 func (p *sqlBuilder) Free() {
 	p.table = ""
@@ -293,10 +373,9 @@ func (p *sqlBuilder) ToSQL() (string, []interface{}, error) {
 		return p.getUpdate()
 	case command_delete:
 		return p.getDelete()
-	case command_select:
+	default:
 		return p.getSelect()
 	}
-	return "", nil, ErrUpdateEmpty
 }
 
 //Insert
@@ -656,7 +735,7 @@ func (p *sqlBuilder) And(sb ISqlBuilder) ISqlBuilder {
 	if sb.GetWhereString() == "" {
 		return p
 	}
-	
+
 	if !p.andOr {
 		p.where.WriteString(operator_and)
 		p.andOr = true
