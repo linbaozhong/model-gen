@@ -41,6 +41,7 @@ import (
 )
 
 type JoinType string
+type command string
 
 const (
 	Inner_Join JoinType = " INNER"
@@ -50,6 +51,11 @@ const (
 	operator_and = " AND "
 	operator_or  = " OR "
 	placeholder  = "?"
+
+	command_insert command = "INSERT INTO "
+	command_select command = "SELECT "
+	command_update command = "UPDATE "
+	command_delete command = "DELETE FROM "
 )
 
 var (
@@ -88,6 +94,7 @@ type IDataAccess interface {
 }
 
 type ISqlBuilder interface {
+	ToSQL() (string, []interface{}, error)
 	Table(m interface{}) ISqlBuilder
 	GetCondition() (string, []interface{})
 	Select() ([]interface{}, error)
@@ -134,11 +141,11 @@ type ISqlBuilder interface {
 	Limit(size int, start ...int) ISqlBuilder
 	GetLimit() (size int, start int)
 
-	And() ISqlBuilder
-	AndWhere(sb ISqlBuilder) ISqlBuilder
+	And(sb ISqlBuilder) ISqlBuilder
+	//AndWhere(sb ISqlBuilder) ISqlBuilder
 
-	Or() ISqlBuilder
-	OrWhere(sb ISqlBuilder) ISqlBuilder
+	Or(sb ISqlBuilder) ISqlBuilder
+	//OrWhere(sb ISqlBuilder) ISqlBuilder
 
 	GetWhere() (string, []interface{})
 	GetWhereString() string
@@ -176,6 +183,7 @@ type Expr struct {
 }
 
 type sqlBuilder struct {
+	cmd         command
 	table       string
 	distinct    bool
 	cols        []interface{}
@@ -217,6 +225,33 @@ func NewSqlBuilder() *sqlBuilder {
 	return sqlBuilderPool.Get().(*sqlBuilder)
 }
 
+//Insert
+func I(t interface{}) ISqlBuilder {
+	return get(t, command_insert)
+}
+
+//Update
+func U(t interface{}) ISqlBuilder {
+	return get(t, command_update)
+}
+
+//Delete
+func D(t interface{}) ISqlBuilder {
+	return get(t, command_delete)
+}
+
+//Select
+func S(t interface{}) ISqlBuilder {
+	return get(t, command_select)
+}
+
+func get(t interface{}, cmd command) ISqlBuilder {
+	p := sqlBuilderPool.Get().(*sqlBuilder)
+	p.setTable(t)
+	p.setCmd(cmd)
+	return p
+}
+
 //Free
 func (p *sqlBuilder) Free() {
 	p.table = ""
@@ -245,46 +280,36 @@ func (p *sqlBuilder) Free() {
 }
 
 //Table
-func (p *sqlBuilder) Table(m interface{}) ISqlBuilder {
-	if name, ok := m.(string); ok {
-		p.table = name
-	} else if iface, ok := m.(ITableName); ok {
-		p.table = iface.TableName()
+func (p *sqlBuilder) Table(t interface{}) ISqlBuilder {
+	return p.setTable(t)
+}
+
+func (p *sqlBuilder) ToSQL() (string, []interface{}, error) {
+	defer p.Free()
+	switch p.cmd {
+	case command_insert:
+		return p.getInsert()
+	case command_update:
+		return p.getUpdate()
+	case command_delete:
+		return p.getDelete()
+	case command_select:
+		return p.getSelect()
 	}
-	return p
+	return "", nil, ErrUpdateEmpty
 }
 
 //Insert
 func (p *sqlBuilder) Insert() ([]interface{}, error) {
 	defer p.Free()
 
-	if p.table == "" {
-		return nil, ErrTableEmpty
+	sql, args, e := p.getInsert()
+	if e != nil {
+		return nil, e
 	}
-	if len(p.updateCols) == 0 && len(p.incrCols) == 0 {
-		return nil, ErrUpdateEmpty
-	}
-
-	var buf strings.Builder
-	//INSERT
-	buf.WriteString("INSERT INTO " + Quote_Char + p.table + Quote_Char)
-	//VALUES
-	var cols = make([]string, len(p.updateCols)+len(p.incrCols))
-	copy(cols, p.updateCols)
-
-	buf.WriteString(" ( " + strings.Join(cols, ", ") + " ) VALUES ( ")
-	for i := 0; i < len(p.updateCols); i++ {
-		if i > 0 {
-			buf.WriteString(",")
-		}
-		buf.WriteString("?")
-	}
-
-	buf.WriteString(" ) ")
-
 	r := make([]interface{}, 0, len(p.updateParams)+1)
-	r = append(r, buf.String())
-	r = append(r, p.updateParams...)
+	r = append(r, sql)
+	r = append(r, args...)
 
 	return r, nil
 }
@@ -292,77 +317,13 @@ func (p *sqlBuilder) Insert() ([]interface{}, error) {
 //Update
 func (p *sqlBuilder) Update() ([]interface{}, error) {
 	defer p.Free()
-
-	if p.table == "" {
-		return nil, ErrTableEmpty
+	sql, args, e := p.getUpdate()
+	if e != nil {
+		return nil, e
 	}
-	if len(p.updateCols) == 0 &&
-		len(p.incrCols) == 0 &&
-		len(p.decrCols) == 0 &&
-		len(p.exprCols) == 0 {
-		return nil, ErrUpdateEmpty
-	}
-
-	var buf strings.Builder
-	//UPDATE
-	buf.WriteString("UPDATE ")
-	//TABLE
-	buf.WriteString(Quote_Char + p.table + Quote_Char + " SET ")
-	//SET
-	for i, col := range p.updateCols {
-		if i > 0 {
-			buf.WriteString(", ")
-		}
-		buf.WriteString(col + " = ?")
-	}
-	if len(p.incrCols) > 0 {
-		if len(p.updateCols) > 0 {
-			buf.WriteString(", ")
-		}
-		for i, col := range p.incrCols {
-			if i > 0 {
-				buf.WriteString(", ")
-			}
-			buf.WriteString(col.ColName + " = " + col.ColName + " + ?")
-			p.updateParams = append(p.updateParams, col.Arg)
-		}
-	}
-	if len(p.decrCols) > 0 {
-		if len(p.incrCols) > 0 {
-			buf.WriteString(", ")
-		}
-		for i, col := range p.exprCols {
-			if i > 0 {
-				buf.WriteString(", ")
-			}
-			buf.WriteString(col.ColName + " = " + col.ColName + " - ?")
-			p.updateParams = append(p.updateParams, col.Arg)
-		}
-	}
-	if len(p.exprCols) > 0 {
-		if len(p.decrCols) > 0 {
-			buf.WriteString(", ")
-		}
-		for i, col := range p.exprCols {
-			if i > 0 {
-				buf.WriteString(", ")
-			}
-			buf.WriteString(col.ColName + " = " + utils.Interface2String(col.Arg))
-		}
-	}
-	//WHERE
-	sql, params := p.condition()
-	var _params = make([]interface{}, len(p.updateParams)+len(params))
-	copy(_params, p.updateParams)
-
-	if sql != "" {
-		buf.WriteString(" WHERE " + sql)
-		copy(_params[len(p.updateParams):], params)
-	}
-
-	r := make([]interface{}, 0, len(_params)+1)
-	r = append(r, buf.String())
-	r = append(r, _params...)
+	r := make([]interface{}, 0, len(p.updateParams)+1)
+	r = append(r, sql)
+	r = append(r, args...)
 
 	return r, nil
 }
@@ -371,28 +332,13 @@ func (p *sqlBuilder) Update() ([]interface{}, error) {
 func (p *sqlBuilder) Delete() ([]interface{}, error) {
 	defer p.Free()
 
-	if p.table == "" {
-		return nil, ErrTableEmpty
+	sql, args, e := p.getDelete()
+	if e != nil {
+		return nil, e
 	}
-
-	var buf strings.Builder
-	//UPDATE
-	buf.WriteString("DELETE FROM ")
-	//TABLE
-	buf.WriteString(Quote_Char + p.table + Quote_Char + " ")
-	//WHERE
-	sql, params := p.condition()
-	var _params = make([]interface{}, len(p.updateParams)+len(params))
-	copy(_params, p.updateParams)
-
-	if sql != "" {
-		buf.WriteString(" WHERE " + sql)
-		copy(_params[len(p.updateParams):], params)
-	}
-
-	r := make([]interface{}, 0, len(_params)+1)
-	r = append(r, buf.String())
-	r = append(r, _params...)
+	r := make([]interface{}, 0, len(p.updateParams)+1)
+	r = append(r, sql)
+	r = append(r, args...)
 
 	return r, nil
 }
@@ -401,44 +347,13 @@ func (p *sqlBuilder) Delete() ([]interface{}, error) {
 func (p *sqlBuilder) Select() ([]interface{}, error) {
 	defer p.Free()
 
-	if p.table == "" {
-		return nil, ErrTableEmpty
+	sql, args, e := p.getSelect()
+	if e != nil {
+		return nil, e
 	}
-	var buf strings.Builder
-	//SELECT
-	buf.WriteString("SELECT ")
-	if len(p.cols) == 0 {
-		buf.WriteString("*")
-	} else {
-		if p.distinct {
-			buf.WriteString("DISTINCT ")
-		}
-		buf.WriteString(p.getColString())
-	}
-	//FROM TABLE
-	buf.WriteString(" FROM " + Quote_Char + p.table + Quote_Char)
-	//JOIN
-	//if p.join != "" {
-	//	buf.WriteString(p.join)
-	//}
-	if len(p.join) > 0 {
-		for _, j := range p.join {
-			buf.WriteString(j[0] + " JOIN " + j[1] + " ON " + j[2] + " ")
-		}
-	}
-	//WHERE
-	sql, params := p.condition()
-	if sql != "" {
-		buf.WriteString(" WHERE " + sql)
-	}
-	//LIMIT
-	if p.limit != "" {
-		buf.WriteString(p.limit)
-	}
-
-	r := make([]interface{}, 0, len(params)+1)
-	r = append(r, buf.String())
-	r = append(r, params...)
+	r := make([]interface{}, 0, len(p.updateParams)+1)
+	r = append(r, sql)
+	r = append(r, args...)
 
 	return r, nil
 }
@@ -735,64 +650,56 @@ func (p *sqlBuilder) GetCols() []string {
 	return s
 }
 
-func (p *sqlBuilder) getColString() string {
-	if len(p.cols) == 0 {
-		return ""
-	}
-	buf := strings.Builder{}
-	for i, col := range p.cols {
-		if i > 0 {
-			buf.WriteByte(',')
-		}
-		if _f, ok := col.(TableField); ok {
-			buf.WriteString(_f.Quote())
-		} else if _f, ok := col.(string); ok {
-			buf.WriteString(_f)
-		}
-	}
-	return buf.String()
-}
-
 //And 算术方法之间默认为 AND 逻辑
-func (p *sqlBuilder) And() ISqlBuilder {
+func (p *sqlBuilder) And(sb ISqlBuilder) ISqlBuilder {
+	defer sb.Free()
+	if sb.GetWhereString() == "" {
+		return p
+	}
+	
 	if !p.andOr {
 		p.where.WriteString(operator_and)
 		p.andOr = true
 	}
-	return p
+	return p.subCond(sb)
 }
 
-//AndWhere
-func (p *sqlBuilder) AndWhere(sb ISqlBuilder) ISqlBuilder {
-	defer sb.Free()
+////AndWhere
+//func (p *sqlBuilder) AndWhere(sb ISqlBuilder) ISqlBuilder {
+//	defer sb.Free()
+//
+//	if sb.GetWhereString() == "" {
+//		return p
+//	}
+//
+//	p.And()
+//	return p.subCond(sb)
+//}
 
+//Or
+func (p *sqlBuilder) Or(sb ISqlBuilder) ISqlBuilder {
+	defer sb.Free()
 	if sb.GetWhereString() == "" {
 		return p
 	}
 
-	p.And()
-	return p.subCond(sb)
-}
-
-//Or
-func (p *sqlBuilder) Or() ISqlBuilder {
 	if !p.andOr {
 		p.where.WriteString(operator_or)
 		p.andOr = true
 	}
-	return p
-}
-
-//OrWhere
-func (p *sqlBuilder) OrWhere(sb ISqlBuilder) ISqlBuilder {
-	defer sb.Free()
-	if sb.GetWhereString() == "" {
-		return p
-	}
-
-	p.Or()
 	return p.subCond(sb)
 }
+
+////OrWhere
+//func (p *sqlBuilder) OrWhere(sb ISqlBuilder) ISqlBuilder {
+//	defer sb.Free()
+//	if sb.GetWhereString() == "" {
+//		return p
+//	}
+//
+//	p.Or()
+//	return p.subCond(sb)
+//}
 
 //GetWhere
 func (p *sqlBuilder) GetWhere() (string, []interface{}) {
@@ -812,29 +719,6 @@ func (p *sqlBuilder) GetParams() []interface{} {
 	//
 	//return params
 	return p.whereParams
-}
-
-//condition
-func (p *sqlBuilder) condition() (string, []interface{}) {
-	var buf strings.Builder
-	//WHERE
-	if p.where.Len() > 0 {
-		buf.WriteString(p.GetWhereString())
-	}
-	//GROUP BY
-	if p.groupBy.Len() > 0 {
-		buf.WriteString(" GROUP BY " + p.groupBy.String())
-	}
-	//HAVING
-	if p.having.Len() > 0 {
-		buf.WriteString(" HAVING " + p.having.String())
-	}
-	//ORDER BY
-	if p.orderBy.Len() > 0 {
-		buf.WriteString(" ORDER BY " + p.orderBy.String())
-	}
-
-	return buf.String(), p.GetParams()
 }
 
 ////
@@ -928,6 +812,47 @@ func (p *sqlBuilder) subCond(sb ISqlBuilder) ISqlBuilder {
 	return p
 }
 
+func (p *sqlBuilder) getColString() string {
+	if len(p.cols) == 0 {
+		return ""
+	}
+	buf := strings.Builder{}
+	for i, col := range p.cols {
+		if i > 0 {
+			buf.WriteByte(',')
+		}
+		if _f, ok := col.(TableField); ok {
+			buf.WriteString(_f.Quote())
+		} else if _f, ok := col.(string); ok {
+			buf.WriteString(_f)
+		}
+	}
+	return buf.String()
+}
+
+//condition
+func (p *sqlBuilder) condition() (string, []interface{}) {
+	var buf strings.Builder
+	//WHERE
+	if p.where.Len() > 0 {
+		buf.WriteString(p.GetWhereString())
+	}
+	//GROUP BY
+	if p.groupBy.Len() > 0 {
+		buf.WriteString(" GROUP BY " + p.groupBy.String())
+	}
+	//HAVING
+	if p.having.Len() > 0 {
+		buf.WriteString(" HAVING " + p.having.String())
+	}
+	//ORDER BY
+	if p.orderBy.Len() > 0 {
+		buf.WriteString(" ORDER BY " + p.orderBy.String())
+	}
+
+	return buf.String(), p.GetParams()
+}
+
 func (p *sqlBuilder) toWhere(f TableField, v interface{}, op string) *sqlBuilder {
 	p.prepare()
 	p.where.WriteString(f.generate(op))
@@ -942,6 +867,168 @@ func (p *sqlBuilder) prepare() *sqlBuilder {
 		p.andOr = true
 	}
 	return p
+}
+
+//setTable
+func (p *sqlBuilder) setTable(t interface{}) ISqlBuilder {
+	if name, ok := t.(string); ok {
+		p.table = name
+	} else if iface, ok := t.(ITableName); ok {
+		p.table = iface.TableName()
+	}
+	return p
+}
+func (p *sqlBuilder) setCmd(c command) ISqlBuilder {
+	p.cmd = c
+	return p
+}
+
+func (p *sqlBuilder) getInsert() (string, []interface{}, error) {
+	if p.table == "" {
+		return "", nil, ErrTableEmpty
+	}
+	if len(p.updateCols) == 0 {
+		return "", nil, ErrUpdateEmpty
+	}
+	var buf strings.Builder
+	//INSERT
+	buf.WriteString(string(command_insert) + Quote_Char + p.table + Quote_Char)
+	//VALUES
+	var cols = make([]string, len(p.updateCols))
+	copy(cols, p.updateCols)
+
+	buf.WriteString(" ( " + strings.Join(cols, ", ") + " ) VALUES ( ")
+	for i := 0; i < len(p.updateCols); i++ {
+		if i > 0 {
+			buf.WriteString(",")
+		}
+		buf.WriteString("?")
+	}
+
+	buf.WriteString(" ) ")
+
+	return buf.String(), p.updateParams, nil
+}
+
+func (p *sqlBuilder) getUpdate() (string, []interface{}, error) {
+	if p.table == "" {
+		return "", nil, ErrTableEmpty
+	}
+	if len(p.updateCols) == 0 &&
+		len(p.incrCols) == 0 &&
+		len(p.decrCols) == 0 &&
+		len(p.exprCols) == 0 {
+		return "", nil, ErrUpdateEmpty
+	}
+
+	var buf strings.Builder
+	//UPDATE
+	buf.WriteString(string(command_update) + Quote_Char + p.table + Quote_Char + " SET ")
+	//SET
+	for i, col := range p.updateCols {
+		if i > 0 {
+			buf.WriteString(", ")
+		}
+		buf.WriteString(col + " = ?")
+	}
+	if len(p.incrCols) > 0 {
+		if len(p.updateCols) > 0 {
+			buf.WriteString(", ")
+		}
+		for i, col := range p.incrCols {
+			if i > 0 {
+				buf.WriteString(", ")
+			}
+			buf.WriteString(col.ColName + " = " + col.ColName + " + ?")
+			p.updateParams = append(p.updateParams, col.Arg)
+		}
+	}
+	if len(p.decrCols) > 0 {
+		if len(p.incrCols) > 0 {
+			buf.WriteString(", ")
+		}
+		for i, col := range p.exprCols {
+			if i > 0 {
+				buf.WriteString(", ")
+			}
+			buf.WriteString(col.ColName + " = " + col.ColName + " - ?")
+			p.updateParams = append(p.updateParams, col.Arg)
+		}
+	}
+	if len(p.exprCols) > 0 {
+		if len(p.decrCols) > 0 {
+			buf.WriteString(", ")
+		}
+		for i, col := range p.exprCols {
+			if i > 0 {
+				buf.WriteString(", ")
+			}
+			buf.WriteString(col.ColName + " = " + utils.Interface2String(col.Arg))
+		}
+	}
+	//WHERE
+	sql, params := p.condition()
+	var _params = make([]interface{}, len(p.updateParams)+len(params))
+	copy(_params, p.updateParams)
+
+	if sql != "" {
+		buf.WriteString(" WHERE " + sql)
+		copy(_params[len(p.updateParams):], params)
+	}
+
+	return buf.String(), _params, nil
+}
+
+func (p *sqlBuilder) getDelete() (string, []interface{}, error) {
+	if p.table == "" {
+		return "", nil, ErrTableEmpty
+	}
+	var buf strings.Builder
+	//DELETE
+	buf.WriteString(string(command_delete) + Quote_Char + p.table + Quote_Char + " ")
+	//WHERE
+	sql, params := p.condition()
+	var _params = make([]interface{}, len(p.updateParams)+len(params))
+	copy(_params, p.updateParams)
+
+	if sql != "" {
+		buf.WriteString(" WHERE " + sql)
+		copy(_params[len(p.updateParams):], params)
+	}
+
+	return buf.String(), _params, nil
+}
+
+func (p *sqlBuilder) getSelect() (string, []interface{}, error) {
+	if p.table == "" {
+		return "", nil, ErrTableEmpty
+	}
+	var buf strings.Builder
+	//SELECT
+	buf.WriteString(string(command_select))
+	if len(p.cols) == 0 {
+		buf.WriteString("*")
+	} else {
+		if p.distinct {
+			buf.WriteString("DISTINCT ")
+		}
+		buf.WriteString(p.getColString())
+	}
+	//FROM TABLE
+	buf.WriteString(" FROM " + Quote_Char + p.table + Quote_Char)
+	for _, j := range p.join {
+		buf.WriteString(j[0] + " JOIN " + j[1] + " ON " + j[2] + " ")
+	}
+	//WHERE
+	sql, params := p.condition()
+	if sql != "" {
+		buf.WriteString(" WHERE " + sql)
+	}
+	//LIMIT
+	if p.limit != "" {
+		buf.WriteString(p.limit)
+	}
+	return buf.String(), params, nil
 }
 
 `
