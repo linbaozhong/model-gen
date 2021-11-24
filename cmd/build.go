@@ -282,6 +282,45 @@ func Eq(f TableField, v interface{}) ISqlBuilder {
 func Where(sql string, v interface{}) *sqlBuilder {
 	return NewSqlBuilder().Where(sql, v)
 }
+//Cols
+func Cols(args ...interface{}) ISqlBuilder {
+	return NewSqlBuilder().Cols(args...)
+}
+
+//OrderBy
+func OrderBy(cols ...TableField) ISqlBuilder {
+	return NewSqlBuilder().Asc(cols...)
+}
+
+//Asc
+func Asc(cols ...TableField) ISqlBuilder {
+	return NewSqlBuilder().Asc(cols...)
+}
+
+//Desc
+func Desc(cols ...TableField) ISqlBuilder {
+	return NewSqlBuilder().Desc(cols...)
+}
+
+//Set
+func Set(f TableField, v interface{}) ISqlBuilder {
+	return NewSqlBuilder().Set(f, v)
+}
+
+//Incr
+func Incr(f TableField, v ...interface{}) ISqlBuilder {
+	return NewSqlBuilder().Incr(f, v...)
+}
+
+//Decr
+func Decr(f TableField, v ...interface{}) ISqlBuilder {
+	return NewSqlBuilder().Decr(f, v...)
+}
+
+//SetExpr
+func SetExpr(f TableField, expr string) ISqlBuilder {
+	return NewSqlBuilder().SetExpr(f, expr)
+}
 
 // Expr represents an SQL express
 type Expr struct {
