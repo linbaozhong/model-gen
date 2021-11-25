@@ -23,113 +23,12 @@ import (
 	"{{.ModulePath}}/table"
 )
 
-type {{lower .StructName}} struct {
-}
+type {{lower .StructName}} struct {}
 
 var (
 	{{.StructName}} {{lower .StructName}}
 )
 
-{{if and .HasCache .HasPrimaryKey}}
-//var (
-//	{{lower .StructName}}_cache     = redis.NewClient(conf.App.Mode,"{{lower .StructName}}").Expiration({{.CacheData}})
-//	{{lower .StructName}}_ids_cache = redis.NewClient(conf.App.Mode, "{{lower .StructName}}_ids").Expiration({{.CacheList}})
-//	{{lower .StructName}}_count_cache = redis.NewClient(conf.App.Mode, "{{lower .StructName}}_count").Expiration({{.CacheList}})
-//)
-//
-//func init() {
-//	{{lower .StructName}}_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
-//		if k == nil {
-//			return nil, InvalidKey
-//		}
-//
-//		m := models.New{{.StructName}}()
-//		db := models.Db().Table(table.{{.StructName}}.TableName)
-//		has, e := db.Where(table.{{.StructName}}.PrimaryKey.Eq(),k).
-//			Get(m)
-//		if has {
-//			return m, nil
-//		}
-//		m.Free()
-//		if e != nil {
-//			log.Logs.DBError(db, e)
-//		}
-//		return nil, e
-//	}).DeserializeModel(func() interface{} {
-//		return models.New{{.StructName}}()
-//	})
-//	//
-//	{{lower .StructName}}_ids_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
-//		cond, ok := k.(table.ISqlBuilder)
-//		if !ok {
-//			return nil, InvalidKey
-//		}
-//		
-//		db := models.Db().Table(table.{{.StructName}}.TableName)
-//		db.Cols(table.{{.StructName}}.PrimaryKey.Quote())
-//
-//		if joins := cond.GetJoin(); len(joins) > 0 {
-//			for _, join := range joins {
-//				db.Join(join[0], join[1], join[2])
-//			}
-//		}
-//		if s, args := cond.GetWhere(); s != "" {
-//			db.Where(s, args...)
-//		}
-//		if s := cond.GetGroupBy(); s != "" {
-//			db.GroupBy(s)
-//		}
-//		if s := cond.GetHaving(); s != "" {
-//			db.Having(s)
-//		}
-//		if s := cond.GetOrderBy(); s != "" {
-//			db.OrderBy(s)
-//		}
-//		if size, start := cond.GetLimit(); size > 0 {
-//			db.Limit(size, start)
-//		} else {
-//			db.Limit({{.CacheLimit}})
-//		}
-//
-//		ids := make([]interface{}, 0)
-//		e := db.Find(&ids)
-//		if e != nil {
-//			log.Logs.DBError(db, e)
-//		}
-//		return ids, e
-//	})
-//	//
-//	{{lower .StructName}}_count_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
-//		cond, ok := k.(table.ISqlBuilder)
-//		if !ok {
-//			return nil, InvalidKey
-//		}
-//		
-//		db := models.Db().Table(table.{{.StructName}}.TableName)
-//
-//		if joins := cond.GetJoin(); len(joins) > 0 {
-//			for _, join := range joins {
-//				db.Join(join[0], join[1], join[2])
-//			}
-//		}
-//		if s, args := cond.GetWhere(); s != "" {
-//			db.Where(s, args...)
-//		}
-//		if s := cond.GetGroupBy(); s != "" {
-//			db.GroupBy(s)
-//		}
-//		if s := cond.GetHaving(); s != "" {
-//			db.Having(s)
-//		}
-//
-//		i64, e := db.Count()
-//		if e != nil {
-//			log.Logs.DBError(db, e)
-//		}
-//		return i64, e
-//	})
-//}
-{{end}}
 
 {{if .HasPrimaryKey}}
 //Insert 新增一条数据
@@ -765,7 +664,7 @@ func (p {{lower .StructName}}) OnChange(id types.BigUint) {
 
 //OnBatchChange
 func (p {{lower .StructName}}) OnBatchChange(cond table.ISqlBuilder) {
-	go func() {
+	go func(cond table.ISqlBuilder) {
 		db := models.Db().Table(table.{{.StructName}}.TableName).
 				Cols(table.{{.StructName}}.PrimaryKey.Quote())
 		if cond != nil {
@@ -782,7 +681,7 @@ func (p {{lower .StructName}}) OnBatchChange(cond table.ISqlBuilder) {
 			models.{{.StructName}}Cache().Remove(context.TODO(), ids...)
 			//p.OnListChange()
 		}
-	}()
+	}(cond)
 }
 //OnListChange
 func (p {{lower .StructName}}) OnListChange() {
