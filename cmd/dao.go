@@ -44,9 +44,9 @@ func (p {{lower .StructName}}) Insert(x interface{}, bean *models.{{.StructName}
 		log.Logs.DBError(db, e)
 	}
 {{if .HasCache}}
-	if i64 > 0 {
-		p.OnListChange()
-	}
+	//if i64 > 0 {
+	//	p.OnListChange()
+	//}
 {{end}}
 	return i64, e
 }
@@ -71,9 +71,9 @@ func (p {{lower .StructName}}) InsertBatch(x interface{}, beans []*models.{{.Str
 		log.Logs.DBError(db, e)
 	}
 {{if .HasCache}}
-	if i64 > 0 {
-		p.OnListChange()
-	}
+	//if i64 > 0 {
+	//	p.OnListChange()
+	//}
 {{end}}
 	return i64, e
 }
@@ -158,13 +158,22 @@ func (p {{lower .StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder
 			db.SetExpr(expr.ColName, expr.Arg)
 		}
 	}
+{{if .HasCache}}
+	//
+	var ids = make([]interface{}, 0)
+	ids, e = p.IDsNoCache(x, cond, 0, 0)
+	if e != nil || len(ids) == 0 {
+		return 0, e
+	}
+{{end}}
+	//
 	i64, e = db.Update(bean)
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(cond)
+		p.OnBatchChange(ids, false)
 	}
 {{end}}
 	return i64, e
@@ -191,6 +200,10 @@ func (p {{lower .StructName}}) Delete(x interface{}, id types.BigUint) (int64,er
 
 //DeleteBatch 根据cond条件批量删除数据
 func (p {{lower .StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilder) (int64, error) {
+	var (
+		i64 int64
+		e error
+	)
 	db := getDB(x, table.{{.StructName}}.TableName)
 
 	if cond != nil {
@@ -201,13 +214,22 @@ func (p {{lower .StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilder
 			db.Limit(size, start)
 		}
 	}
-	i64, e := db.Delete()
+{{if .HasCache}}
+	//
+	var ids = make([]interface{}, 0)
+	ids, e = p.IDsNoCache(x, cond, 0, 0)
+	if e != nil || len(ids) == 0 {
+		return 0, e
+	}
+{{end}}
+	//
+	i64, e = db.Delete()
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(cond)
+		p.OnBatchChange(ids, true)
 	}
 {{end}}
 	return i64, e
@@ -236,6 +258,10 @@ func (p {{lower .StructName}}) SoftDelete(x interface{}, id types.BigUint) (int6
 
 //SoftDeleteBatch 软删除：根据cond条件批量删除数据，数据表中必须要state字段 -1=软删除
 func (p {{lower .StructName}}) SoftDeleteBatch(x interface{}, cond table.ISqlBuilder) (int64, error) {
+	var (
+		i64 int64
+		e error
+	)
 	db := getDB(x, table.{{.StructName}}.TableName)
 
 	if cond != nil {
@@ -246,7 +272,16 @@ func (p {{lower .StructName}}) SoftDeleteBatch(x interface{}, cond table.ISqlBui
 			db.Limit(size, start)
 		}
 	}
-	i64, e := db.Update(types.Smap{
+{{if .HasCache}}
+	//
+	var ids = make([]interface{}, 0)
+	ids, e = p.IDsNoCache(x, cond, 0, 0)
+	if e != nil || len(ids) == 0 {
+		return 0, e
+	}
+{{end}}
+	//
+	i64, e = db.Update(types.Smap{
 			table.{{.StructName}}.State.Name : -1,
 		})
 	if e != nil {
@@ -254,7 +289,7 @@ func (p {{lower .StructName}}) SoftDeleteBatch(x interface{}, cond table.ISqlBui
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(cond)
+		p.OnBatchChange(ids, true)
 	}
 {{end}}
 	return i64, e
@@ -663,25 +698,13 @@ func (p {{lower .StructName}}) OnChange(id types.BigUint) {
 }
 
 //OnBatchChange
-func (p {{lower .StructName}}) OnBatchChange(cond table.ISqlBuilder) {
-	go func(cond table.ISqlBuilder) {
-		db := models.Db().Table(table.{{.StructName}}.TableName).
-				Cols(table.{{.StructName}}.PrimaryKey.Quote())
-		if cond != nil {
-			if s, args := cond.GetWhere(); s != "" {
-				db.Where(s, args...)
-			}
-		}
-		ids := make([]interface{}, 0)
-		e := db.Find(&ids)
-		if e != nil {
-			log.Logs.DBError(db, e)
-		}
-		if len(ids) > 0 {
-			models.{{.StructName}}Cache().Remove(context.TODO(), ids...)
-			//p.OnListChange()
-		}
-	}(cond)
+func (p {{lower .StructName}}) OnBatchChange(ids []interface{}, empty bool) {
+	go func(ids []interface{}) {
+		models.{{.StructName}}Cache().Remove(context.TODO(), ids...)
+		//if empty {
+		//	p.OnListChange()
+		//}
+	}(ids)
 }
 //OnListChange
 func (p {{lower .StructName}}) OnListChange() {

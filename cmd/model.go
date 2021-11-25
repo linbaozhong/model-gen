@@ -166,9 +166,9 @@ func (p *{{.StructName}}) Insert(x interface{}, cols ...string) (int64,error) {
 		log.Logs.DBError(db, e)
 	}
 {{if .HasCache}}
-	if i64 > 0 {
-		p.OnListChange()
-	}
+	//if i64 > 0 {
+	//	p.OnListChange()
+	//}
 {{end}}
 	return i64, e
 }
@@ -190,9 +190,9 @@ func (p *{{.StructName}}) InsertBatch(x interface{}, beans []interface{}, cols .
 		log.Logs.DBError(db, e)
 	}
 {{if .HasCache}}
-	if i64 > 0 {
-		p.OnListChange()
-	}
+	//if i64 > 0 {
+	//	p.OnListChange()
+	//}
 {{end}}
 	return i64, e
 }
@@ -242,10 +242,31 @@ func (p *{{.StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder, bea
 		if s, args := cond.GetWhere(); s != "" {
 			db.Where(s, args...)
 		}
+		exprs := cond.GetIncr()
+		for _, expr := range exprs {
+			db.Incr(expr.ColName, expr.Arg)
+		}
+		exprs = cond.GetDecr()
+		for _, expr := range exprs {
+			db.Decr(expr.ColName, expr.Arg)
+		}
+		exprs = cond.GetExpr()
+		for _, expr := range exprs {
+			db.SetExpr(expr.ColName, expr.Arg)
+		}
 		if size, start := cond.GetLimit(); size > 0 {
 			db.Limit(size, start)
 		}
 	}
+{{if .HasCache}}
+	//
+	var ids = make([]interface{}, 0)
+	ids, e = p.IDsNoCache(x, cond, 0, 0)
+	if e != nil || len(ids) == 0 {
+		return 0, e
+	}
+{{end}}
+	//
 
 	if len(bean) == 0 {
 		i64, e = db.Update(p)
@@ -258,7 +279,7 @@ func (p *{{.StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder, bea
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(cond)
+		p.OnBatchChange(ids, false)
 	}
 {{end}}
 	return i64, e
@@ -285,6 +306,10 @@ func (p *{{.StructName}}) Delete(x interface{}, id types.BigUint) (int64,error) 
 
 //DeleteBatch 根据cond条件批量删除数据
 func (p *{{.StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilder) (int64, error) {
+	var (
+		i64 int64
+		e error
+	)
 	db := p.getDB(x)
 
 	if cond != nil {
@@ -295,13 +320,22 @@ func (p *{{.StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilder) (in
 			db.Limit(size, start)
 		}
 	}
-	i64, e := db.Delete(p)
+{{if .HasCache}}
+	//
+	var ids = make([]interface{}, 0)
+	ids, e = p.IDsNoCache(x, cond, 0, 0)
+	if e != nil || len(ids) == 0 {
+		return 0, e
+	}
+{{end}}
+	//
+	i64, e = db.Delete(p)
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(cond)
+		p.OnBatchChange(ids, true)
 	}
 {{end}}
 	return i64, e
@@ -652,23 +686,13 @@ func (p *{{.StructName}}) OnChange(id types.BigUint) {
 }
 
 //OnBatchChange
-func (p *{{.StructName}}) OnBatchChange(cond table.ISqlBuilder) {
-	db := Db().Table(table.{{.StructName}}.TableName).
-			Cols(table.{{.StructName}}.PrimaryKey.Quote())
-	if cond != nil {
-		if s, args := cond.GetWhere(); s != "" {
-			db.Where(s, args...)
-		}
-	}
-	ids := make([]interface{}, 0)
-	e := db.Find(&ids)
-	if e != nil {
-		log.Logs.DBError(db, e)
-	}
-	if len(ids) > 0 {
+func (p *{{.StructName}}) OnBatchChange(ids []interface{}, empty bool) {
+	go func(ids []interface{}) {
 		{{lower .StructName}}_cache.Remove(context.TODO(), ids...)
-		//p.OnListChange()
-	}
+		//if empty {
+		//	p.OnListChange()
+		//}
+	}(ids)
 }
 //OnListChange
 func (p *{{.StructName}}) OnListChange() {
