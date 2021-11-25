@@ -208,6 +208,11 @@ func Table(t interface{}) ISqlBuilder {
 	return NewSqlBuilder().setTable(t)
 }
 
+//JOIN
+func Join(t JoinType, l, r TableField) ISqlBuilder {
+	return NewSqlBuilder().Join(t, l, r)
+}
+
 //UnNull Is Not Null
 func UnNull(f TableField) ISqlBuilder {
 	return NewSqlBuilder().UnNull(f)
@@ -495,8 +500,6 @@ func (p *sqlBuilder) Join(t JoinType, l, r TableField) ISqlBuilder {
 		Quote_Char + r.Table + Quote_Char,
 		l.Quote() + " = " + r.Quote(),
 	})
-	//p.join += string(t) + Quote_Char + r.Table + Quote_Char + " ON " + l.Quote() + " = " + r.Quote() + " "
-	//p.join = append(p.join, string(t), Quote_Char+r.Table+Quote_Char, r.Quote()+" = "+l.Quote())
 	return p
 }
 

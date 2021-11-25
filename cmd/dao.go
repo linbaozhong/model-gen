@@ -23,113 +23,12 @@ import (
 	"{{.ModulePath}}/table"
 )
 
-type {{lower .StructName}} struct {
-}
+type {{lower .StructName}} struct {}
 
 var (
 	{{.StructName}} {{lower .StructName}}
 )
 
-{{if and .HasCache .HasPrimaryKey}}
-//var (
-//	{{lower .StructName}}_cache     = redis.NewClient(conf.App.Mode,"{{lower .StructName}}").Expiration({{.CacheData}})
-//	{{lower .StructName}}_ids_cache = redis.NewClient(conf.App.Mode, "{{lower .StructName}}_ids").Expiration({{.CacheList}})
-//	{{lower .StructName}}_count_cache = redis.NewClient(conf.App.Mode, "{{lower .StructName}}_count").Expiration({{.CacheList}})
-//)
-//
-//func init() {
-//	{{lower .StructName}}_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
-//		if k == nil {
-//			return nil, InvalidKey
-//		}
-//
-//		m := models.New{{.StructName}}()
-//		db := models.Db().Table(table.{{.StructName}}.TableName)
-//		has, e := db.Where(table.{{.StructName}}.PrimaryKey.Eq(),k).
-//			Get(m)
-//		if has {
-//			return m, nil
-//		}
-//		m.Free()
-//		if e != nil {
-//			log.Logs.DBError(db, e)
-//		}
-//		return nil, e
-//	}).DeserializeModel(func() interface{} {
-//		return models.New{{.StructName}}()
-//	})
-//	//
-//	{{lower .StructName}}_ids_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
-//		cond, ok := k.(table.ISqlBuilder)
-//		if !ok {
-//			return nil, InvalidKey
-//		}
-//		
-//		db := models.Db().Table(table.{{.StructName}}.TableName)
-//		db.Cols(table.{{.StructName}}.PrimaryKey.Quote())
-//
-//		if joins := cond.GetJoin(); len(joins) > 0 {
-//			for _, join := range joins {
-//				db.Join(join[0], join[1], join[2])
-//			}
-//		}
-//		if s, args := cond.GetWhere(); s != "" {
-//			db.Where(s, args...)
-//		}
-//		if s := cond.GetGroupBy(); s != "" {
-//			db.GroupBy(s)
-//		}
-//		if s := cond.GetHaving(); s != "" {
-//			db.Having(s)
-//		}
-//		if s := cond.GetOrderBy(); s != "" {
-//			db.OrderBy(s)
-//		}
-//		if size, start := cond.GetLimit(); size > 0 {
-//			db.Limit(size, start)
-//		} else {
-//			db.Limit({{.CacheLimit}})
-//		}
-//
-//		ids := make([]interface{}, 0)
-//		e := db.Find(&ids)
-//		if e != nil {
-//			log.Logs.DBError(db, e)
-//		}
-//		return ids, e
-//	})
-//	//
-//	{{lower .StructName}}_count_cache.LoaderFunc(func(k interface{}) (interface{}, error) {
-//		cond, ok := k.(table.ISqlBuilder)
-//		if !ok {
-//			return nil, InvalidKey
-//		}
-//		
-//		db := models.Db().Table(table.{{.StructName}}.TableName)
-//
-//		if joins := cond.GetJoin(); len(joins) > 0 {
-//			for _, join := range joins {
-//				db.Join(join[0], join[1], join[2])
-//			}
-//		}
-//		if s, args := cond.GetWhere(); s != "" {
-//			db.Where(s, args...)
-//		}
-//		if s := cond.GetGroupBy(); s != "" {
-//			db.GroupBy(s)
-//		}
-//		if s := cond.GetHaving(); s != "" {
-//			db.Having(s)
-//		}
-//
-//		i64, e := db.Count()
-//		if e != nil {
-//			log.Logs.DBError(db, e)
-//		}
-//		return i64, e
-//	})
-//}
-{{end}}
 
 {{if .HasPrimaryKey}}
 //Insert 新增一条数据
@@ -145,9 +44,9 @@ func (p {{lower .StructName}}) Insert(x interface{}, bean *models.{{.StructName}
 		log.Logs.DBError(db, e)
 	}
 {{if .HasCache}}
-	if i64 > 0 {
-		p.OnListChange()
-	}
+	//if i64 > 0 {
+	//	p.OnListChange()
+	//}
 {{end}}
 	return i64, e
 }
@@ -172,9 +71,9 @@ func (p {{lower .StructName}}) InsertBatch(x interface{}, beans []*models.{{.Str
 		log.Logs.DBError(db, e)
 	}
 {{if .HasCache}}
-	if i64 > 0 {
-		p.OnListChange()
-	}
+	//if i64 > 0 {
+	//	p.OnListChange()
+	//}
 {{end}}
 	return i64, e
 }
@@ -259,13 +158,22 @@ func (p {{lower .StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder
 			db.SetExpr(expr.ColName, expr.Arg)
 		}
 	}
+{{if .HasCache}}
+	//
+	var ids = make([]interface{}, 0)
+	ids, e = p.IDsNoCache(x, cond, 0, 0)
+	if e != nil || len(ids) == 0 {
+		return 0, e
+	}
+{{end}}
+	//
 	i64, e = db.Update(bean)
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(cond)
+		p.OnBatchChange(ids, false)
 	}
 {{end}}
 	return i64, e
@@ -292,6 +200,10 @@ func (p {{lower .StructName}}) Delete(x interface{}, id types.BigUint) (int64,er
 
 //DeleteBatch 根据cond条件批量删除数据
 func (p {{lower .StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilder) (int64, error) {
+	var (
+		i64 int64
+		e error
+	)
 	db := getDB(x, table.{{.StructName}}.TableName)
 
 	if cond != nil {
@@ -302,13 +214,22 @@ func (p {{lower .StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilder
 			db.Limit(size, start)
 		}
 	}
-	i64, e := db.Delete()
+{{if .HasCache}}
+	//
+	var ids = make([]interface{}, 0)
+	ids, e = p.IDsNoCache(x, cond, 0, 0)
+	if e != nil || len(ids) == 0 {
+		return 0, e
+	}
+{{end}}
+	//
+	i64, e = db.Delete()
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(cond)
+		p.OnBatchChange(ids, true)
 	}
 {{end}}
 	return i64, e
@@ -337,6 +258,10 @@ func (p {{lower .StructName}}) SoftDelete(x interface{}, id types.BigUint) (int6
 
 //SoftDeleteBatch 软删除：根据cond条件批量删除数据，数据表中必须要state字段 -1=软删除
 func (p {{lower .StructName}}) SoftDeleteBatch(x interface{}, cond table.ISqlBuilder) (int64, error) {
+	var (
+		i64 int64
+		e error
+	)
 	db := getDB(x, table.{{.StructName}}.TableName)
 
 	if cond != nil {
@@ -347,7 +272,16 @@ func (p {{lower .StructName}}) SoftDeleteBatch(x interface{}, cond table.ISqlBui
 			db.Limit(size, start)
 		}
 	}
-	i64, e := db.Update(types.Smap{
+{{if .HasCache}}
+	//
+	var ids = make([]interface{}, 0)
+	ids, e = p.IDsNoCache(x, cond, 0, 0)
+	if e != nil || len(ids) == 0 {
+		return 0, e
+	}
+{{end}}
+	//
+	i64, e = db.Update(types.Smap{
 			table.{{.StructName}}.State.Name : -1,
 		})
 	if e != nil {
@@ -355,7 +289,7 @@ func (p {{lower .StructName}}) SoftDeleteBatch(x interface{}, cond table.ISqlBui
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(cond)
+		p.OnBatchChange(ids, true)
 	}
 {{end}}
 	return i64, e
@@ -764,25 +698,13 @@ func (p {{lower .StructName}}) OnChange(id types.BigUint) {
 }
 
 //OnBatchChange
-func (p {{lower .StructName}}) OnBatchChange(cond table.ISqlBuilder) {
-	go func() {
-		db := models.Db().Table(table.{{.StructName}}.TableName).
-				Cols(table.{{.StructName}}.PrimaryKey.Quote())
-		if cond != nil {
-			if s, args := cond.GetWhere(); s != "" {
-				db.Where(s, args...)
-			}
-		}
-		ids := make([]interface{}, 0)
-		e := db.Find(&ids)
-		if e != nil {
-			log.Logs.DBError(db, e)
-		}
-		if len(ids) > 0 {
-			models.{{.StructName}}Cache().Remove(context.TODO(), ids...)
-			//p.OnListChange()
-		}
-	}()
+func (p {{lower .StructName}}) OnBatchChange(ids []interface{}, empty bool) {
+	go func(ids []interface{}) {
+		models.{{.StructName}}Cache().Remove(context.TODO(), ids...)
+		//if empty {
+		//	p.OnListChange()
+		//}
+	}(ids)
 }
 //OnListChange
 func (p {{lower .StructName}}) OnListChange() {
