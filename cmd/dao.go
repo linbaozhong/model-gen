@@ -44,9 +44,9 @@ func (p {{lower .StructName}}) Insert(x interface{}, bean *models.{{.StructName}
 		log.Logs.DBError(db, e)
 	}
 {{if .HasCache}}
-	//if i64 > 0 {
-	//	p.OnListChange()
-	//}
+	if i64 > 0 {
+		p.OnListChange(getContext(x))
+	}
 {{end}}
 	return i64, e
 }
@@ -71,9 +71,9 @@ func (p {{lower .StructName}}) InsertBatch(x interface{}, beans []*models.{{.Str
 		log.Logs.DBError(db, e)
 	}
 {{if .HasCache}}
-	//if i64 > 0 {
-	//	p.OnListChange()
-	//}
+	if i64 > 0 {
+		p.OnListChange(getContext(x))
+	}
 {{end}}
 	return i64, e
 }
@@ -118,7 +118,7 @@ func (p {{lower .StructName}}) Update(x interface{}, id types.BigUint, bean inte
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnChange(id)
+		p.OnChange(getContext(x), id)
 	}
 {{end}}
 	return i64, e
@@ -173,7 +173,7 @@ func (p {{lower .StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(ids, false)
+		p.OnBatchChange(getContext(x), ids, false)
 	}
 {{end}}
 	return i64, e
@@ -192,7 +192,7 @@ func (p {{lower .StructName}}) Delete(x interface{}, id types.BigUint) (int64,er
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnChange(id)
+		p.OnChange(getContext(x), id)
 	}
 {{end}}
 	return i64, e
@@ -229,7 +229,7 @@ func (p {{lower .StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilder
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(ids, true)
+		p.OnBatchChange(getContext(x), ids, true)
 	}
 {{end}}
 	return i64, e
@@ -250,7 +250,7 @@ func (p {{lower .StructName}}) SoftDelete(x interface{}, id types.BigUint) (int6
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnChange(id)
+		p.OnChange(getContext(x), id)
 	}
 {{end}}
 	return i64, e
@@ -289,7 +289,7 @@ func (p {{lower .StructName}}) SoftDeleteBatch(x interface{}, cond table.ISqlBui
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(ids, true)
+		p.OnBatchChange(getContext(x), ids, true)
 	}
 {{end}}
 	return i64, e
@@ -299,7 +299,7 @@ func (p {{lower .StructName}}) SoftDeleteBatch(x interface{}, cond table.ISqlBui
 //Get 根据主键从Cache中获取一条数据
 func (p {{lower .StructName}}) Get(x interface{},id types.BigUint) (*models.{{.StructName}}, error) {
 {{if .HasCache}}
-	cm, e := models.{{.StructName}}Cache().Get(context.TODO(), id)
+	cm, e := models.{{.StructName}}Cache().Get(getContext(x), id)
 	if e != nil {
 		log.Logs.Error(e)
 		return nil, e
@@ -350,7 +350,7 @@ func (p {{lower .StructName}}) IDs(x interface{}, cond table.ISqlBuilder, size, 
 	if index == 0 {
 		index = 1
 	}
-	return models.{{.StructName}}IDsCache().LGet(context.TODO(), cond, int64(size*(index-1)), int64(size*index))
+	return models.{{.StructName}}IDsCache().LGet(getContext(x), cond, int64(size*(index-1)), int64(size*index))
 {{else}}
 	return p.IDsNoCache(x,cond,size,index)
 {{end}}
@@ -436,7 +436,7 @@ func (p {{lower .StructName}}) Sums(x interface{}, cond table.ISqlBuilder, args 
 //Count 根据cond条件从cache中获取数据总数
 func (p {{lower .StructName}}) Count(x interface{}, cond table.ISqlBuilder) (int64, error) {
 {{if .HasCache}}
-	i, e := models.{{.StructName}}CountCache().Get(context.TODO(), cond)
+	i, e := models.{{.StructName}}CountCache().Get(getContext(x), cond)
 	if e != nil {
 		log.Logs.Error(e)
 		return 0, e
@@ -481,7 +481,7 @@ func (p {{lower .StructName}}) Gets(x interface{}, ids []interface{}) ([]*models
 	if len(ids) == 0 {
 		return nil, nil
 	}
-	ms, e := models.{{.StructName}}Cache().Gets(context.TODO(), ids...)
+	ms, e := models.{{.StructName}}Cache().Gets(getContext(x), ids...)
 	if e != nil {
 		log.Logs.Error(e)
 		return nil, e
@@ -519,7 +519,7 @@ func (p {{lower .StructName}}) GetsMap(x interface{}, ids []interface{}) (map[ty
 	if len(ids) == 0 {
 		return nil, nil
 	}
-	ms, e := models.{{.StructName}}Cache().Gets(context.TODO(), ids...)
+	ms, e := models.{{.StructName}}Cache().Gets(getContext(x), ids...)
 	if e != nil {
 		log.Logs.Error(e)
 		return nil, e
@@ -675,15 +675,14 @@ func (p {{lower .StructName}}) FindAndCount(x interface{}, cond table.ISqlBuilde
 func (p {{lower .StructName}}) Exists(x interface{}, cond table.ISqlBuilder) (bool, error) {
 	db := getDB(x, table.{{.StructName}}.TableName)
 
-	db.Cols(table.{{.StructName}}.PrimaryKey.Name)
+	//db.Cols("1")
 	if cond != nil {
 		if s, args := cond.GetWhere(); s != "" {
 			db.Where(s, args...)
 		}
 	}
-	var bean = models.New{{.StructName}}()
-	defer bean.Free()
-	has, e := db.Limit(1).Get(bean)
+
+	has, e := db.Limit(1).Exist()
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
@@ -692,24 +691,24 @@ func (p {{lower .StructName}}) Exists(x interface{}, cond table.ISqlBuilder) (bo
 
 {{if .HasCache}}
 //OnChange
-func (p {{lower .StructName}}) OnChange(id types.BigUint) {
-	models.{{.StructName}}Cache().Remove(context.TODO(), id)
+func (p {{lower .StructName}}) OnChange(ctx context.Context, id types.BigUint) {
+	models.{{.StructName}}Cache().Remove(ctx, id)
 	//p.OnListChange()
 }
 
 //OnBatchChange
-func (p {{lower .StructName}}) OnBatchChange(ids []interface{}, empty bool) {
+func (p {{lower .StructName}}) OnBatchChange(ctx context.Context, ids []interface{}, empty bool) {
 	go func(ids []interface{}) {
-		models.{{.StructName}}Cache().Remove(context.TODO(), ids...)
+		models.{{.StructName}}Cache().Remove(ctx, ids...)
 		//if empty {
-		//	p.OnListChange()
+		//	p.OnListChange(ctx)
 		//}
 	}(ids)
 }
 //OnListChange
-func (p {{lower .StructName}}) OnListChange() {
-	models.{{.StructName}}IDsCache().Empty(context.TODO())
-	models.{{.StructName}}CountCache().Empty(context.TODO())
+func (p {{lower .StructName}}) OnListChange(ctx context.Context) {
+	models.{{.StructName}}IDsCache().Empty(ctx)
+	models.{{.StructName}}CountCache().Empty(ctx)
 }
 
 func (p {{lower .StructName}})Cache() *redis.RedisBroker {

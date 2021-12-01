@@ -32,6 +32,7 @@ var daoBaseTpl = `
 package dao
 
 import (
+	"context"
 	"{{.}}"
 	"{{.}}/table"
 	"database/sql"
@@ -67,10 +68,28 @@ func Transaction(f func(*models.Session) (interface{}, error)) (interface{}, err
 	return result, nil
 }
 
-func getDB(x interface{}, tablename string) *models.Session {
-	db, ok := x.(*models.Session)
+func getSession(x interface{}, tablename string) *models.Session {
+	db, ok := x.(*models.Engine)
 	if ok && db != nil {
 		return db.Table(tablename)
+	}
+	sess, ok := x.(*models.Session)
+	if ok && sess != nil {
+		return sess.Table(tablename)
+	}
+	return nil
+}
+func getDB(x interface{}, tablename string) *models.Session {
+	sess := getSession(x, tablename)
+	if sess != nil {
+		return sess
+	}
+	if ctx, ok := x.(context.Context); ok {
+		if db := ctx.Value("db"); db != nil {
+			if sess = getSession(db, tablename); sess != nil {
+				return sess
+			}
+		}
 	}
 	return models.Db().Table(tablename)
 }
@@ -121,6 +140,14 @@ func getColumn(x interface{}, tablename string, col table.TableField, cond table
 		log.Logs.DBError(db, e)
 	}
 	return cls, e
+}
+
+
+func getContext(x interface{}) context.Context {
+	if ctx, ok := x.(context.Context); ok {
+		return ctx
+	}
+	return context.Background()
 }
 
 		`
