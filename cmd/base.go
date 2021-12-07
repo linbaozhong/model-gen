@@ -130,15 +130,15 @@ var baseTpl = `
 			return f.Quote() + " AS " + s
 		}
 
-		func (f TableField) QuoteName() string {
+		func (f TableField) PureQuote() string {
 			return Quote_Char + f.Name + Quote_Char
 		}
 
 		func (f TableField) Quote() string {
 			if f.Table == "" {
-				return f.QuoteName()
+				return f.PureQuote()
 			}
-			return f.Table + "." + f.QuoteName()
+			return f.Table + "." + f.PureQuote()
 		}
 
 		func (f TableField) generate(op string) string {
