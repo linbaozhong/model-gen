@@ -847,7 +847,7 @@ func (p *sqlBuilder) GetParams() []interface{} {
 ////
 //Set
 func (p *sqlBuilder) Set(f TableField, v interface{}) ISqlBuilder {
-	p.updateCols = append(p.updateCols, f.QuoteName())
+	p.updateCols = append(p.updateCols, f.PureQuote())
 	p.updateParams = append(p.updateParams, v)
 	return p
 }
@@ -859,7 +859,7 @@ func (p *sqlBuilder) Incr(f TableField, v ...interface{}) ISqlBuilder {
 		_v = utils.Interface2String(v[0])
 	}
 	p.incrCols = append(p.incrCols, Expr{
-		ColName: f.QuoteName(),
+		ColName: f.PureQuote(),
 		Arg:     _v,
 	})
 	return p
@@ -881,7 +881,7 @@ func (p *sqlBuilder) Decr(f TableField, v ...interface{}) ISqlBuilder {
 //SetExpr
 func (p *sqlBuilder) SetExpr(f TableField, expr string) ISqlBuilder {
 	p.exprCols = append(p.exprCols, Expr{
-		ColName: f.QuoteName(),
+		ColName: f.PureQuote(),
 		Arg:     expr,
 	})
 	return p
