@@ -45,7 +45,7 @@ func (p {{lower .StructName}}) Insert(x interface{}, bean *models.{{.StructName}
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnListChange(getContext(x))
+		p.OnListChange(x)
 	}
 {{end}}
 	return i64, e
@@ -72,7 +72,7 @@ func (p {{lower .StructName}}) InsertBatch(x interface{}, beans []*models.{{.Str
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnListChange(getContext(x))
+		p.OnListChange(x)
 	}
 {{end}}
 	return i64, e
@@ -118,7 +118,7 @@ func (p {{lower .StructName}}) Update(x interface{}, id types.BigUint, bean inte
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnChange(getContext(x), id)
+		p.OnChange(x, id)
 	}
 {{end}}
 	return i64, e
@@ -158,14 +158,6 @@ func (p {{lower .StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder
 			db.SetExpr(expr.ColName, expr.Arg)
 		}
 	}
-{{if .HasCache}}
-	//
-	var ids = make([]interface{}, 0)
-	ids, e = p.IDsNoCache(x, cond, 0, 0)
-	if e != nil || len(ids) == 0 {
-		return 0, e
-	}
-{{end}}
 	//
 	i64, e = db.Update(bean)
 	if e != nil {
@@ -173,7 +165,7 @@ func (p {{lower .StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(getContext(x), ids, false)
+		p.OnBatchChange(x, cond, false)
 	}
 {{end}}
 	return i64, e
@@ -192,7 +184,7 @@ func (p {{lower .StructName}}) Delete(x interface{}, id types.BigUint) (int64,er
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnChange(getContext(x), id)
+		p.OnChange(x, id)
 	}
 {{end}}
 	return i64, e
@@ -214,14 +206,6 @@ func (p {{lower .StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilder
 			db.Limit(size, start)
 		}
 	}
-{{if .HasCache}}
-	//
-	var ids = make([]interface{}, 0)
-	ids, e = p.IDsNoCache(x, cond, 0, 0)
-	if e != nil || len(ids) == 0 {
-		return 0, e
-	}
-{{end}}
 	//
 	i64, e = db.Delete()
 	if e != nil {
@@ -229,7 +213,7 @@ func (p {{lower .StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilder
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(getContext(x), ids, true)
+		p.OnBatchChange(x, cond, true)
 	}
 {{end}}
 	return i64, e
@@ -250,7 +234,7 @@ func (p {{lower .StructName}}) SoftDelete(x interface{}, id types.BigUint) (int6
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnChange(getContext(x), id)
+		p.OnChange(x, id)
 	}
 {{end}}
 	return i64, e
@@ -272,14 +256,6 @@ func (p {{lower .StructName}}) SoftDeleteBatch(x interface{}, cond table.ISqlBui
 			db.Limit(size, start)
 		}
 	}
-{{if .HasCache}}
-	//
-	var ids = make([]interface{}, 0)
-	ids, e = p.IDsNoCache(x, cond, 0, 0)
-	if e != nil || len(ids) == 0 {
-		return 0, e
-	}
-{{end}}
 	//
 	i64, e = db.Update(types.Smap{
 			table.{{.StructName}}.State.Name : -1,
@@ -289,7 +265,7 @@ func (p {{lower .StructName}}) SoftDeleteBatch(x interface{}, cond table.ISqlBui
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(getContext(x), ids, true)
+		p.OnBatchChange(x, cond, true)
 	}
 {{end}}
 	return i64, e
@@ -691,22 +667,27 @@ func (p {{lower .StructName}}) Exists(x interface{}, cond table.ISqlBuilder) (bo
 
 {{if .HasCache}}
 //OnChange
-func (p {{lower .StructName}}) OnChange(ctx context.Context, id types.BigUint) {
-	models.{{.StructName}}Cache().Remove(ctx, id)
+func (p {{lower .StructName}}) OnChange(x interface{}, id types.BigUint) {
+	models.{{.StructName}}Cache().Remove(getContext(x), id)
 	//p.OnListChange()
 }
 
 //OnBatchChange
-func (p {{lower .StructName}}) OnBatchChange(ctx context.Context, ids []interface{}, empty bool) {
+func (p {{lower .StructName}}) OnBatchChange(x interface{}, cond table.ISqlBuilder, empty bool) {
+	ids, e := p.IDsNoCache(x, cond, 0, 0)
+	if e != nil || len(ids) == 0 {
+		return 
+	}
 	go func(ids []interface{}) {
-		models.{{.StructName}}Cache().Remove(ctx, ids...)
+		models.{{.StructName}}Cache().Remove(getContext(x), ids...)
 		//if empty {
 		//	p.OnListChange(ctx)
 		//}
 	}(ids)
 }
 //OnListChange
-func (p {{lower .StructName}}) OnListChange(ctx context.Context) {
+func (p {{lower .StructName}}) OnListChange(x interface{}) {
+	ctx := getContext(x)
 	models.{{.StructName}}IDsCache().Empty(ctx)
 	models.{{.StructName}}CountCache().Empty(ctx)
 }

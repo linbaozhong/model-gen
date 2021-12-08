@@ -258,16 +258,7 @@ func (p *{{.StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder, bea
 			db.Limit(size, start)
 		}
 	}
-{{if .HasCache}}
-	////
-	//var ids = make([]interface{}, 0)
-	//ids, e = p.IDsNoCache(x, cond, 0, 0)
-	//if e != nil || len(ids) == 0 {
-	//	return 0, e
-	//}
-{{end}}
 	//
-
 	if len(bean) == 0 {
 		i64, e = db.Update(p)
 	} else {
@@ -278,9 +269,9 @@ func (p *{{.StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder, bea
 		log.Logs.DBError(db, e)
 	}
 {{if .HasCache}}
-	//if i64 > 0 {
-	//	p.OnBatchChange(ids, false)
-	//}
+	if i64 > 0 {
+		p.OnBatchChange(x, cond, false)
+	}
 {{end}}
 	return i64, e
 }
@@ -320,14 +311,6 @@ func (p *{{.StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilder) (in
 			db.Limit(size, start)
 		}
 	}
-{{if .HasCache}}
-	//
-	var ids = make([]interface{}, 0)
-	ids, e = p.IDsNoCache(x, cond, 0, 0)
-	if e != nil || len(ids) == 0 {
-		return 0, e
-	}
-{{end}}
 	//
 	i64, e = db.Delete(p)
 	if e != nil {
@@ -335,7 +318,7 @@ func (p *{{.StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilder) (in
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(ids, true)
+		p.OnBatchChange(x, cond, true)
 	}
 {{end}}
 	return i64, e
@@ -686,7 +669,11 @@ func (p *{{.StructName}}) OnChange(id types.BigUint) {
 }
 
 //OnBatchChange
-func (p *{{.StructName}}) OnBatchChange(ids []interface{}, empty bool) {
+func (p *{{.StructName}}) OnBatchChange(x interface{}, cond table.ISqlBuilder, empty bool) {
+	ids, e := p.IDsNoCache(x, cond, 0, 0)
+	if e != nil || len(ids) == 0 {
+		return
+	}
 	go func(ids []interface{}) {
 		{{lower .StructName}}_cache.Remove(context.TODO(), ids...)
 		//if empty {
