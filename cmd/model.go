@@ -259,12 +259,12 @@ func (p *{{.StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder, bea
 		}
 	}
 {{if .HasCache}}
-	//
-	var ids = make([]interface{}, 0)
-	ids, e = p.IDsNoCache(x, cond, 0, 0)
-	if e != nil || len(ids) == 0 {
-		return 0, e
-	}
+	////
+	//var ids = make([]interface{}, 0)
+	//ids, e = p.IDsNoCache(x, cond, 0, 0)
+	//if e != nil || len(ids) == 0 {
+	//	return 0, e
+	//}
 {{end}}
 	//
 
@@ -278,9 +278,9 @@ func (p *{{.StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder, bea
 		log.Logs.DBError(db, e)
 	}
 {{if .HasCache}}
-	if i64 > 0 {
-		p.OnBatchChange(ids, false)
-	}
+	//if i64 > 0 {
+	//	p.OnBatchChange(ids, false)
+	//}
 {{end}}
 	return i64, e
 }
