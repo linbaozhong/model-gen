@@ -13,8 +13,7 @@ package dao
 
 import (
 {{if .HasPrimaryKey}}
-	{{if .HasCache}}"context"
-	"libs/utils"
+	{{if .HasCache}}"libs/utils"
 	"internal/cache/redis"{{end}}
 {{end}}
 	"internal/log"
