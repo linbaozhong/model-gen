@@ -272,27 +272,33 @@ func (p {{lower .StructName}}) SoftDeleteBatch(x interface{}, cond table.ISqlBui
 {{end}}
 
 //Get 根据主键从Cache中获取一条数据
-func (p {{lower .StructName}}) Get(x interface{},id types.BigUint) (*models.{{.StructName}}, error) {
+func (p {{lower .StructName}}) Get(x interface{},id types.BigUint) (bool, *models.{{.StructName}}, error) {
 {{if .HasCache}}
+	if id < 1 {
+		return false, models.New{{.StructName}}(), Err_NoRows
+	}
 	cm, e := models.{{.StructName}}Cache().Get(getContext(x), id)
 	if e != nil {
 		log.Logs.Error(e)
-		return nil, e
+		return false, models.New{{.StructName}}(), e
 	}
 	if val, ok := cm.(*models.{{.StructName}}); ok {
-		return val, nil
+		return true, val, nil
 	}
 
 	log.Logs.Error(Err_Type)
-	return nil, Err_Type
+	return false, models.New{{.StructName}}(), Err_NoRows
 {{else}}
 	return p.GetNoCache(x,id)
 {{end}}
 }
 
 //GetNoCache 根据主键从数据库中获取一条数据
-func (p {{lower .StructName}}) GetNoCache(x interface{},id types.BigUint, cols ...table.TableField) (*models.{{.StructName}},error) {
+func (p {{lower .StructName}}) GetNoCache(x interface{},id types.BigUint, cols ...table.TableField) (bool, *models.{{.StructName}},error) {
 	var bean = models.New{{.StructName}}()
+	if id < 1 {
+		return false, bean, Err_NoRows
+	}
 	db := getDB(x, table.{{.StructName}}.TableName)
 	//
 	if len(cols) > 0 {
@@ -306,13 +312,12 @@ func (p {{lower .StructName}}) GetNoCache(x interface{},id types.BigUint, cols .
 	has, e := db.Where(table.{{.StructName}}.PrimaryKey.Eq(),id).Limit(1).
 		Get(bean)
 	if has {
-		return bean, nil
+		return true, bean, nil
 	}
-	bean.Free()
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
-	return nil, e
+	return false, bean, e
 }
 
 //IDs 根据cond条件从cache中获取主键slice
@@ -607,33 +612,27 @@ func (p {{lower .StructName}}) FindMap(x interface{}, cond table.ISqlBuilder, si
 }
 
 //FindOne 根据cond条件从cache中获取一条数据
-func (p {{lower .StructName}}) FindOne(x interface{}, cond table.ISqlBuilder) (*models.{{.StructName}}, error) {
+func (p {{lower .StructName}}) FindOne(x interface{}, cond table.ISqlBuilder) (bool, *models.{{.StructName}}, error) {
 	if cond != nil {
 		cond.Limit(1)
 	}
 	f, e := p.Find(x, cond, 1, 1)
-	if e != nil {
-		return nil,e
-	}
 	if len(f) > 0 {
-		return f[0],nil
+		return true, f[0],nil
 	}
-	return nil, nil
+	return false, models.New{{.StructName}}(), e
 }
 
 //FindOneNoCache 根据cond条件从数据库中获取一条数据
-func (p {{lower .StructName}}) FindOneNoCache(x interface{}, cond table.ISqlBuilder) (*models.{{.StructName}},error) {
+func (p {{lower .StructName}}) FindOneNoCache(x interface{}, cond table.ISqlBuilder) (bool, *models.{{.StructName}},error) {
 	if cond != nil {
 		cond.Limit(1)
 	}
 	f, e := p.FindNoCache(x, cond, 1, 1)
-	if e != nil {
-		return nil,e
-	}
 	if len(f) > 0 {
-		return f[0],nil
+		return true, f[0],nil
 	}
-	return nil, nil
+	return false, models.New{{.StructName}}(), e
 }
 
 //FindAndCound
