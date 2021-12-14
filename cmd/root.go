@@ -62,14 +62,14 @@ var (
 				module = module[:pos]
 			}
 
-			if e = os.Mkdir(filepath.Join(path, "dao"), os.ModePerm); !os.IsExist(e) {
+			if e = os.Mkdir(filepath.Join(path, "dao"), os.ModePerm); e != nil && !os.IsExist(e) {
 				showError(e.Error())
 				//return
 			}
 			if e = writeDaoBaseFile(filepath.Join(path, "dao", "a_base.go"), module_path); e != nil {
 				showError(e.Error())
 			}
-			if e = os.Mkdir(filepath.Join(path, "table"), os.ModePerm); !os.IsExist(e) {
+			if e = os.Mkdir(filepath.Join(path, "table"), os.ModePerm); e != nil && !os.IsExist(e) {
 				showError(e.Error())
 				//return
 			}
