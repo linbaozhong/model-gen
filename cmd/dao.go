@@ -80,7 +80,7 @@ func (p {{lower .StructName}}) InsertBatch(x interface{}, beans []*models.{{.Str
 //Update 根据主键修改一条数据
 func (p {{lower .StructName}}) Update(x interface{}, id types.BigUint, bean interface{}) (int64,error) {
 	if bean == nil {
-		return 0, Param_Missing
+		bean = types.Smap{}
 	}
 	var (
 		i64   int64
@@ -126,7 +126,7 @@ func (p {{lower .StructName}}) Update(x interface{}, id types.BigUint, bean inte
 //UpdateBatch 根据cond条件批量修改数据
 func (p {{lower .StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder, bean interface{}) (int64, error) {
 	if bean == nil {
-		return 0, Param_Missing
+		bean = types.Smap{}
 	}
 	var (
 		i64 int64
