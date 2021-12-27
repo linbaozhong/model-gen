@@ -80,7 +80,7 @@ func (p {{lower .StructName}}) InsertBatch(x interface{}, beans []*models.{{.Str
 //Update 根据主键修改一条数据
 func (p {{lower .StructName}}) Update(x interface{}, id types.BigUint, bean interface{}) (int64,error) {
 	if bean == nil {
-		return 0, Param_Missing
+		bean = types.Smap{}
 	}
 	var (
 		i64   int64
@@ -126,7 +126,7 @@ func (p {{lower .StructName}}) Update(x interface{}, id types.BigUint, bean inte
 //UpdateBatch 根据cond条件批量修改数据
 func (p {{lower .StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder, bean interface{}) (int64, error) {
 	if bean == nil {
-		return 0, Param_Missing
+		bean = types.Smap{}
 	}
 	var (
 		i64 int64
@@ -701,6 +701,42 @@ func (p {{lower .StructName}})IDsCache() *redis.RedisBroker {
 func (p {{lower .StructName}})CountCache() *redis.RedisBroker {
 	return models.{{.StructName}}CountCache()
 }
+
+//SliceToJSON slice转json
+func (p {{lower .StructName}}) SliceToJSON(sls []*models.{{.StructName}},cols...table.TableField) []types.Smap {
+	sl := len(sls)
+	if sl == 0 {
+		return []types.Smap{}
+	}
+	var (
+		sm types.Smap
+		m  map[string]interface{}
+	)
+	ms := make([]types.Smap, 0, sl)
+	if len(cols) == 0 {
+		l := len(table.{{.StructName}}.ColumnNames)
+		for i := 0; i < sl; i++ {
+			m = sls[i].ToMap()
+			sm = make(types.Smap, l)
+			for _, cn := range table.{{.StructName}}.ColumnNames {
+				sm.Set(table.{{.StructName}}.ColumnName2Json[cn], m[cn])
+			}
+			ms = append(ms, sm)
+		}
+		return ms
+	}
+	for i := 0; i < sl; i++ {
+		m = sls[i].ToMap()
+		sm = make(types.Smap, len(cols))
+		for _, col := range cols {
+			sm.Set(table.{{.StructName}}.ColumnName2Json[col.Name], m[col.Name])
+		}
+
+		ms = append(ms, sm)
+	}
+	return ms
+}
+
 {{end}}
 {{end}}
 

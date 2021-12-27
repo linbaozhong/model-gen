@@ -171,6 +171,7 @@ type ISqlBuilder interface {
 	Decr(f TableField, v ...interface{}) ISqlBuilder
 	GetDecr() []Expr
 	SetExpr(f TableField, expr string) ISqlBuilder
+	Replace(f TableField, o, n string) ISqlBuilder
 	GetExpr() []Expr
 
 	Free()
@@ -325,6 +326,11 @@ func Decr(f TableField, v ...interface{}) ISqlBuilder {
 //SetExpr
 func SetExpr(f TableField, expr string) ISqlBuilder {
 	return NewSqlBuilder().SetExpr(f, expr)
+}
+
+//Replace
+func Replace(f TableField, o, n string) ISqlBuilder {
+	return NewSqlBuilder().Replace(f, o, n)
 }
 
 // Expr represents an SQL express
@@ -883,6 +889,15 @@ func (p *sqlBuilder) SetExpr(f TableField, expr string) ISqlBuilder {
 	p.exprCols = append(p.exprCols, Expr{
 		ColName: f.PureQuote(),
 		Arg:     expr,
+	})
+	return p
+}
+
+//Replace
+func (p *sqlBuilder) Replace(f TableField, o, n string) ISqlBuilder {
+	p.exprCols = append(p.exprCols, Expr{
+		ColName: f.PureQuote(),
+		Arg:     "REPLACE(" + f.PureQuote() + ",'" + o + "','" + n + "')",
 	})
 	return p
 }
