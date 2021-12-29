@@ -648,7 +648,7 @@ func (p {{lower .StructName}}) FindAndCount(x interface{}, cond table.ISqlBuilde
 //QueryInterfaces 多表连接查询
 func (p {{lower .StructName}}) QueryInterfaces(x interface{}, cond table.ISqlBuilder) ([]map[string]interface{}, error) {
 	db := getDB(x, table.{{.StructName}}.TableName)
-	sm, e := queryInterfaces(db, cond)
+	sm, e := queryInterfaces(db, cond.Table(table.{{.StructName}}.TableName))
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
