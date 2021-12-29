@@ -645,6 +645,16 @@ func (p {{lower .StructName}}) FindAndCount(x interface{}, cond table.ISqlBuilde
 	return
 }
 
+//QueryInterfaces 多表连接查询
+func (p {{lower .StructName}}) QueryInterfaces(x interface{}, cond table.ISqlBuilder) ([]map[string]interface{}, error) {
+	db := getDB(x, table.{{.StructName}}.TableName)
+	sm, e := queryInterfaces(db, cond)
+	if e != nil {
+		log.Logs.DBError(db, e)
+	}
+	return sm, e
+}
+
 //Exists 是否存在符合条件cond的记录
 func (p {{lower .StructName}}) Exists(x interface{}, cond table.ISqlBuilder) (bool, error) {
 	db := getDB(x, table.{{.StructName}}.TableName)

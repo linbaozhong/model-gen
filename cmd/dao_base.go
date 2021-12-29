@@ -68,6 +68,14 @@ func Transaction(f func(*models.Session) (interface{}, error)) (interface{}, err
 	return result, nil
 }
 
+func queryInterfaces(x *models.Session, cond table.ISqlBuilder) ([]map[string]interface{}, error) {
+	sql, e := cond.Select()
+	if e != nil {
+		return nil, e
+	}
+	return x.QueryInterface(sql...)
+}
+
 func getSession(x interface{}, tablename string) *models.Session {
 	db, ok := x.(*models.Engine)
 	if ok && db != nil {
