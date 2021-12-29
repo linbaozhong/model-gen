@@ -703,15 +703,17 @@ func {{.StructName}}CountCache() *redis.RedisBroker {
 
 //ToMap struct转map
 func (p *{{.StructName}}) ToMap(cols...table.TableField) map[string]interface{} {
-	if len(cols) == 0{
+	l := len(cols)
+	if l == 0 {
 		return map[string]interface{}{
 			{{range $key, $value := .Columns}}table.{{$.StructName}}.{{$key}}.Name:p.{{$key}},
 			{{end}}
 		}
 	}
 
-	m := make(map[string]interface{},len(cols))
-	for _, col := range cols {
+	m := make(map[string]interface{},l)
+	for i := 0; i < l; i++ {
+		col := cols[i]
 		switch col.Name {
 		{{range $key, $value := .Columns}}case table.{{$.StructName}}.{{$key}}.Name:
 			m[col.Name] = p.{{$key}}
@@ -724,7 +726,8 @@ func (p *{{.StructName}}) ToMap(cols...table.TableField) map[string]interface{} 
 //ToJSON struct转json
 func (p *{{.StructName}}) ToJSON(cols...table.TableField) types.Smap {
 	m := p.ToMap()
-	if len(cols) == 0{
+	clen := len(cols)
+	if clen == 0 {
 		l := len(table.{{.StructName}}.ColumnNames)
 		sm := make(types.Smap, l)
 		var cn string
@@ -735,8 +738,9 @@ func (p *{{.StructName}}) ToJSON(cols...table.TableField) types.Smap {
 		return sm
 	}
 
-	sm := make(types.Smap,len(cols))
-	for _, col := range cols {
+	sm := make(types.Smap, clen)
+	for i := 0; i < clen; i++ {
+		col := cols[i]
 		sm.Set(table.{{.StructName}}.ColumnName2Json[col.Name], m[col.Name])
 	}
 	return sm
@@ -745,7 +749,8 @@ func (p *{{.StructName}}) ToJSON(cols...table.TableField) types.Smap {
 //ToCnJSON struct转json，key被替换为字段描述
 func (p *{{.StructName}}) ToCnJSON(cols...table.TableField) types.Smap {
 	m := p.ToMap()
-	if len(cols) == 0{
+	clen := len(cols)
+	if clen == 0 {
 		l := len(table.{{.StructName}}.ColumnNames)
 		sm := make(types.Smap, l)
 		var cn string
@@ -756,8 +761,9 @@ func (p *{{.StructName}}) ToCnJSON(cols...table.TableField) types.Smap {
 		return sm
 	}
 
-	sm := make(types.Smap,len(cols))
-	for _, col := range cols {
+	sm := make(types.Smap, clen)
+	for i := 0; i < clen; i++ {
+		col := cols[i]
 		sm.Set(table.{{.StructName}}.ColumnName2Comment[col.Name], m[col.Name])
 	}
 	return sm
@@ -789,16 +795,18 @@ func (p *{{.StructName}}) TranslateJSON(bean interface{}) (types.Smap, error) {
 
 //SliceToJSON slice转json
 func (p *{{.StructName}}) SliceToJSON(sls []*{{.StructName}},cols...table.TableField) []types.Smap {
-	ms := make([]types.Smap, 0, len(sls))
-	if len(cols) == 0 {
+	slen := len(sls)
+	clen := len(cols)
+	ms := make([]types.Smap, 0, slen)
+	if clen == 0 {
 		var (
 			cn string
 			sm types.Smap
 			m map[string]interface{}
 		)
 		l := len(table.{{.StructName}}.ColumnNames)
-		for _, s := range sls {
-			m = s.ToMap()
+		for i := 0; i < slen; i++ {
+			m = sls[i].ToMap()
 			sm = make(types.Smap, l)
 			for i := 0; i < l; i++ {
 				cn = table.{{.StructName}}.ColumnNames[i]
@@ -809,10 +817,11 @@ func (p *{{.StructName}}) SliceToJSON(sls []*{{.StructName}},cols...table.TableF
 		}
 		return ms
 	}
-	for _, s := range sls {
-		m := s.ToMap()
-		sm := make(types.Smap, len(cols))
-		for _, col := range cols{
+	for i := 0; i < slen; i++ {
+		m := sls[i].ToMap()
+		sm := make(types.Smap, clen)
+		for i := 0; i < clen; i++ {
+			col := cols[i]
 			sm.Set(table.{{.StructName}}.ColumnName2Json[col.Name], m[col.Name])
 		}
 
