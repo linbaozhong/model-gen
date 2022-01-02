@@ -165,11 +165,11 @@ func (p *{{.StructName}}) Insert(x interface{}, cols ...string) (int64,error) {
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
-{{if .HasCache}}
-	if i64 > 0 {
-		p.OnListChange()
-	}
-{{end}}
+//{{if .HasCache}}
+//	if i64 > 0 {
+//		p.OnListChange()
+//	}
+//{{end}}
 	return i64, e
 }
 
@@ -189,11 +189,11 @@ func (p *{{.StructName}}) InsertBatch(x interface{}, beans []interface{}, cols .
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
-{{if .HasCache}}
-	if i64 > 0 {
-		p.OnListChange()
-	}
-{{end}}
+//{{if .HasCache}}
+//	if i64 > 0 {
+//		p.OnListChange()
+//	}
+//{{end}}
 	return i64, e
 }
 
@@ -270,7 +270,7 @@ func (p *{{.StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder, bea
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(x, cond, false)
+		p.OnBatchChange(x, cond)
 	}
 {{end}}
 	return i64, e
@@ -318,7 +318,7 @@ func (p *{{.StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilder) (in
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(x, cond, true)
+		p.OnBatchChange(x, cond)
 	}
 {{end}}
 	return i64, e
@@ -665,26 +665,28 @@ func (p *{{.StructName}}) Exists(x interface{}, cond table.ISqlBuilder) (bool, e
 //OnChange
 func (p *{{.StructName}}) OnChange(id types.BigUint) {
 	{{lower .StructName}}_cache.Remove(context.TODO(), id)
-	//p.OnListChange()
 }
 
 //OnBatchChange
-func (p *{{.StructName}}) OnBatchChange(x interface{}, cond table.ISqlBuilder, empty bool) {
+func (p *{{.StructName}}) OnBatchChange(x interface{}, cond table.ISqlBuilder) {
 	ids, e := p.IDsNoCache(x, cond, 0, 0)
 	if e != nil || len(ids) == 0 {
 		return
 	}
 	go func(ids []interface{}) {
 		{{lower .StructName}}_cache.Remove(context.TODO(), ids...)
-		//if empty {
-		//	p.OnListChange()
-		//}
 	}(ids)
 }
 //OnListChange
-func (p *{{.StructName}}) OnListChange() {
-	{{lower .StructName}}_count_cache.Empty(context.TODO())
-	{{lower .StructName}}_ids_cache.Empty(context.TODO())
+func (p *{{.StructName}}) OnListChange(x interface{}, cond ...table.ISqlBuilder) {
+	ctx := context.Background()
+	if len(cond) == 0 {
+		{{lower .StructName}}_count_cache.Empty(ctx)
+		{{lower .StructName}}_ids_cache.Empty(ctx)
+		return
+	}
+	{{lower .StructName}}_count_cache.Remove(ctx, cond[0])
+	{{lower .StructName}}_ids_cache.Remove(ctx, cond[0])
 }
 
 func {{.StructName}}Cache() *redis.RedisBroker {

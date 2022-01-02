@@ -42,11 +42,11 @@ func (p {{lower .StructName}}) Insert(x interface{}, bean *models.{{.StructName}
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
-{{if .HasCache}}
-	if i64 > 0 {
-		p.OnListChange(x)
-	}
-{{end}}
+//{{if .HasCache}}
+//	if i64 > 0 {
+//		p.OnListChange(x)
+//	}
+//{{end}}
 	return i64, e
 }
 
@@ -69,11 +69,11 @@ func (p {{lower .StructName}}) InsertBatch(x interface{}, beans []*models.{{.Str
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
-{{if .HasCache}}
-	if i64 > 0 {
-		p.OnListChange(x)
-	}
-{{end}}
+//{{if .HasCache}}
+//	if i64 > 0 {
+//		p.OnListChange(x)
+//	}
+//{{end}}
 	return i64, e
 }
 
@@ -164,7 +164,7 @@ func (p {{lower .StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(x, cond, false)
+		p.OnBatchChange(x, cond)
 	}
 {{end}}
 	return i64, e
@@ -212,7 +212,7 @@ func (p {{lower .StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilder
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(x, cond, true)
+		p.OnBatchChange(x, cond)
 	}
 {{end}}
 	return i64, e
@@ -264,7 +264,7 @@ func (p {{lower .StructName}}) SoftDeleteBatch(x interface{}, cond table.ISqlBui
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(x, cond, true)
+		p.OnBatchChange(x, cond)
 	}
 {{end}}
 	return i64, e
@@ -690,27 +690,28 @@ func (p {{lower .StructName}}) Exists(x interface{}, cond table.ISqlBuilder) (bo
 //OnChange
 func (p {{lower .StructName}}) OnChange(x interface{}, id types.BigUint) {
 	models.{{.StructName}}Cache().Remove(getContext(x), id)
-	//p.OnListChange()
 }
 
 //OnBatchChange
-func (p {{lower .StructName}}) OnBatchChange(x interface{}, cond table.ISqlBuilder, empty bool) {
+func (p {{lower .StructName}}) OnBatchChange(x interface{}, cond table.ISqlBuilder) {
 	ids, e := p.IDsNoCache(x, cond, 0, 0)
 	if e != nil || len(ids) == 0 {
 		return 
 	}
 	go func(ids []interface{}) {
 		models.{{.StructName}}Cache().Remove(getContext(x), ids...)
-		//if empty {
-		//	p.OnListChange(ctx)
-		//}
 	}(ids)
 }
 //OnListChange
-func (p {{lower .StructName}}) OnListChange(x interface{}) {
+func (p {{lower .StructName}}) OnListChange(x interface{}, cond ...table.ISqlBuilder) {
 	ctx := getContext(x)
-	models.{{.StructName}}IDsCache().Empty(ctx)
-	models.{{.StructName}}CountCache().Empty(ctx)
+	if len(cond) == 0 {
+		models.{{.StructName}}IDsCache().Empty(ctx)
+		models.{{.StructName}}CountCache().Empty(ctx)
+		return
+	}
+	models.{{.StructName}}IDsCache().Remove(ctx, cond[0])
+	models.{{.StructName}}CountCache().Remove(ctx, cond[0])
 }
 
 func (p {{lower .StructName}})Cache() *redis.RedisBroker {
