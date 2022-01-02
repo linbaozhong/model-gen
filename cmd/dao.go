@@ -42,11 +42,11 @@ func (p {{lower .StructName}}) Insert(x interface{}, bean *models.{{.StructName}
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
-{{if .HasCache}}
-	if i64 > 0 {
-		p.OnListChange(x)
-	}
-{{end}}
+//{{if .HasCache}}
+//	if i64 > 0 {
+//		p.OnListChange(x)
+//	}
+//{{end}}
 	return i64, e
 }
 
@@ -69,11 +69,11 @@ func (p {{lower .StructName}}) InsertBatch(x interface{}, beans []*models.{{.Str
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
-{{if .HasCache}}
-	if i64 > 0 {
-		p.OnListChange(x)
-	}
-{{end}}
+//{{if .HasCache}}
+//	if i64 > 0 {
+//		p.OnListChange(x)
+//	}
+//{{end}}
 	return i64, e
 }
 
@@ -164,7 +164,7 @@ func (p {{lower .StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(x, cond, false)
+		p.OnBatchChange(x, cond)
 	}
 {{end}}
 	return i64, e
@@ -212,7 +212,7 @@ func (p {{lower .StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilder
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(x, cond, true)
+		p.OnBatchChange(x, cond)
 	}
 {{end}}
 	return i64, e
@@ -264,7 +264,7 @@ func (p {{lower .StructName}}) SoftDeleteBatch(x interface{}, cond table.ISqlBui
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(x, cond, true)
+		p.OnBatchChange(x, cond)
 	}
 {{end}}
 	return i64, e
@@ -301,10 +301,11 @@ func (p {{lower .StructName}}) GetNoCache(x interface{},id types.BigUint, cols .
 	}
 	db := getDB(x, table.{{.StructName}}.TableName)
 	//
-	if len(cols) > 0 {
-		_cols := make([]string, 0, len(cols))
-		for _, col := range cols {
-			_cols = append(_cols, col.Name)
+	l := len(cols)
+	if l > 0 {
+		_cols := make([]string, 0, l)
+		for i := 0; i < l; i++ {
+			_cols = append(_cols, cols[i].Name)
 		}
 		db.Cols(_cols...)
 	}
@@ -352,7 +353,8 @@ func (p {{lower .StructName}}) Sum(x interface{}, cond table.ISqlBuilder, col ta
 
 	if cond != nil {
 		if joins := cond.GetJoin(); len(joins) > 0 {
-			for _, join := range joins {
+			for i := 0; i < len(joins); i++ {
+				join := joins[i]
 				db.Join(join[0], join[1], join[2])
 			}
 		}
@@ -390,7 +392,8 @@ func (p {{lower .StructName}}) Sums(x interface{}, cond table.ISqlBuilder, args 
 
 	if cond != nil {
 		if joins := cond.GetJoin(); len(joins) > 0 {
-			for _, join := range joins {
+			for i := 0; i < len(joins); i++ {
+				join := joins[i]
 				db.Join(join[0], join[1], join[2])
 			}
 		}
@@ -434,7 +437,8 @@ func (p {{lower .StructName}}) CountNoCache(x interface{}, cond table.ISqlBuilde
 
 	if cond != nil {
 		if joins := cond.GetJoin(); len(joins) > 0 {
-			for _, join := range joins {
+			for i := 0; i < len(joins); i++ {
+				join := joins[i]
 				db.Join(join[0], join[1], join[2])
 			}
 		}
@@ -466,8 +470,10 @@ func (p {{lower .StructName}}) Gets(x interface{}, ids []interface{}) ([]*models
 		log.Logs.Error(e)
 		return nil, e
 	}
-	list := make([]*models.{{.StructName}}, 0, len(ms))
-	for _, m := range ms {
+	l := len(ms)
+	list := make([]*models.{{.StructName}}, 0, l)
+	for i := 0; i < l; i++ {
+		m := ms[i]
 		if mm, ok := m.(*models.{{.StructName}}); ok {
 			list = append(list, mm)
 		}
@@ -504,8 +510,10 @@ func (p {{lower .StructName}}) GetsMap(x interface{}, ids []interface{}) (map[ty
 		log.Logs.Error(e)
 		return nil, e
 	}
-	list := make(map[types.BigUint]*models.{{.StructName}}, len(ms))
-	for _, m := range ms {
+	l := len(ms)
+	list := make(map[types.BigUint]*models.{{.StructName}}, l)
+	for i := 0; i < l; i++ {
+		m := ms[i]
 		if mm, ok := m.(*models.{{.StructName}}); ok {
 			list[types.BigUint(mm.{{.PrimaryKeyName}})] = mm
 		}
@@ -516,8 +524,10 @@ func (p {{lower .StructName}}) GetsMap(x interface{}, ids []interface{}) (map[ty
 	if e != nil || len(ms) == 0{
 		return nil, e
 	}
-	list := make(map[types.BigUint]*models.{{.StructName}}, len(ms))
-	for _, m := range ms {
+	l := len(ms)
+	list := make(map[types.BigUint]*models.{{.StructName}}, l)
+	for i := 0; i < l; i++ {
+		m := ms[i]
 		list[types.BigUint(m.{{.PrimaryKeyName}})] = m
 	}
 	return list, nil
@@ -553,7 +563,8 @@ func (p {{lower .StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilder
 		}
 	} else {
 		if joins := cond.GetJoin(); len(joins) > 0 {
-			for _, join := range joins {
+			for i := 0; i < len(joins); i++ {
+				join := joins[i]
 				db.Join(join[0], join[1], join[2])
 			}
 		}
@@ -603,8 +614,10 @@ func (p {{lower .StructName}}) FindMap(x interface{}, cond table.ISqlBuilder, si
 	if e != nil || len(ms) == 0{
 		return nil, e
 	}
-	list := make(map[types.BigUint]*models.{{.StructName}}, len(ms))
-	for _, m := range ms {
+	l := len(ms)
+	list := make(map[types.BigUint]*models.{{.StructName}}, l)
+	for i := 0; i < l; i++ {
+		m := ms[i]
 		list[types.BigUint(m.{{.PrimaryKeyName}})] = m
 	}
 	return list, nil
@@ -677,27 +690,28 @@ func (p {{lower .StructName}}) Exists(x interface{}, cond table.ISqlBuilder) (bo
 //OnChange
 func (p {{lower .StructName}}) OnChange(x interface{}, id types.BigUint) {
 	models.{{.StructName}}Cache().Remove(getContext(x), id)
-	//p.OnListChange()
 }
 
 //OnBatchChange
-func (p {{lower .StructName}}) OnBatchChange(x interface{}, cond table.ISqlBuilder, empty bool) {
+func (p {{lower .StructName}}) OnBatchChange(x interface{}, cond table.ISqlBuilder) {
 	ids, e := p.IDsNoCache(x, cond, 0, 0)
 	if e != nil || len(ids) == 0 {
 		return 
 	}
 	go func(ids []interface{}) {
 		models.{{.StructName}}Cache().Remove(getContext(x), ids...)
-		//if empty {
-		//	p.OnListChange(ctx)
-		//}
 	}(ids)
 }
 //OnListChange
-func (p {{lower .StructName}}) OnListChange(x interface{}) {
+func (p {{lower .StructName}}) OnListChange(x interface{}, cond ...table.ISqlBuilder) {
 	ctx := getContext(x)
-	models.{{.StructName}}IDsCache().Empty(ctx)
-	models.{{.StructName}}CountCache().Empty(ctx)
+	if len(cond) == 0 {
+		models.{{.StructName}}IDsCache().Empty(ctx)
+		models.{{.StructName}}CountCache().Empty(ctx)
+		return
+	}
+	models.{{.StructName}}IDsCache().Remove(ctx, cond[0])
+	models.{{.StructName}}CountCache().Remove(ctx, cond[0])
 }
 
 func (p {{lower .StructName}})Cache() *redis.RedisBroker {
@@ -737,8 +751,10 @@ func (p {{lower .StructName}}) SliceToJSON(sls []*models.{{.StructName}},cols...
 	}
 	for i := 0; i < sl; i++ {
 		m = sls[i].ToMap()
-		sm = make(types.Smap, len(cols))
-		for _, col := range cols {
+		l := len(cols)
+		sm = make(types.Smap, l)
+		for i := 0; i < l; i++ {
+			col := cols[i]
 			sm.Set(table.{{.StructName}}.ColumnName2Json[col.Name], m[col.Name])
 		}
 
