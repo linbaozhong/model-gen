@@ -131,10 +131,20 @@ func (p {{lower .StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder
 	var (
 		i64 int64
 		e   error
+{{if .HasCache}}
+		ids []interface{}
+{{end}}
 	)
 	
 	db := getDB(x, table.{{.StructName}}.TableName)
 	if cond != nil {
+{{if .HasCache}}
+		ids, e = p.IDsNoCache(nil, cond, 0, 0)
+		if e != nil || len(ids) == 0 {
+			return 0, e
+		}
+		db.In(table.{{.StructName}}.PrimaryKey.Name, ids...)
+{{else}}
 		if cols := cond.GetCols(); len(cols) > 0 {
 			db.Cols(cols...)
 		}
@@ -144,6 +154,7 @@ func (p {{lower .StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder
 		if size, start := cond.GetLimit(); size > 0 {
 			db.Limit(size, start)
 		}
+{{end}}
 		exprs := cond.GetIncr()
 		for _, expr := range exprs {
 			db.Incr(expr.ColName, expr.Arg)
@@ -164,7 +175,7 @@ func (p {{lower .StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(x, cond)
+		p.OnBatchChange(x, ids)
 	}
 {{end}}
 	return i64, e
@@ -194,16 +205,27 @@ func (p {{lower .StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilder
 	var (
 		i64 int64
 		e error
+{{if .HasCache}}
+		ids []interface{}
+{{end}}
 	)
 	db := getDB(x, table.{{.StructName}}.TableName)
 
 	if cond != nil {
+{{if .HasCache}}
+		ids, e = p.IDsNoCache(nil, cond, 0, 0)
+		if e != nil || len(ids) == 0 {
+			return 0, e
+		}
+		db.In(table.{{.StructName}}.PrimaryKey.Name, ids...)
+{{else}}
 		if s, args := cond.GetWhere(); s != "" {
 			db.Where(s, args...)
 		}
 		if size, start := cond.GetLimit(); size > 0 {
 			db.Limit(size, start)
 		}
+{{end}}
 	}
 	//
 	i64, e = db.Delete()
@@ -212,7 +234,7 @@ func (p {{lower .StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilder
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(x, cond)
+		p.OnBatchChange(x, ids)
 	}
 {{end}}
 	return i64, e
@@ -244,16 +266,27 @@ func (p {{lower .StructName}}) SoftDeleteBatch(x interface{}, cond table.ISqlBui
 	var (
 		i64 int64
 		e error
+{{if .HasCache}}
+		ids []interface{}
+{{end}}
 	)
 	db := getDB(x, table.{{.StructName}}.TableName)
 
 	if cond != nil {
+{{if .HasCache}}
+		ids, e = p.IDsNoCache(nil, cond, 0, 0)
+		if e != nil || len(ids) == 0 {
+			return 0, e
+		}
+		db.In(table.{{.StructName}}.PrimaryKey.Name, ids...)
+{{else}}
 		if s, args := cond.GetWhere(); s != "" {
 			db.Where(s, args...)
 		}
 		if size, start := cond.GetLimit(); size > 0 {
 			db.Limit(size, start)
 		}
+{{end}}
 	}
 	//
 	i64, e = db.Update(types.Smap{
@@ -264,7 +297,7 @@ func (p {{lower .StructName}}) SoftDeleteBatch(x interface{}, cond table.ISqlBui
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(x, cond)
+		p.OnBatchChange(x, ids)
 	}
 {{end}}
 	return i64, e
@@ -693,14 +726,11 @@ func (p {{lower .StructName}}) OnChange(x interface{}, id types.BigUint) {
 }
 
 //OnBatchChange
-func (p {{lower .StructName}}) OnBatchChange(x interface{}, cond table.ISqlBuilder) {
-	ids, e := p.IDsNoCache(x, cond, 0, 0)
-	if e != nil || len(ids) == 0 {
+func (p {{lower .StructName}}) OnBatchChange(x interface{}, ids []interface{}) {
+	if len(ids) == 0 {
 		return 
 	}
-	go func(ids []interface{}) {
-		models.{{.StructName}}Cache().Remove(getContext(x), ids...)
-	}(ids)
+	models.{{.StructName}}Cache().Remove(getContext(x), ids...)
 }
 //OnListChange
 func (p {{lower .StructName}}) OnListChange(x interface{}, cond ...table.ISqlBuilder) {
