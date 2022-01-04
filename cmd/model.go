@@ -231,17 +231,28 @@ func (p *{{.StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder, bea
 	var (
 		i64 int64
 		e   error
+{{if .HasCache}}
+		ids []interface{}
+{{end}}
 	)
 	
 	db := p.getDB(x)
 
 	if cond != nil {
+{{if .HasCache}}
+		ids, e = p.IDsNoCache(nil, cond, 0, 0)
+		if e != nil || len(ids) == 0{
+			return 0, e
+		}
+		db.In(table.{{.StructName}}.PrimaryKey.Name, ids...)
+{{else}}
 		if cols := cond.GetCols(); len(cols) > 0 {
 			db.Cols(cols...)
 		}
 		if s, args := cond.GetWhere(); s != "" {
 			db.Where(s, args...)
 		}
+{{end}}
 		exprs := cond.GetIncr()
 		for _, expr := range exprs {
 			db.Incr(expr.ColName, expr.Arg)
@@ -270,7 +281,7 @@ func (p *{{.StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder, bea
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(x, cond)
+		p.OnBatchChange(x, ids)
 	}
 {{end}}
 	return i64, e
@@ -300,16 +311,27 @@ func (p *{{.StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilder) (in
 	var (
 		i64 int64
 		e error
+{{if .HasCache}}
+		ids []interface{}
+{{end}}
 	)
 	db := p.getDB(x)
 
 	if cond != nil {
+{{if .HasCache}}
+		ids, e = p.IDsNoCache(nil, cond, 0, 0)
+		if e != nil || len(ids) == 0 {
+			return 0, e
+		}
+		db.In(table.{{.StructName}}.PrimaryKey.Name, ids...)
+{{else}}
 		if s, args := cond.GetWhere(); s != "" {
 			db.Where(s, args...)
 		}
 		if size, start := cond.GetLimit(); size > 0 {
 			db.Limit(size, start)
 		}
+{{end}}
 	}
 	//
 	i64, e = db.Delete(p)
@@ -318,7 +340,7 @@ func (p *{{.StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilder) (in
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(x, cond)
+		p.OnBatchChange(x, ids)
 	}
 {{end}}
 	return i64, e
@@ -668,14 +690,11 @@ func (p *{{.StructName}}) OnChange(id types.BigUint) {
 }
 
 //OnBatchChange
-func (p *{{.StructName}}) OnBatchChange(x interface{}, cond table.ISqlBuilder) {
-	ids, e := p.IDsNoCache(x, cond, 0, 0)
-	if e != nil || len(ids) == 0 {
+func (p *{{.StructName}}) OnBatchChange(x interface{}, ids []interface{}) {
+	if len(ids) == 0 {
 		return
 	}
-	go func(ids []interface{}) {
-		{{lower .StructName}}_cache.Remove(context.TODO(), ids...)
-	}(ids)
+	{{lower .StructName}}_cache.Remove(context.TODO(), ids...)
 }
 //OnListChange
 func (p *{{.StructName}}) OnListChange(x interface{}, cond ...table.ISqlBuilder) {
