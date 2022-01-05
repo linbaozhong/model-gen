@@ -346,6 +346,9 @@ func (p {{lower .StructName}}) GetNoCache(x interface{},id types.BigUint, cols .
 	has, e := db.Where(table.{{.StructName}}.PrimaryKey.Eq(),id).Limit(1).
 		Get(bean)
 	if has {
+{{if .HasCache}}	//重置cache
+	models.{{.StructName}}Cache().Set(getContext(x), id, bean)
+{{end}}
 		return true, bean, nil
 	}
 	if e != nil {
@@ -372,7 +375,14 @@ func (p {{lower .StructName}}) IDs(x interface{}, cond table.ISqlBuilder, size, 
 
 //IDsNoCache 根据cond条件从数据库中获取主键slice
 func (p {{lower .StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder, size, index int) ([]interface{}, error) {
-	return getColumn(x,table.{{.StructName}}.TableName, table.{{.StructName}}.PrimaryKey, cond, size, index)
+	ids, e := getColumn(x,table.{{.StructName}}.TableName, table.{{.StructName}}.PrimaryKey, cond, size, index)
+{{if .HasCache}}
+	if e == nil {
+		//重置cache
+		models.{{.StructName}}IDsCache().LSet(getContext(x), cond, ids...)
+	}
+{{end}}
+	return ids, e
 }
 
 //GetColumn 根据cond条件从数据库中单列slice
@@ -489,6 +499,9 @@ func (p {{lower .StructName}}) CountNoCache(x interface{}, cond table.ISqlBuilde
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
+{{if .HasCache}}	//重置cache
+	models.{{.StructName}}CountCache().Set(getContext(x), cond, i64)
+{{end}}
 	return i64, nil
 }
 
@@ -522,6 +535,9 @@ func (p {{lower .StructName}}) GetsNoCache(x interface{}, ids []interface{}) ([]
 	if len(ids) == 0 {
 		return nil, nil
 	}
+{{if .HasCache}}	//清理cache
+	models.{{.StructName}}Cache().Remove(getContext(x), ids...)
+{{end}}
 	db := getDB(x, table.{{.StructName}}.TableName)
 
 	list := make([]*models.{{.StructName}}, 0)
