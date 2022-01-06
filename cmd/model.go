@@ -165,11 +165,11 @@ func (p *{{.StructName}}) Insert(x interface{}, cols ...string) (int64,error) {
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
-//{{if .HasCache}}
-//	if i64 > 0 {
-//		p.OnListChange()
-//	}
-//{{end}}
+{{if .HasCache}}	//向下兼容，未来会移除
+	if i64 > 0 {
+		p.OnListChange(x)
+	}
+{{end}}
 	return i64, e
 }
 
@@ -189,11 +189,11 @@ func (p *{{.StructName}}) InsertBatch(x interface{}, beans []interface{}, cols .
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
-//{{if .HasCache}}
-//	if i64 > 0 {
-//		p.OnListChange()
-//	}
-//{{end}}
+{{if .HasCache}}	//向下兼容，未来会移除
+	if i64 > 0 {
+		p.OnListChange(x)
+	}
+{{end}}
 	return i64, e
 }
 
