@@ -42,11 +42,11 @@ func (p {{lower .StructName}}) Insert(x interface{}, bean *models.{{.StructName}
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
-//{{if .HasCache}}
-//	if i64 > 0 {
-//		p.OnListChange(x)
-//	}
-//{{end}}
+{{if .HasCache}}	//向下兼容，未来会移除
+	if i64 > 0 {
+		p.OnListChange(x)
+	}
+{{end}}
 	return i64, e
 }
 
@@ -69,11 +69,11 @@ func (p {{lower .StructName}}) InsertBatch(x interface{}, beans []*models.{{.Str
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
-//{{if .HasCache}}
-//	if i64 > 0 {
-//		p.OnListChange(x)
-//	}
-//{{end}}
+{{if .HasCache}}	//向下兼容，未来会移除
+	if i64 > 0 {
+		p.OnListChange(x)
+	}
+{{end}}
 	return i64, e
 }
 
