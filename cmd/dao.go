@@ -655,7 +655,7 @@ func (p {{lower .StructName}}) GetsNoCache(x interface{}, ids []interface{}) ([]
 		return list, nil
 	}
 {{if .HasCache}}
-	l := len(list)
+	l = len(list)
 	ctx := getContext(x)
 	for i := 0; i < l; i++ {
 		m := list[i]
