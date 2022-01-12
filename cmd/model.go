@@ -12,6 +12,7 @@ var model_str = `
 package {{.PackageName}}
 
 import (
+	"bytes"
 	"sync"
 	"libs/utils"
 	{{if or .HasTime .HasCache}}"time"{{end}}
@@ -721,6 +722,15 @@ func {{.StructName}}CountCache() *redis.RedisBroker {
 }
 {{end}}
 {{end}}
+
+//MarshalJSON
+func (p *{{.StructName}}) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	buf.WriteByte('{')
+	{{range $key, $value := .Columns}}buf.WriteString("\"" + table.{{$.StructName}}.{{$key}}.Json + "\":" + utils.JSONValue(p.{{$key}}) + ",")
+	{{end}}
+	return append(buf.Bytes()[:buf.Len()-1], '}'), nil
+}
 
 //ToMap struct转map
 func (p *{{.StructName}}) ToMap(cols...table.TableField) map[string]interface{} {
