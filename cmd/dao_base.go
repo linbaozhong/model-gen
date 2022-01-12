@@ -38,6 +38,8 @@ import (
 	"database/sql"
 	"errors"
 	"internal/log"
+	"golang.org/x/sync/singleflight"
+	jsoniter "github.com/json-iterator/go"
 )
 
 var (
@@ -45,6 +47,9 @@ var (
 	Err_Type      = errors.New("The type is wrong")
 	Err_NoRows    = sql.ErrNoRows
 	Param_Missing = errors.New("Parameters are missing")
+
+	json = jsoniter.ConfigCompatibleWithStandardLibrary
+	sg   singleflight.Group
 )
 
 //Transaction 事务处理
@@ -66,6 +71,11 @@ func Transaction(f func(*models.Session) (interface{}, error)) (interface{}, err
 	}
 
 	return result, nil
+}
+
+//
+func Sync(k string, f func() (interface{}, error)) (v interface{}, err error, shared bool) {
+	return sg.Do(k, f)
 }
 
 func queryInterfaces(x *models.Session, cond table.ISqlBuilder) ([]map[string]interface{}, error) {
