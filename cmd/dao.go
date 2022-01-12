@@ -378,7 +378,8 @@ func (p {{lower .StructName}}) GetNoCache(x interface{},id types.BigUint, cols .
 	if has {
 {{if .HasCache}}	//重置cache
 		if l == 0 {
-			{{lower .StructName}}_cache.Client().Set(getContext(x), {{lower .StructName}}_cache.Key(id), bean, {{lower .StructName}}_cache.DueTime())
+			s, _ := bean.MarshalJSON()
+			{{lower .StructName}}_cache.Client().Set(getContext(x), {{lower .StructName}}_cache.Key(id), string(s), {{lower .StructName}}_cache.DueTime())
 		}
 {{end}}
 		return true, bean, nil
@@ -613,13 +614,13 @@ func (p {{lower .StructName}}) Gets(x interface{}, ids []interface{}) ([]*models
 	_ids := make([]interface{}, 0, l) //未命中的key
 	list := make([]*models.{{.StructName}}, 0, l)
 	for i := 0; i < l; i++ {
-		m := utils.Interface2String(rs[i])
-		if m == "" || m == redis.Err_Value_Not_Found {
+		m := rs[i]
+		if m == nil {
 			_ids = append(_ids, ids[i])
 			continue
 		}
 		mm := models.New{{.StructName}}()
-		if e = json.UnmarshalFromString(m, mm); e == nil {
+		if e = json.UnmarshalFromString(utils.Interface2String(m), mm); e == nil {
 			list = append(list, mm)
 		}
 	}
@@ -641,30 +642,43 @@ func (p {{lower .StructName}}) Gets(x interface{}, ids []interface{}) ([]*models
 
 // GetsNoCache 根据主键列表从数据库中获取一组数据
 func (p {{lower .StructName}}) GetsNoCache(x interface{}, ids []interface{}) ([]*models.{{.StructName}}, error) {
-	l := len(ids)
-	if l == 0 {
+	idsLen := len(ids)
+	if idsLen == 0 {
 		return []*models.{{.StructName}}{}, nil
 	}
 
 	db := getDB(x, table.{{.StructName}}.TableName)
 
 	list := make([]*models.{{.StructName}}, 0)
-	e := db.In(table.{{.StructName}}.PrimaryKey.Name, ids...).Limit(l).Find(&list)
+	e := db.In(table.{{.StructName}}.PrimaryKey.Name, ids...).Limit(idsLen).Find(&list)
 	if e != nil {
 		log.Logs.DBError(db, e)
 		return list, nil
 	}
 {{if .HasCache}}
-	l = len(list)
+	_ids := make([]interface{}, 0, idsLen)
+	l := len(list)
 	ctx := getContext(x)
 	for i := 0; i < l; i++ {
 		m := list[i]
-		mj, _ := json.MarshalToString(m)
-		_, e = {{lower .StructName}}_cache.Client().Set(ctx, {{lower .StructName}}_cache.Key(m.ID), mj, {{lower .StructName}}_cache.DueTime()).Result()
+		_ids = append(_ids, m.ID)
+		mj, _ := m.MarshalJSON()
+		_, e = {{lower .StructName}}_cache.Client().Set(ctx, {{lower .StructName}}_cache.Key(m.ID), string(mj), {{lower .StructName}}_cache.DueTime()).Result()
 		if e != nil {
 			log.Logs.Error(e)
 		}
 	}
+
+	for i := 0; i < idsLen; i++ {
+		if utils.Contains(_ids, ids[i]) {
+			continue
+		}
+		_, e = {{lower .StructName}}_cache.Client().Set(ctx, {{lower .StructName}}_cache.Key(ids[i]), redis.Err_Value_Not_Found, {{lower .StructName}}_cache.DueTime()).Result()
+		if e != nil {
+			log.Logs.Error(e)
+		}
+	}
+
 {{end}}
 	return list, nil
 }
