@@ -342,7 +342,7 @@ func (p {{lower .StructName}}) Get(x interface{},id types.BigUint) (bool, *model
 		log.Logs.Error(e)
 		return p.GetNoCache(x, id)
 	}
-	if s == "" {
+	if s == "" || s == redis.Err_Value_Not_Found {
 		return false, bean, Err_NoRows
 	}
 	e = json.UnmarshalFromString(s, bean)
@@ -613,18 +613,18 @@ func (p {{lower .StructName}}) Gets(x interface{}, ids []interface{}) ([]*models
 	_ids := make([]interface{}, 0, l) //未命中的key
 	list := make([]*models.{{.StructName}}, 0, l)
 	for i := 0; i < l; i++ {
-		m := rs[i]
-		if m == nil {
+		m := utils.Interface2String(rs[i])
+		if m == "" || m == redis.Err_Value_Not_Found {
 			_ids = append(_ids, ids[i])
 			continue
 		}
 		mm := models.New{{.StructName}}()
-		if e = json.UnmarshalFromString(m.(string), mm); e == nil {
+		if e = json.UnmarshalFromString(m, mm); e == nil {
 			list = append(list, mm)
 		}
 	}
 	if len(_ids) > 0 {
-		do, _, _ := Sync("{{lower .StructName}}:"+fmt.Sprintf("%+v", _ids), func() (interface{}, error) {
+		do, _, _ := Sync("{{lower .StructName}}_ids:"+fmt.Sprintf("%+v", _ids), func() (interface{}, error) {
 			return p.GetsNoCache(x, _ids)
 		})
 		if _list, ok := do.([]*models.{{.StructName}}); ok {
@@ -641,14 +641,15 @@ func (p {{lower .StructName}}) Gets(x interface{}, ids []interface{}) ([]*models
 
 // GetsNoCache 根据主键列表从数据库中获取一组数据
 func (p {{lower .StructName}}) GetsNoCache(x interface{}, ids []interface{}) ([]*models.{{.StructName}}, error) {
-	if len(ids) == 0 {
+	l := len(ids)
+	if l == 0 {
 		return []*models.{{.StructName}}{}, nil
 	}
 
 	db := getDB(x, table.{{.StructName}}.TableName)
 
 	list := make([]*models.{{.StructName}}, 0)
-	e := db.In(table.{{.StructName}}.PrimaryKey.Name, ids...).Find(&list)
+	e := db.In(table.{{.StructName}}.PrimaryKey.Name, ids...).Limit(l).Find(&list)
 	if e != nil {
 		log.Logs.DBError(db, e)
 		return list, nil
