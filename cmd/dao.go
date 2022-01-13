@@ -139,9 +139,7 @@ func (p {{lower .StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilder
 	var (
 		i64 int64
 		e   error
-{{if .HasCache}}
 		ids []interface{}
-{{end}}
 	)
 	
 	db := getDB(x, table.{{.StructName}}.TableName)
@@ -209,9 +207,7 @@ func (p {{lower .StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilder
 	var (
 		i64 int64
 		e error
-{{if .HasCache}}
 		ids []interface{}
-{{end}}
 	)
 	db := getDB(x, table.{{.StructName}}.TableName)
 
@@ -266,9 +262,7 @@ func (p {{lower .StructName}}) SoftDeleteBatch(x interface{}, cond table.ISqlBui
 	var (
 		i64 int64
 		e error
-{{if .HasCache}}
 		ids []interface{}
-{{end}}
 	)
 	db := getDB(x, table.{{.StructName}}.TableName)
 
@@ -432,7 +426,7 @@ func (p {{lower .StructName}}) IDs(x interface{}, cond table.ISqlBuilder, size, 
 func (p {{lower .StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder, size, index int) ([]interface{}, error) {
 	ids, e := getColumn(x,table.{{.StructName}}.TableName, table.{{.StructName}}.PrimaryKey, cond, size, index)
 {{if .HasCache}}
-	if e == nil {
+	if len(ids) > 0 {
 		//重置cache
 		key := {{lower .StructName}}_ids_cache.Key(cond)
 		_, e = {{lower .StructName}}_ids_cache.Client().Del(getContext(x), key).Result()
@@ -610,6 +604,8 @@ func (p {{lower .StructName}}) Gets(x interface{}, ids []interface{}) ([]*models
 		mm := models.New{{.StructName}}()
 		if e = json.UnmarshalFromString(utils.Interface2String(m), mm); e == nil {
 			list = append(list, mm)
+		} else {
+			log.Logs.Error(e)
 		}
 	}
 	if len(_ids) > 0 {
