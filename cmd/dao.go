@@ -360,7 +360,7 @@ func (p {{lower .StructName}}) GetNoCache(x interface{},id types.BigUint, cols .
 	if has {
 {{if .HasCache}}	//重置cache
 		if l == 0 {
-			s, _ := bean.MarshalJSON()
+			s, _ := json.Marshal(bean)
 			{{lower .StructName}}_cache.Client().Set(getContext(x), {{lower .StructName}}_cache.Key(id), string(s), {{lower .StructName}}_cache.DueTime())
 		}
 {{end}}
@@ -646,7 +646,7 @@ func (p {{lower .StructName}}) GetsNoCache(x interface{}, ids []interface{}) ([]
 	for i := 0; i < l; i++ {
 		m := list[i]
 		_ids = append(_ids, m.ID)
-		mj, _ := m.MarshalJSON()
+		mj, _ := json.Marshal(m)
 		_, e = {{lower .StructName}}_cache.Client().Set(ctx, {{lower .StructName}}_cache.Key(m.ID), string(mj), {{lower .StructName}}_cache.DueTime()).Result()
 		if e != nil {
 			log.Logs.Error(e)
