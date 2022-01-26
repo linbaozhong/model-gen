@@ -12,9 +12,11 @@ var model_str = `
 package {{.PackageName}}
 
 import (
-	"bytes"
+	//"bytes"
 	"sync"
 	"libs/utils"
+	//{{if .HasConvert}}"strconv"{{end}}
+	//{{if .HasString}}"strings"{{end}}
 	{{if or .HasTime .HasCache}}"time"{{end}}
 {{if .HasPrimaryKey}}
 	{{if .HasCache}}"context"
@@ -723,15 +725,6 @@ func {{.StructName}}CountCache() *redis.RedisBroker {
 {{end}}
 {{end}}
 
-//MarshalJSON
-func (p *{{.StructName}}) MarshalJSON() ([]byte, error) {
-	var buf bytes.Buffer
-	buf.WriteByte('{')
-	{{range $key, $value := .Columns}}buf.WriteString("\"" + table.{{$.StructName}}.{{$key}}.Json + "\":" + utils.JSONValue(p.{{$key}}) + ",")
-	{{end}}
-	return append(buf.Bytes()[:buf.Len()-1], '}'), nil
-}
-
 //ToMap struct转map
 func (p *{{.StructName}}) ToMap(cols...table.TableField) map[string]interface{} {
 	l := len(cols)
@@ -898,6 +891,7 @@ func (d *TempData) writeToModel(fileName string) error {
 			}
 			return ret
 		},
+		//"marshal": JSONValue,
 	}
 
 	err := template.Must(template.New("tableTpl").Funcs(funcMap).Parse(model_str)).Execute(&buf, d)
@@ -934,3 +928,40 @@ func (d *TempData) writeToModel(fileName string) error {
 
 	return nil
 }
+
+//
+////JSONValue redis存储序列化数据转换方法
+//func JSONValue(t []string, v string) string {
+//	//return `utils.JSONValue(p.` + v + `)`
+//	switch t[2] {
+//	case "string":
+//		return `"\"" + strings.ReplaceAll(p.` + v + `, "\"", "\\\"") + "\""`
+//	case "int", "int8", "int16", "int32", "int64":
+//		return `strconv.FormatInt(int64(p.` + v + `), 10)`
+//	case "uint", "uint8", "uint16", "uint32", "uint64":
+//		return `strconv.FormatUint(uint64(p.` + v + `), 10)`
+//	case "float32", "float64":
+//		return `strconv.FormatFloat(float64(p.` + v + `), 'f', -1, 64)`
+//	case "time.Time":
+//		return `"\"" + p.` + v + `.Format(time.RFC3339Nano) + "\""`
+//	case "bool":
+//		return `strconv.FormatBool(p.` + v + `)`
+//	case "[]byte":
+//		return `"\"" + base64.StdEncoding.EncodeToString(p.` + v + `) + "\""`
+//	case "types.BigUint":
+//		return `p.` + v + `.String()`
+//	case "types.Money":
+//		return `strconv.FormatFloat((float64(p.` + v + `) / 100), 'f', -1, 64)`
+//	default:
+//		return `utils.JSONValue(p.` + v + `)`
+//	}
+//}
+
+////MarshalJSON
+//func (p *{{.StructName}}) MarshalJSON() ([]byte, error) {
+//	var buf bytes.Buffer
+//	buf.WriteByte('{')
+//	{{range $key, $value := .Columns}}buf.WriteString("\"{{index $value 1}}\":" + {{marshal $value $key}} + ",")
+//	{{end}}
+//	return append(buf.Bytes()[:buf.Len()-1], '}'), nil
+//}

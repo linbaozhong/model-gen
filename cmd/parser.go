@@ -31,8 +31,10 @@ type TempData struct {
 	PrimaryKeyName string //struct pk属性名
 	HasPrimaryKey  bool
 	HasState       bool
-	HasTime        bool
 	HasCache       bool
+	HasTime        bool
+	HasString      bool
+	HasConvert     bool
 }
 
 //handleFile 处理model文件
@@ -60,6 +62,9 @@ func handleFile(module, modulePath, filename string) error {
 
 	for _, stru := range file.Structures {
 		tempData.TableName = ""
+		tempData.HasTime = false
+		tempData.HasString = false
+		tempData.HasConvert = false
 		tempData.HasCache = false
 		tempData.HasPrimaryKey = false
 		tempData.HasState = false
@@ -79,23 +84,37 @@ func handleFile(module, modulePath, filename string) error {
 		}
 
 		for _, field := range stru.Fields {
-			var pk string
-			var _namejson = make([]string, 4)
+			var (
+				pk string
+				rw string //禁止读写 -，只读<-，只写->
+			)
+			var _namejson = make([]string, 5)
 			for k, v := range field.Tags {
 				if k == "json" {
 					_namejson[1] = v[0] //json_name
 				} else if k == "comment" {
 					_namejson[3] = v[0]
 				} else if k == XORM_TAG {
-					_namejson[0], pk = parseTagsForXORM(v) //column_name
+					_namejson[0], pk, rw = parseTagsForXORM(v) //column_name
 				} else if k == GORM_TAG {
 					_namejson[0] = parseTagsForGORM(v) //column_name
 				}
 			}
+			_namejson[4] = rw
 			_namejson[2] = field.Type.String()
-			if _namejson[2] == "time.Time" {
+			switch _namejson[2] {
+			case "time.Time":
 				tempData.HasTime = true
+			case "string":
+				tempData.HasString = true
+			case "int", "int8", "int16", "int32", "int64",
+				"uint", "uint8", "uint16", "uint32", "uint64",
+				"float32", "float64", "bool", "types.Money":
+				tempData.HasConvert = true
 			}
+			//if _namejson[2] == "time.Time" {
+			//	tempData.HasTime = true
+			//}
 
 			if _namejson[1] == "" {
 				if _namejson[0] == "" {
@@ -162,10 +181,14 @@ func handleFile(module, modulePath, filename string) error {
 	return err
 }
 
-func parseTagsForXORM(matchs []string) (columnName string, key string) {
+func parseTagsForXORM(matchs []string) (columnName string, key string, rw string) {
 	s := strings.Split(matchs[0], " ")
 	if len(s) == 1 {
-		columnName = strings.Replace(s[0], "'", "", -1)
+		if s[0] == "-" || s[0] == "->" || s[0] == "<-" {
+			rw = s[0]
+		} else {
+			columnName = strings.Replace(s[0], "'", "", -1)
+		}
 		return
 	}
 	col := &columnName
@@ -181,6 +204,9 @@ func parseTagsForXORM(matchs []string) (columnName string, key string) {
 		if strings.ToLower(v) == "pk" {
 			k = col
 			continue
+		}
+		if v == "-" || v == "->" || v == "<-" {
+			rw = v
 		}
 	}
 	key = *k

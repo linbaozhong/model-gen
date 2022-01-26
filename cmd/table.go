@@ -9,7 +9,8 @@ var (
 
 		type _{{.StructName}} struct {
 			TableName string
-			ColumnNames        []string          //列名
+			ColumnNames        []string          //可读列名
+			WriteColumnNames   []string          //可写列名
 			ColumnName2Comment map[string]string //列名和列描述映射
 			ColumnName2Json    map[string]string //列名和JSON Key映射
 			{{if .HasPrimaryKey}}PrimaryKey TableField{{end}}
@@ -24,6 +25,7 @@ var (
 		func init() {
 			{{.StructName}}.TableName = "{{lower .TableName}}"
 			{{ $.StructName}}.ColumnNames = make([]string,0,{{len .Columns}})
+			{{ $.StructName}}.WriteColumnNames = make([]string,0,{{len .Columns}})
 			{{.StructName}}.ColumnName2Json = make(map[string]string,{{len .Columns}})
 			{{.StructName}}.ColumnName2Comment = make(map[string]string,{{len .Columns}})
 
@@ -41,7 +43,11 @@ var (
 			Comment: "{{index $value 3}}",
 			Table: {{$.StructName}}.TableName,
 		} 
+		{{ $rw := index $value 4 }}{{if eq $rw "<-"}}
+		{{ $.StructName}}.ColumnNames = append({{ $.StructName}}.ColumnNames,"{{index $value 0}}"){{else if eq $rw "->"}}
+		{{ $.StructName}}.WriteColumnNames = append({{ $.StructName}}.WriteColumnNames,"{{index $value 0}}"){{else if eq $rw ""}}
 		{{ $.StructName}}.ColumnNames = append({{ $.StructName}}.ColumnNames,"{{index $value 0}}")
+		{{ $.StructName}}.WriteColumnNames = append({{ $.StructName}}.WriteColumnNames,"{{index $value 0}}"){{end}}
 		{{ $.StructName}}.ColumnName2Json["{{index $value 0}}"] = "{{index $value 1}}"
 		{{ $.StructName}}.ColumnName2Comment["{{index $value 0}}"] = "{{index $value 3}}"
 		{{end}}
