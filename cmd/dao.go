@@ -319,7 +319,17 @@ func (p *{{lower .StructName}}) Get(x interface{},id types.BigUint) (bool, *mode
 			if e != nil {
 				return false, bean, e
 			}
-			return true, do.(*models.{{.StructName}}), nil
+			b, e := json.Marshal(do.(*models.{{.StructName}}))
+			if e != nil {
+				log.Logs.Error(e)
+				return false, bean, e
+			}
+			e = json.Unmarshal(b, bean)
+			if e != nil {
+				log.Logs.Error(e)
+				return false, bean, e
+			}
+			return true, bean, nil
 		}
 		log.Logs.Error(e)
 		return p.GetNoCache(x, id)
