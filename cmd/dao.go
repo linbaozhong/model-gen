@@ -308,23 +308,23 @@ func (p *{{lower .StructName}}) Get(x interface{},id types.BigUint) (bool, *mode
 		if e == redis.Err_Key_Not_Found {
 			do, e, _ := Sync("{{lower .StructName}}:"+id.String(), func() (interface{}, error) {
 				has, m, e := p.GetNoCache(x, id)
+				bs, err := json.Marshal(m)
+				if err != nil {
+					log.Logs.Error(e)
+					return []byte{}, err
+				}
 				if has {
-					return m, nil
+					return bs, nil
 				}
 				if e != nil {
-					return m, e
+					return []byte{}, e
 				}
-				return m, Err_NoRows
+				return []byte{}, Err_NoRows
 			})
 			if e != nil {
 				return false, bean, e
 			}
-			b, e := json.Marshal(do.(*models.{{.StructName}}))
-			if e != nil {
-				log.Logs.Error(e)
-				return false, bean, e
-			}
-			e = json.Unmarshal(b, bean)
+			e = json.Unmarshal(do.([]byte), bean)
 			if e != nil {
 				log.Logs.Error(e)
 				return false, bean, e
