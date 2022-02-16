@@ -15,7 +15,7 @@ import (
 {{if .HasPrimaryKey}}
 	{{if .HasCache}}"libs/utils"
 	"internal/cache/redis"
-	"fmt"
+	"strings"
 	"time"
 	"internal/conf"{{end}}
 {{end}}
@@ -295,19 +295,20 @@ func (p *{{lower .StructName}}) SoftDeleteBatch(x interface{}, cond table.ISqlBu
 {{end}}
 
 //Get 根据主键从Cache中获取一条数据
-func (p *{{lower .StructName}}) Get(x interface{},id types.BigUint) (bool, *models.{{.StructName}}, error) {
+func (p *{{lower .StructName}}) Get(x interface{},id types.BigUint, cols ...interface{}) (bool, *models.{{.StructName}}, error) {
 {{if .HasCache}}
 	bean := models.New{{.StructName}}()
 	if id < 1 {
 		return false, bean, Err_NoRows
 	}
 
-	s, e := {{lower .StructName}}_cache.Client().Get(getContext(x), {{lower .StructName}}_cache.Key(id)).Result()
+	suffix := strings.Join(table.Columns(cols...), ",")
+	s, e := {{lower .StructName}}_cache.Client().Get(getContext(x), {{lower .StructName}}_cache.Key(id, suffix)).Result()
 	if e != nil {
 		//redis key不存在
 		if e == redis.Err_Key_Not_Found {
-			do, e, _ := Sync("{{lower .StructName}}:"+id.String(), func() (interface{}, error) {
-				has, m, e := p.GetNoCache(x, id)
+			do, e, _ := Sync({{lower .StructName}}_cache.Key(id, suffix), func() (interface{}, error) {
+				has, m, e := p.GetNoCache(x, id, cols...)
 				bs, err := json.Marshal(m)
 				if err != nil {
 					log.Logs.Error(e)
@@ -332,7 +333,7 @@ func (p *{{lower .StructName}}) Get(x interface{},id types.BigUint) (bool, *mode
 			return true, bean, nil
 		}
 		log.Logs.Error(e)
-		return p.GetNoCache(x, id)
+		return p.GetNoCache(x, id, cols...)
 	}
 	if s == "" || s == redis.Err_Value_Not_Found {
 		return false, bean, Err_NoRows
@@ -344,35 +345,30 @@ func (p *{{lower .StructName}}) Get(x interface{},id types.BigUint) (bool, *mode
 	}
 	return true, bean, nil
 {{else}}
-	return p.GetNoCache(x,id)
+	return p.GetNoCache(x,id, cols...)
 {{end}}
 }
 
 //GetNoCache 根据主键从数据库中获取一条数据
-func (p *{{lower .StructName}}) GetNoCache(x interface{},id types.BigUint, cols ...table.TableField) (bool, *models.{{.StructName}},error) {
+func (p *{{lower .StructName}}) GetNoCache(x interface{},id types.BigUint, cols ...interface{}) (bool, *models.{{.StructName}},error) {
 	var bean = models.New{{.StructName}}()
 	if id < 1 {
 		return false, bean, Err_NoRows
 	}
 	db := getDB(x, table.{{.StructName}}.TableName)
 	//
-	l := len(cols)
-	if l > 0 {
-		_cols := make([]string, 0, l)
-		for i := 0; i < l; i++ {
-			_cols = append(_cols, cols[i].Name)
-		}
-		db.Cols(_cols...)
+	if len(cols) > 0 {
+		db.Cols(table.Columns(cols...)...)
 	}
 
 	has, e := db.Where(table.{{.StructName}}.PrimaryKey.Eq(),id).Limit(1).
 		Get(bean)
 	if has {
 {{if .HasCache}}	//重置cache
-		if l == 0 {
-			s, _ := json.Marshal(bean)
-			{{lower .StructName}}_cache.Client().Set(getContext(x), {{lower .StructName}}_cache.Key(id), string(s), {{lower .StructName}}_cache.DueTime())
-		}
+		s, _ := json.Marshal(bean)
+		{{lower .StructName}}_cache.Client().Set(getContext(x), 
+			{{lower .StructName}}_cache.Key(id, strings.Join(table.Columns(cols...), ",")), 
+			string(s), {{lower .StructName}}_cache.DueTime())
 {{end}}
 		return true, bean, nil
 	}
@@ -412,7 +408,7 @@ func (p *{{lower .StructName}}) IDs(x interface{}, cond table.ISqlBuilder, size,
 		}
 		//key不存在，从数据库中读取
 		if n == 0 {
-			do, e, _ := Sync("{{lower .StructName}}_ids:"+fmt.Sprintf("%+v", cond), func() (interface{}, error) {
+			do, e, _ := Sync(key, func() (interface{}, error) {
 				return p.IDsNoCache(x, cond, size, index)
 			})
 			if e != nil {
@@ -489,14 +485,14 @@ func (p *{{lower .StructName}}) Sum(x interface{}, cond table.ISqlBuilder, col t
 }
 
 //Sums 对某几个字段进行求和
-func (p *{{lower .StructName}}) Sums(x interface{}, cond table.ISqlBuilder, args ...table.TableField) ([]float64, error) {
-	if len(args) == 0 {
+func (p *{{lower .StructName}}) Sums(x interface{}, cond table.ISqlBuilder, cols ...table.TableField) ([]float64, error) {
+	if len(cols) == 0 {
 		return []float64{}, Param_Missing
 	}
 	
-	cols := make([]string, len(args))
-	for i := 0; i < len(args); i++ {
-		cols[i] = args[i].Name
+	_cols := make([]string, len(cols))
+	for i := 0; i < len(cols); i++ {
+		_cols[i] = cols[i].Name
 	}
 
 	db := getDB(x, table.{{.StructName}}.TableName)
@@ -519,7 +515,7 @@ func (p *{{lower .StructName}}) Sums(x interface{}, cond table.ISqlBuilder, args
 		}
 	}
 
-	sums, e := db.Sums(p, cols...)
+	sums, e := db.Sums(p, _cols...)
 	if e != nil {
 		log.Logs.Error(e)
 		return []float64{}, e
@@ -530,11 +526,12 @@ func (p *{{lower .StructName}}) Sums(x interface{}, cond table.ISqlBuilder, args
 //Count 根据cond条件从cache中获取数据总数
 func (p *{{lower .StructName}}) Count(x interface{}, cond table.ISqlBuilder) (int64, error) {
 {{if .HasCache}}
-	i, e := {{lower .StructName}}_count_cache.Client().Get(getContext(x), {{lower .StructName}}_count_cache.Key(cond)).Result()
+	key :=  {{lower .StructName}}_count_cache.Key(cond)
+	i, e := {{lower .StructName}}_count_cache.Client().Get(getContext(x), key).Result()
 	if e != nil {
 		//redis key不存在
 		if e == redis.Err_Key_Not_Found {
-			do, e, _ := Sync("{{lower .StructName}}_cound:"+fmt.Sprintf("%+v", cond), func() (interface{}, error) {
+			do, e, _ := Sync(key, func() (interface{}, error) {
 				return p.CountNoCache(x, cond)
 			})
 			if e != nil {
@@ -587,15 +584,21 @@ func (p *{{lower .StructName}}) CountNoCache(x interface{}, cond table.ISqlBuild
 }
 
 // Gets 根据主键列表从cache中获取一组数据
-func (p *{{lower .StructName}}) Gets(x interface{}, ids []interface{}) ([]*models.{{.StructName}}, error) {
+func (p *{{lower .StructName}}) Gets(x interface{}, ids []interface{}, cols ...interface{}) ([]*models.{{.StructName}}, error) {
 {{if .HasCache}}
 	l := len(ids)
 	if l == 0 {
 		return []*models.{{.StructName}}{}, nil
 	}
+
+	var suffix string
+	if len(cols) > 0 {
+		suffix = strings.Join(table.Columns(cols...), ",")
+	}
+
 	keys := make([]string, 0, l)
 	for i := 0; i < l; i++ {
-		keys = append(keys, {{lower .StructName}}_cache.Key(ids[i]))
+		keys = append(keys, {{lower .StructName}}_cache.Key(ids[i], suffix))
 	}
 	rs, e := {{lower .StructName}}_cache.Client().MGet(getContext(x), keys...).Result()
 	if e != nil {
@@ -619,8 +622,8 @@ func (p *{{lower .StructName}}) Gets(x interface{}, ids []interface{}) ([]*model
 		}
 	}
 	if len(_ids) > 0 {
-		do, _, _ := Sync("{{lower .StructName}}_ids:"+fmt.Sprintf("%+v", _ids), func() (interface{}, error) {
-			return p.GetsNoCache(x, _ids)
+		do, _, _ := Sync({{lower .StructName}}_ids_cache.Key(_ids, suffix), func() (interface{}, error) {
+			return p.GetsNoCache(x, _ids, cols)
 		})
 		if _list, ok := do.([]*models.{{.StructName}}); ok {
 			if len(_list) > 0 {
@@ -630,18 +633,23 @@ func (p *{{lower .StructName}}) Gets(x interface{}, ids []interface{}) ([]*model
 	}
 	return list, nil
 {{else}}
-	return p.GetsNoCache(x, ids)
+	return p.GetsNoCache(x, ids, cols...)
 {{end}}
 }
 
 // GetsNoCache 根据主键列表从数据库中获取一组数据
-func (p *{{lower .StructName}}) GetsNoCache(x interface{}, ids []interface{}) ([]*models.{{.StructName}}, error) {
+func (p *{{lower .StructName}}) GetsNoCache(x interface{}, ids []interface{}, cols ...interface{}) ([]*models.{{.StructName}}, error) {
 	idsLen := len(ids)
 	if idsLen == 0 {
 		return []*models.{{.StructName}}{}, nil
 	}
 
+	_cols := table.Columns(cols...)
+
 	db := getDB(x, table.{{.StructName}}.TableName)
+	if len(_cols) > 0 {
+		db.Cols(_cols...)
+	}
 
 	list := make([]*models.{{.StructName}}, 0)
 	e := db.In(table.{{.StructName}}.PrimaryKey.Name, ids...).Limit(idsLen).Find(&list)
@@ -650,6 +658,11 @@ func (p *{{lower .StructName}}) GetsNoCache(x interface{}, ids []interface{}) ([
 		return list, nil
 	}
 {{if .HasCache}}
+	var suffix string
+	if len(_cols) > 0 {
+		suffix = strings.Join(_cols, ",")
+	}
+
 	_ids := make([]interface{}, 0, idsLen)
 	l := len(list)
 	ctx := getContext(x)
@@ -657,7 +670,7 @@ func (p *{{lower .StructName}}) GetsNoCache(x interface{}, ids []interface{}) ([
 		m := list[i]
 		_ids = append(_ids, m.ID)
 		mj, _ := json.Marshal(m)
-		_, e = {{lower .StructName}}_cache.Client().Set(ctx, {{lower .StructName}}_cache.Key(m.ID), string(mj), {{lower .StructName}}_cache.DueTime()).Result()
+		_, e = {{lower .StructName}}_cache.Client().Set(ctx, {{lower .StructName}}_cache.Key(m.ID, suffix), string(mj), {{lower .StructName}}_cache.DueTime()).Result()
 		if e != nil {
 			log.Logs.Error(e)
 		}
@@ -667,7 +680,7 @@ func (p *{{lower .StructName}}) GetsNoCache(x interface{}, ids []interface{}) ([
 		if utils.Contains(_ids, ids[i]) {
 			continue
 		}
-		_, e = {{lower .StructName}}_cache.Client().Set(ctx, {{lower .StructName}}_cache.Key(ids[i]), redis.Err_Value_Not_Found, {{lower .StructName}}_cache.DueTime()).Result()
+		_, e = {{lower .StructName}}_cache.Client().Set(ctx, {{lower .StructName}}_cache.Key(ids[i], suffix), redis.Err_Value_Not_Found, {{lower .StructName}}_cache.DueTime()).Result()
 		if e != nil {
 			log.Logs.Error(e)
 		}
@@ -706,8 +719,14 @@ func (p *{{lower .StructName}}) Find(x interface{}, cond table.ISqlBuilder, size
 	if len(ids) == 0 {
 		return []*models.{{.StructName}}{}, e
 	}
+	
+	cols := cond.GetCols()
+	_cols := make([]interface{}, 0, len(cols))
+	for i := 0; i < len(cols); i++ {
+		_cols = append(_cols, cols[i])
+	}
 
-	return p.Gets(x, ids)
+	return p.Gets(x, ids, _cols...)
 {{else}}
 	return p.FindNoCache(x,cond,size,index)
 {{end}}
@@ -853,7 +872,9 @@ func (p *{{lower .StructName}}) Exists(x interface{}, cond table.ISqlBuilder) (b
 {{if .HasCache}}
 //OnChange
 func (p *{{lower .StructName}}) OnChange(x interface{}, id types.BigUint) {
-	{{lower .StructName}}_cache.Remove(getContext(x), id)
+	if e := {{lower .StructName}}_cache.Remove(getContext(x), id); e != nil {
+		log.Logs.Error(e)
+	}
 }
 
 //OnBatchChange
@@ -861,18 +882,28 @@ func (p *{{lower .StructName}}) OnBatchChange(x interface{}, ids []interface{}) 
 	if len(ids) == 0 {
 		return 
 	}
-	{{lower .StructName}}_cache.Remove(getContext(x), ids...)
+	if e := {{lower .StructName}}_cache.Remove(getContext(x), ids...); e != nil {
+		log.Logs.Error(e)
+	}
 }
 //OnListChange
 func (p *{{lower .StructName}}) OnListChange(x interface{}, cond ...table.ISqlBuilder) {
 	ctx := getContext(x)
 	if len(cond) == 0 {
-		{{lower .StructName}}_ids_cache.Empty(ctx)
-		{{lower .StructName}}_count_cache.Empty(ctx)
+		if e := {{lower .StructName}}_ids_cache.Empty(ctx); e != nil {
+		log.Logs.Error(e)
+	}
+		if e := {{lower .StructName}}_count_cache.Empty(ctx); e != nil {
+		log.Logs.Error(e)
+	}
 		return
 	}
-	{{lower .StructName}}_ids_cache.Remove(ctx, cond[0])
-	{{lower .StructName}}_count_cache.Remove(ctx, cond[0])
+	if e := {{lower .StructName}}_ids_cache.Remove(ctx, cond[0]); e != nil {
+		log.Logs.Error(e)
+	}
+	if e := {{lower .StructName}}_count_cache.Remove(ctx, cond[0]); e != nil {
+		log.Logs.Error(e)
+	}
 }
 
 func (p *{{lower .StructName}})Cache() *redis.RedisBroker {

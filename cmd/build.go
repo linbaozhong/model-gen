@@ -209,6 +209,19 @@ func Table(t interface{}) ISqlBuilder {
 	return NewSqlBuilder().setTable(t)
 }
 
+//Columns
+func Columns(cols ...interface{}) []string {
+	_cols := make([]string, 0, len(cols))
+	for i := 0; i < len(cols); i++ {
+		if c, ok := cols[i].(TableField); ok {
+			_cols = append(_cols, c.Name)
+		} else {
+			_cols = append(_cols, utils.Interface2String(cols[i]))
+		}
+	}
+	return _cols
+}
+
 //JOIN
 func Join(t JoinType, l, r TableField) ISqlBuilder {
 	return NewSqlBuilder().Join(t, l, r)
