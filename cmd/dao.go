@@ -295,14 +295,14 @@ func (p *{{lower .StructName}}) SoftDeleteBatch(x interface{}, cond table.ISqlBu
 {{end}}
 
 //Get 根据主键从Cache中获取一条数据
-func (p *{{lower .StructName}}) Get(x interface{},id types.BigUint, cols ...interface{}) (bool, *models.{{.StructName}}, error) {
+func (p *{{lower .StructName}}) Get(x interface{},id types.BigUint, cols ...string) (bool, *models.{{.StructName}}, error) {
 {{if .HasCache}}
 	bean := models.New{{.StructName}}()
 	if id < 1 {
 		return false, bean, Err_NoRows
 	}
 
-	suffix := strings.Join(table.Columns(cols...), ",")
+	suffix := strings.Join(cols, ",")
 	s, e := {{lower .StructName}}_cache.Client().Get(getContext(x), {{lower .StructName}}_cache.Key(id, suffix)).Result()
 	if e != nil {
 		//redis key不存在
@@ -350,7 +350,7 @@ func (p *{{lower .StructName}}) Get(x interface{},id types.BigUint, cols ...inte
 }
 
 //GetNoCache 根据主键从数据库中获取一条数据
-func (p *{{lower .StructName}}) GetNoCache(x interface{},id types.BigUint, cols ...interface{}) (bool, *models.{{.StructName}},error) {
+func (p *{{lower .StructName}}) GetNoCache(x interface{},id types.BigUint, cols ...string) (bool, *models.{{.StructName}},error) {
 	var bean = models.New{{.StructName}}()
 	if id < 1 {
 		return false, bean, Err_NoRows
@@ -358,7 +358,7 @@ func (p *{{lower .StructName}}) GetNoCache(x interface{},id types.BigUint, cols 
 	db := getDB(x, table.{{.StructName}}.TableName)
 	//
 	if len(cols) > 0 {
-		db.Cols(table.Columns(cols...)...)
+		db.Cols(cols...)
 	}
 
 	has, e := db.Where(table.{{.StructName}}.PrimaryKey.Eq(),id).Limit(1).
@@ -367,7 +367,7 @@ func (p *{{lower .StructName}}) GetNoCache(x interface{},id types.BigUint, cols 
 {{if .HasCache}}	//重置cache
 		s, _ := json.Marshal(bean)
 		{{lower .StructName}}_cache.Client().Set(getContext(x), 
-			{{lower .StructName}}_cache.Key(id, strings.Join(table.Columns(cols...), ",")), 
+			{{lower .StructName}}_cache.Key(id, strings.Join(cols, ",")), 
 			string(s), {{lower .StructName}}_cache.DueTime())
 {{end}}
 		return true, bean, nil
@@ -430,7 +430,7 @@ func (p *{{lower .StructName}}) IDs(x interface{}, cond table.ISqlBuilder, size,
 
 //IDsNoCache 根据cond条件从数据库中获取主键slice
 func (p *{{lower .StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder, size, index int) ([]interface{}, error) {
-	ids, e := getColumn(x,table.{{.StructName}}.TableName, table.{{.StructName}}.PrimaryKey, cond, size, index)
+	ids, e := getColumn(x,table.{{.StructName}}.TableName, table.{{.StructName}}.PrimaryKey.Quote(), cond, size, index)
 {{if .HasCache}}
 	if len(ids) > 0 {
 		//重置cache
@@ -450,12 +450,12 @@ func (p *{{lower .StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder
 }
 
 //GetColumn 根据cond条件从数据库中单列slice
-func (p *{{lower .StructName}}) GetColumn(x interface{}, col table.TableField, cond table.ISqlBuilder, size, index int) ([]interface{}, error) {
+func (p *{{lower .StructName}}) GetColumn(x interface{}, col string, cond table.ISqlBuilder, size, index int) ([]interface{}, error) {
 	return getColumn(x,table.{{.StructName}}.TableName, col, cond, size, index)
 }
 
 //Sum 对某个字段进行求和
-func (p *{{lower .StructName}}) Sum(x interface{}, cond table.ISqlBuilder, col table.TableField) (float64, error) {
+func (p *{{lower .StructName}}) Sum(x interface{}, cond table.ISqlBuilder, col string) (float64, error) {
 	db := getDB(x, table.{{.StructName}}.TableName)
 
 	if cond != nil {
@@ -476,7 +476,7 @@ func (p *{{lower .StructName}}) Sum(x interface{}, cond table.ISqlBuilder, col t
 		}
 	}
 
-	sum, e := db.Sum(p, col.Name)
+	sum, e := db.Sum(p, col)
 	if e != nil {
 		log.Logs.Error(e)
 		return 0, e
@@ -485,16 +485,11 @@ func (p *{{lower .StructName}}) Sum(x interface{}, cond table.ISqlBuilder, col t
 }
 
 //Sums 对某几个字段进行求和
-func (p *{{lower .StructName}}) Sums(x interface{}, cond table.ISqlBuilder, cols ...table.TableField) ([]float64, error) {
+func (p *{{lower .StructName}}) Sums(x interface{}, cond table.ISqlBuilder, cols ...string) ([]float64, error) {
 	if len(cols) == 0 {
 		return []float64{}, Param_Missing
 	}
 	
-	_cols := make([]string, len(cols))
-	for i := 0; i < len(cols); i++ {
-		_cols[i] = cols[i].Name
-	}
-
 	db := getDB(x, table.{{.StructName}}.TableName)
 
 	if cond != nil {
@@ -515,7 +510,7 @@ func (p *{{lower .StructName}}) Sums(x interface{}, cond table.ISqlBuilder, cols
 		}
 	}
 
-	sums, e := db.Sums(p, _cols...)
+	sums, e := db.Sums(p, cols...)
 	if e != nil {
 		log.Logs.Error(e)
 		return []float64{}, e
@@ -584,7 +579,7 @@ func (p *{{lower .StructName}}) CountNoCache(x interface{}, cond table.ISqlBuild
 }
 
 // Gets 根据主键列表从cache中获取一组数据
-func (p *{{lower .StructName}}) Gets(x interface{}, ids []interface{}, cols ...interface{}) ([]*models.{{.StructName}}, error) {
+func (p *{{lower .StructName}}) Gets(x interface{}, ids []interface{}, cols ...string) ([]*models.{{.StructName}}, error) {
 {{if .HasCache}}
 	l := len(ids)
 	if l == 0 {
@@ -593,7 +588,7 @@ func (p *{{lower .StructName}}) Gets(x interface{}, ids []interface{}, cols ...i
 
 	var suffix string
 	if len(cols) > 0 {
-		suffix = strings.Join(table.Columns(cols...), ",")
+		suffix = strings.Join(cols, ",")
 	}
 
 	keys := make([]string, 0, l)
@@ -623,7 +618,7 @@ func (p *{{lower .StructName}}) Gets(x interface{}, ids []interface{}, cols ...i
 	}
 	if len(_ids) > 0 {
 		do, _, _ := Sync({{lower .StructName}}_ids_cache.Key(_ids, suffix), func() (interface{}, error) {
-			return p.GetsNoCache(x, _ids, cols)
+			return p.GetsNoCache(x, _ids, cols...)
 		})
 		if _list, ok := do.([]*models.{{.StructName}}); ok {
 			if len(_list) > 0 {
@@ -638,17 +633,15 @@ func (p *{{lower .StructName}}) Gets(x interface{}, ids []interface{}, cols ...i
 }
 
 // GetsNoCache 根据主键列表从数据库中获取一组数据
-func (p *{{lower .StructName}}) GetsNoCache(x interface{}, ids []interface{}, cols ...interface{}) ([]*models.{{.StructName}}, error) {
+func (p *{{lower .StructName}}) GetsNoCache(x interface{}, ids []interface{}, cols ...string) ([]*models.{{.StructName}}, error) {
 	idsLen := len(ids)
 	if idsLen == 0 {
 		return []*models.{{.StructName}}{}, nil
 	}
 
-	_cols := table.Columns(cols...)
-
 	db := getDB(x, table.{{.StructName}}.TableName)
-	if len(_cols) > 0 {
-		db.Cols(_cols...)
+	if len(cols) > 0 {
+		db.Cols(cols...)
 	}
 
 	list := make([]*models.{{.StructName}}, 0)
@@ -659,8 +652,8 @@ func (p *{{lower .StructName}}) GetsNoCache(x interface{}, ids []interface{}, co
 	}
 {{if .HasCache}}
 	var suffix string
-	if len(_cols) > 0 {
-		suffix = strings.Join(_cols, ",")
+	if len(cols) > 0 {
+		suffix = strings.Join(cols, ",")
 	}
 
 	_ids := make([]interface{}, 0, idsLen)
@@ -720,13 +713,7 @@ func (p *{{lower .StructName}}) Find(x interface{}, cond table.ISqlBuilder, size
 		return []*models.{{.StructName}}{}, e
 	}
 	
-	cols := cond.GetCols()
-	_cols := make([]interface{}, 0, len(cols))
-	for i := 0; i < len(cols); i++ {
-		_cols = append(_cols, cols[i])
-	}
-
-	return p.Gets(x, ids, _cols...)
+	return p.Gets(x, ids, cond.GetCols()...)
 {{else}}
 	return p.FindNoCache(x,cond,size,index)
 {{end}}

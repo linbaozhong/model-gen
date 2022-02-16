@@ -112,12 +112,12 @@ func getDB(x interface{}, tablename string) *models.Session {
 	return models.Db().Table(tablename)
 }
 
-func getColumn(x interface{}, tablename string, col table.TableField, cond table.ISqlBuilder, size, index int) ([]interface{}, error) {
+func getColumn(x interface{}, tablename string, col string, cond table.ISqlBuilder, size, index int) ([]interface{}, error) {
 	db := getDB(x, tablename)
 
 	cls := make([]interface{}, 0)
 
-	db.Cols(col.Quote())
+	db.Cols(col)
 	if cond == nil {
 		if size > 0 {
 			if index == 0 {
