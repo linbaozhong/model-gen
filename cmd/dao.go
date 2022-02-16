@@ -444,6 +444,10 @@ func (p *{{lower .StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder
 		if e != nil {
 			log.Logs.Error(e)
 		}
+		e = {{lower .StructName}}_ids_cache.Client().Expire(getContext(x), key, {{lower .StructName}}_ids_cache.DueTime()).Err()
+		if e != nil {
+			log.Logs.Error(e)
+		}
 	}
 {{end}}
 	return ids, e
