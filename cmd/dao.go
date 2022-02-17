@@ -36,7 +36,6 @@ var (
 {{end}}
 )
 
-
 {{if .HasPrimaryKey}}
 //Insert 新增一条数据
 func (p *{{lower .StructName}}) Insert(x interface{}, bean *models.{{.StructName}}, cols ...string) (int64,error) {
@@ -959,6 +958,25 @@ func (d *TempData) writeToDao(fileName string) error {
 	var buf bytes.Buffer
 	funcMap := template.FuncMap{
 		"lower": strings.ToLower,
+		"getTypeValue": func(t []string) interface{} {
+			if len(t) < 3 {
+				return `""`
+			}
+			var ret interface{}
+			switch t[2] {
+			case "string":
+				ret = `""`
+			case "uint", "uint8", "uint16", "uint32", "uint64", "int", "int8", "int16", "int32", "int64", "float32", "float64":
+				ret = 0
+			case "time.Time":
+				ret = `time.Time{}`
+			case "bool":
+				ret = `false`
+			default:
+				ret = 0
+			}
+			return ret
+		},
 	}
 
 	err := template.Must(template.New("daoTpl").Funcs(funcMap).Parse(dao_str)).Execute(&buf, d)
