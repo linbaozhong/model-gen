@@ -11,20 +11,27 @@ import (
 func writeBuildFile(filename string) error {
 	buildFilename, _ := filepath.Abs(filename)
 
-	file, err := os.Create(buildFilename)
-	if err != nil {
-		showError(err.Error())
-		return err
+	f, e := os.OpenFile(buildFilename, os.O_RDWR|os.O_CREATE, os.ModePerm)
+	if e != nil {
+		showError(e.Error())
+		return e
 	}
-	defer file.Close()
+	defer f.Close()
+
+	e = f.Truncate(0)
+	if e != nil {
+		showError(e.Error())
+		return e
+	}
+
 	var buf bytes.Buffer
 	_ = template.Must(template.New("buildTpl").Parse(buildTpl)).Execute(&buf, nil)
 	formatted, _ := format.Source(buf.Bytes())
-	_, err = file.Write(formatted)
-	if err != nil {
-		showError(err.Error())
+	_, e = f.Write(formatted)
+	if e != nil {
+		showError(e.Error())
 	}
-	return err
+	return e
 }
 
 var buildTpl = `

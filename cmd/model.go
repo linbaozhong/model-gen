@@ -203,39 +203,32 @@ func (d *TempData) writeToModel(fileName string) error {
 		//"marshal": JSONValue,
 	}
 
-	err := template.Must(template.New("tableTpl").Funcs(funcMap).Parse(model_str)).Execute(&buf, d)
-	if err != nil {
-		showError(err)
-		return err
+	e := template.Must(template.New("tableTpl").Funcs(funcMap).Parse(model_str)).Execute(&buf, d)
+	if e != nil {
+		showError(e)
+		return e
 	}
 
 	absPath, _ := filepath.Abs(fileName)
 	fileName = filepath.Join(filepath.Dir(absPath), "zzz_"+d.StructName+".go")
-	//fileName = filepath.Join(filepath.Dir(absPath), "zzz_models.go")
 
-	//文件已存在
-	_, e := os.Stat(fileName)
-	if e != nil && os.IsExist(e) {
-		if e = os.Remove(fileName); e != nil {
-			return e
-		}
-	}
-	var (
-		f *os.File
-	)
-
-	f, err = os.OpenFile(fileName, os.O_CREATE, os.ModePerm)
-
-	if err != nil {
-		showError(err.Error())
-		return err
+	f, e := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE, os.ModePerm)
+	if e != nil {
+		showError(e.Error())
+		return e
 	}
 	defer f.Close()
 
-	_, err = f.Write(buf.Bytes())
-	if err != nil {
-		showError(err)
-		return err
+	e = f.Truncate(0)
+	if e != nil {
+		showError(e.Error())
+		return e
+	}
+
+	_, e = f.Write(buf.Bytes())
+	if e != nil {
+		showError(e)
+		return e
 	}
 
 	return nil
