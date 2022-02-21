@@ -11,20 +11,27 @@ import (
 func writeDaoBaseFile(filename, modulePath string) error {
 	baseFilename, _ := filepath.Abs(filename)
 
-	file, err := os.Create(baseFilename)
-	if err != nil {
-		showError(err.Error())
-		return err
+	f, e := os.OpenFile(baseFilename, os.O_RDWR|os.O_CREATE, os.ModePerm)
+	if e != nil {
+		showError(e.Error())
+		return e
 	}
-	defer file.Close()
+	defer f.Close()
+
+	e = f.Truncate(0)
+	if e != nil {
+		showError(e.Error())
+		return e
+	}
+
 	var buf bytes.Buffer
 	_ = template.Must(template.New("daoBaseTpl").Parse(daoBaseTpl)).Execute(&buf, modulePath)
 	formatted, _ := format.Source(buf.Bytes())
-	_, err = file.Write(formatted)
-	if err != nil {
-		showError(err.Error())
+	_, e = f.Write(formatted)
+	if e != nil {
+		showError(e.Error())
 	}
-	return err
+	return e
 }
 
 //

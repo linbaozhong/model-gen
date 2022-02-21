@@ -294,29 +294,38 @@ func (d *TempData) writeTo(w io.Writer) error {
 
 // writeToTable 将生成好的模块文件写到本地
 func (d *TempData) writeToTable() error {
-	file, err := os.Create(d.tableFilename())
-	if err != nil {
-		showError(err.Error())
-		return err
+	tableFilename := d.tableFilename()
+
+	f, e := os.OpenFile(tableFilename, os.O_RDWR|os.O_CREATE, os.ModePerm)
+	if e != nil {
+		showError(e.Error())
+		return e
 	}
-	defer file.Close()
+	defer f.Close()
+
+	e = f.Truncate(0)
+	if e != nil {
+		showError(e.Error())
+		return e
+	}
+
 	var buf bytes.Buffer
-	err = d.writeTo(&buf)
-	if err != nil {
-		showError(err.Error())
-		return err
+	e = d.writeTo(&buf)
+	if e != nil {
+		showError(e.Error())
+		return e
 	}
-	formatted, err := format.Source(buf.Bytes())
-	if err != nil {
-		showError(err.Error())
-		return err
+	formatted, e := format.Source(buf.Bytes())
+	if e != nil {
+		showError(e.Error())
+		return e
 	}
-	_, err = file.Write(formatted)
-	if err != nil {
-		showError(err.Error())
-		return err
+	_, e = f.Write(formatted)
+	if e != nil {
+		showError(e.Error())
+		return e
 	}
-	return err
+	return e
 }
 
 //

@@ -979,31 +979,32 @@ func (d *TempData) writeToDao(fileName string) error {
 		},
 	}
 
-	err := template.Must(template.New("daoTpl").Funcs(funcMap).Parse(dao_str)).Execute(&buf, d)
-	if err != nil {
-		showError(err)
-		return err
+	e := template.Must(template.New("daoTpl").Funcs(funcMap).Parse(dao_str)).Execute(&buf, d)
+	if e != nil {
+		showError(e)
+		return e
 	}
 
 	absPath, _ := filepath.Abs(fileName)
 	fileName = filepath.Join(filepath.Dir(absPath), "dao", d.StructName+"_dao.go")
 
-	var (
-		f *os.File
-	)
-
-	f, err = os.Create(fileName)
-
-	if err != nil {
-		showError(err.Error())
-		return err
+	f, e := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE, os.ModePerm)
+	if e != nil {
+		showError(e.Error())
+		return e
 	}
 	defer f.Close()
 
-	_, err = f.Write(buf.Bytes())
-	if err != nil {
-		showError(err)
-		return err
+	e = f.Truncate(0)
+	if e != nil {
+		showError(e.Error())
+		return e
+	}
+
+	_, e = f.Write(buf.Bytes())
+	if e != nil {
+		showError(e)
+		return e
 	}
 
 	return nil
