@@ -881,11 +881,11 @@ func (p *{{lower .StructName}}) OnListChange(x interface{}, cond ...table.ISqlBu
 	ctx := getContext(x)
 	if len(cond) == 0 {
 		if e := {{lower .StructName}}_ids_cache.Empty(ctx); e != nil {
-		log.Logs.Error(e)
-	}
+			log.Logs.Error(e)
+		}
 		if e := {{lower .StructName}}_count_cache.Empty(ctx); e != nil {
-		log.Logs.Error(e)
-	}
+			log.Logs.Error(e)
+		}
 		return
 	}
 	if e := {{lower .StructName}}_ids_cache.Remove(ctx, cond[0]); e != nil {
