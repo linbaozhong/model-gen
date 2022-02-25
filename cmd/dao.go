@@ -605,7 +605,7 @@ func (p *{{lower .StructName}}) Gets(x interface{}, ids []interface{}, cols ...s
 	}
 
 	_ids := make([]interface{}, 0, l) //未命中的key
-	_rsmap := make(map[interface{}]*models.{{.StructName}}, l)
+	_rsmap := make(map[string]*models.{{.StructName}}, l)
 	for i := 0; i < l; i++ {
 		m := rs[i]
 		if m == nil {
@@ -614,7 +614,7 @@ func (p *{{lower .StructName}}) Gets(x interface{}, ids []interface{}, cols ...s
 		}
 		mm := models.New{{.StructName}}()
 		if e = json.UnmarshalFromString(utils.Interface2String(m), mm); e == nil {
-			_rsmap[mm.ID] = mm
+			_rsmap[utils.Interface2String(mm.ID)] = mm
 		} else {
 			log.Logs.Error(e)
 		}
@@ -626,14 +626,14 @@ func (p *{{lower .StructName}}) Gets(x interface{}, ids []interface{}, cols ...s
 		if _list, ok := do.([]*models.{{.StructName}}); ok {
 			for i := 0; i < len(_list); i++ {
 				_m := _list[i]
-				_rsmap[_m.ID] = _m
+				_rsmap[utils.Interface2String(_m.ID)] = _m
 			}
 		}
 	}
 	//按ids排序
 	_list := make([]*models.{{.StructName}}, 0, l)
 	for i := 0; i < l; i++ {
-		if _m, ok := _rsmap[ids[i]]; ok {
+		if _m, ok := _rsmap[utils.Interface2String(ids[i])]; ok {
 			_list = append(_list, _m)
 			continue
 		}
