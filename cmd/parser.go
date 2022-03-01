@@ -296,18 +296,18 @@ func (d *TempData) writeTo(w io.Writer) error {
 func (d *TempData) writeToTable() error {
 	tableFilename := d.tableFilename()
 
-	f, e := os.OpenFile(tableFilename, os.O_RDWR|os.O_CREATE, os.ModePerm)
+	f, e := os.OpenFile(tableFilename, os.O_RDWR|os.O_TRUNC|os.O_CREATE, os.ModePerm)
 	if e != nil {
 		showError(e.Error())
 		return e
 	}
 	defer f.Close()
 
-	e = f.Truncate(0)
-	if e != nil {
-		showError(e.Error())
-		return e
-	}
+	//e = f.Truncate(0)
+	//if e != nil {
+	//	showError(e.Error())
+	//	return e
+	//}
 
 	var buf bytes.Buffer
 	e = d.writeTo(&buf)

@@ -11,18 +11,18 @@ import (
 func writeBuildFile(filename string) error {
 	buildFilename, _ := filepath.Abs(filename)
 
-	f, e := os.OpenFile(buildFilename, os.O_RDWR|os.O_CREATE, os.ModePerm)
+	f, e := os.OpenFile(buildFilename, os.O_RDWR|os.O_TRUNC|os.O_CREATE, os.ModePerm)
 	if e != nil {
 		showError(e.Error())
 		return e
 	}
 	defer f.Close()
 
-	e = f.Truncate(0)
-	if e != nil {
-		showError(e.Error())
-		return e
-	}
+	//e = f.Truncate(0)
+	//if e != nil {
+	//	showError(e.Error())
+	//	return e
+	//}
 
 	var buf bytes.Buffer
 	_ = template.Must(template.New("buildTpl").Parse(buildTpl)).Execute(&buf, nil)
