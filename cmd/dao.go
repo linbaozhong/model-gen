@@ -150,6 +150,9 @@ func (p *{{lower .StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilde
 		if cols := cond.GetCols(); len(cols) > 0 {
 			db.Cols(cols...)
 		}
+		if omit := cond.GetOmit(); len(omit) > 0 {
+			db.Omit(omit...)
+		}
 		if s, args := cond.GetWhere(); s != "" {
 			db.Where(s, args...)
 		}
@@ -726,7 +729,7 @@ func (p *{{lower .StructName}}) Find(x interface{}, cond table.ISqlBuilder, size
 		return []*models.{{.StructName}}{}, e
 	}
 	
-	return p.Gets(x, ids, cond.GetCols()...)
+	return p.Gets(x, ids, cond.GetColsX(table.{{.StructName}}.ColumnNames)...)
 {{else}}
 	return p.FindNoCache(x,cond,size,index)
 {{end}}
@@ -754,6 +757,9 @@ func (p *{{lower .StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilde
 		}
 		if cols := cond.GetCols(); len(cols) > 0 {
 			db.Cols(cols...)
+		}
+		if omit := cond.GetOmit(); len(omit) > 0 {
+			db.Omit(omit...)
 		}
 		if s, args := cond.GetWhere(); s != "" {
 			db.Where(s, args...)
