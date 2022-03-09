@@ -212,18 +212,18 @@ func (d *TempData) writeToModel(fileName string) error {
 	absPath, _ := filepath.Abs(fileName)
 	fileName = filepath.Join(filepath.Dir(absPath), "zzz_"+d.StructName+".go")
 
-	f, e := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE, os.ModePerm)
+	f, e := os.OpenFile(fileName, os.O_RDWR|os.O_TRUNC|os.O_CREATE, os.ModePerm)
 	if e != nil {
 		showError(e.Error())
 		return e
 	}
 	defer f.Close()
 
-	e = f.Truncate(0)
-	if e != nil {
-		showError(e.Error())
-		return e
-	}
+	//e = f.Truncate(0)
+	//if e != nil {
+	//	showError(e.Error())
+	//	return e
+	//}
 
 	_, e = f.Write(buf.Bytes())
 	if e != nil {

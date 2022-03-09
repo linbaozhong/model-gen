@@ -211,14 +211,6 @@ func parseTagsForXORM(matchs []string) (columnName string, key string, rw string
 	}
 	key = *k
 	return
-
-	//if len(matchs) >= 1 {
-	//	_matchs := regexp.MustCompile(`'(.*?)'`).FindStringSubmatch(matchs[0])
-	//	if len(_matchs) >= 1 {
-	//		return _matchs[1]
-	//	}
-	//}
-	//return ""
 }
 
 func parseTagsForGORM(matchs []string) string {
@@ -296,18 +288,18 @@ func (d *TempData) writeTo(w io.Writer) error {
 func (d *TempData) writeToTable() error {
 	tableFilename := d.tableFilename()
 
-	f, e := os.OpenFile(tableFilename, os.O_RDWR|os.O_CREATE, os.ModePerm)
+	f, e := os.OpenFile(tableFilename, os.O_RDWR|os.O_TRUNC|os.O_CREATE, os.ModePerm)
 	if e != nil {
 		showError(e.Error())
 		return e
 	}
 	defer f.Close()
 
-	e = f.Truncate(0)
-	if e != nil {
-		showError(e.Error())
-		return e
-	}
+	//e = f.Truncate(0)
+	//if e != nil {
+	//	showError(e.Error())
+	//	return e
+	//}
 
 	var buf bytes.Buffer
 	e = d.writeTo(&buf)

@@ -11,18 +11,18 @@ import (
 func writeBuildFile(filename string) error {
 	buildFilename, _ := filepath.Abs(filename)
 
-	f, e := os.OpenFile(buildFilename, os.O_RDWR|os.O_CREATE, os.ModePerm)
+	f, e := os.OpenFile(buildFilename, os.O_RDWR|os.O_TRUNC|os.O_CREATE, os.ModePerm)
 	if e != nil {
 		showError(e.Error())
 		return e
 	}
 	defer f.Close()
 
-	e = f.Truncate(0)
-	if e != nil {
-		showError(e.Error())
-		return e
-	}
+	//e = f.Truncate(0)
+	//if e != nil {
+	//	showError(e.Error())
+	//	return e
+	//}
 
 	var buf bytes.Buffer
 	_ = template.Must(template.New("buildTpl").Parse(buildTpl)).Execute(&buf, nil)
@@ -111,8 +111,11 @@ type ISqlBuilder interface {
 
 	Distinct() ISqlBuilder
 	Cols(args ...interface{}) ISqlBuilder
+	Omit(args ...interface{}) ISqlBuilder
+	GetColsX(args []string) []string
 	GetCols() []string
-	Where(sql string, v interface{}) *sqlBuilder
+	GetOmit() []string
+	Where(sql string, v ...interface{}) *sqlBuilder
 	//等于
 	Eq(f TableField, v interface{}) ISqlBuilder
 	//大于
@@ -305,12 +308,18 @@ func Eq(f TableField, v interface{}) ISqlBuilder {
 }
 
 //Where
-func Where(sql string, v interface{}) *sqlBuilder {
-	return NewSqlBuilder().Where(sql, v)
+func Where(sql string, v ...interface{}) *sqlBuilder {
+	return NewSqlBuilder().Where(sql, v...)
 }
+
 //Cols
 func Cols(args ...interface{}) ISqlBuilder {
 	return NewSqlBuilder().Cols(args...)
+}
+
+//Omit
+func Omit(args ...interface{}) ISqlBuilder {
+	return NewSqlBuilder().Omit(args...)
 }
 
 //OrderBy
@@ -364,6 +373,7 @@ type sqlBuilder struct {
 	table       string
 	distinct    bool
 	cols        []interface{}
+	omit        []interface{}
 	where       strings.Builder
 	whereParams []interface{}
 	groupBy     strings.Builder
@@ -767,10 +777,10 @@ func (p *sqlBuilder) Eq(f TableField, v interface{}) ISqlBuilder {
 }
 
 //Where
-func (p *sqlBuilder) Where(sql string, v interface{}) *sqlBuilder {
+func (p *sqlBuilder) Where(sql string, v ...interface{}) *sqlBuilder {
 	p.prepare()
 	p.where.WriteString(sql)
-	p.whereParams = append(p.whereParams, v)
+	p.whereParams = append(p.whereParams, v...)
 
 	p.andOr = false
 	return p
@@ -782,12 +792,63 @@ func (p *sqlBuilder) Cols(args ...interface{}) ISqlBuilder {
 	return p
 }
 
+//Omit
+func (p *sqlBuilder) Omit(args ...interface{}) ISqlBuilder {
+	p.omit = args
+	return p
+}
+
+//GetColsX
+func (p *sqlBuilder) GetColsX(args []string) []string {
+	var s = p.GetCols()
+	if len(s) == 0 {
+		s = args
+	}
+	if len(s) > 0 {
+		o := p.GetOmit()
+		if len(o) == 0 {
+			return s
+		}
+		m := make(map[string]struct{}, len(o))
+		for i := 0; i < len(o); i++ {
+			m[o[i]] = struct{}{}
+		}
+		_s := make([]string, 0, len(s))
+		for i := 0; i < len(s); i++ {
+			if _, ok := m[s[i]]; !ok {
+				_s = append(_s, s[i])
+			}
+		}
+		return _s
+	}
+	return s
+}
+
+//GetCols
 func (p *sqlBuilder) GetCols() []string {
 	if len(p.cols) == 0 {
 		return []string{}
 	}
 	s := make([]string, 0, len(p.cols))
 	for _, col := range p.cols {
+		if _f, ok := col.(TableField); ok {
+			s = append(s, _f.Quote())
+		} else if _f, ok := col.(string); ok {
+			s = append(s, _f)
+		} else if _fs, ok := col.([]string); ok {
+			s = append(s, _fs...)
+		}
+	}
+	return s
+}
+
+//GetOmit
+func (p *sqlBuilder) GetOmit() []string {
+	if len(p.omit) == 0 {
+		return []string{}
+	}
+	s := make([]string, 0, len(p.omit))
+	for _, col := range p.omit {
 		if _f, ok := col.(TableField); ok {
 			s = append(s, _f.Quote())
 		} else if _f, ok := col.(string); ok {
