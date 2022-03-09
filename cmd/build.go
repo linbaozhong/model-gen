@@ -886,7 +886,10 @@ func (p *sqlBuilder) Or(sb ISqlBuilder) ISqlBuilder {
 		p.where.WriteString(operator_or)
 		p.andOr = true
 	}
-	return p.subCond(sb)
+	p.where.WriteString("(")
+	p.subCond(sb)
+	p.where.WriteString(")")
+	return p
 }
 
 //GetWhere
