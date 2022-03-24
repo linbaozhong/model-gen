@@ -85,7 +85,7 @@ func (p *{{lower .StructName}}) InsertBatch(x interface{}, beans []*models.{{.St
 }
 
 //Update 根据主键修改一条数据
-func (p *{{lower .StructName}}) Update(x interface{}, id types.BigUint, bean interface{}) (int64,error) {
+func (p *{{lower .StructName}}) Update(x interface{}, id {{index .PrimaryKey 2}}, bean interface{}) (int64,error) {
 	if bean == nil {
 		bean = types.Smap{}
 	}
@@ -186,7 +186,7 @@ func (p *{{lower .StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilde
 }
 
 //Delete 根据主键删除一条数据
-func (p *{{lower .StructName}}) Delete(x interface{}, id types.BigUint) (int64,error) {
+func (p *{{lower .StructName}}) Delete(x interface{}, id {{index .PrimaryKey 2}}) (int64,error) {
 	db := getDB(x, table.{{.StructName}}.TableName)
 
 	i64,e := db.Where(table.{{.StructName}}.PrimaryKey.Eq(),id).
@@ -239,7 +239,7 @@ func (p *{{lower .StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilde
 }
 {{if .HasState}}
 //SoftDelete 软删除：根据主键删除一条数据，数据表中必须要state字段 -1=软删除
-func (p *{{lower .StructName}}) SoftDelete(x interface{}, id types.BigUint) (int64,error) {
+func (p *{{lower .StructName}}) SoftDelete(x interface{}, id {{index .PrimaryKey 2}}) (int64,error) {
 	db := getDB(x, table.{{.StructName}}.TableName)
 
 	i64,e := db.Where(table.{{.StructName}}.PrimaryKey.Eq(),id).
@@ -297,7 +297,7 @@ func (p *{{lower .StructName}}) SoftDeleteBatch(x interface{}, cond table.ISqlBu
 {{end}}
 
 //Get 根据主键从Cache中获取一条数据
-func (p *{{lower .StructName}}) Get(x interface{},id types.BigUint, cols ...string) (bool, *models.{{.StructName}}, error) {
+func (p *{{lower .StructName}}) Get(x interface{},id {{index .PrimaryKey 2}}, cols ...string) (bool, *models.{{.StructName}}, error) {
 {{if .HasCache}}
 	bean := models.New{{.StructName}}()
 	if id < 1 {
@@ -352,9 +352,9 @@ func (p *{{lower .StructName}}) Get(x interface{},id types.BigUint, cols ...stri
 }
 
 //GetNoCache 根据主键从数据库中获取一条数据
-func (p *{{lower .StructName}}) GetNoCache(x interface{},id types.BigUint, cols ...string) (bool, *models.{{.StructName}},error) {
+func (p *{{lower .StructName}}) GetNoCache(x interface{},id {{index .PrimaryKey 2}}, cols ...string) (bool, *models.{{.StructName}},error) {
 	var bean = models.New{{.StructName}}()
-	if id < 1 {
+	{{$type := index .PrimaryKey 2}}{{if eq $type "string"}}if id == "" { {{else}}if id < 1 { {{end}}
 		return false, bean, Err_NoRows
 	}
 	db := getDB(x, table.{{.StructName}}.TableName)
@@ -700,9 +700,9 @@ func (p *{{lower .StructName}}) GetsNoCache(x interface{}, ids []interface{}, co
 }
 
 // GetsMap 根据主键列表从cache中获取一组数据，返回一个 map
-func (p *{{lower .StructName}}) GetsMap(x interface{}, ids []interface{}) (map[types.BigUint]*models.{{.StructName}}, error) {
+func (p *{{lower .StructName}}) GetsMap(x interface{}, ids []interface{}) (map[{{index .PrimaryKey 2}}]*models.{{.StructName}}, error) {
 	if len(ids) == 0 {
-		return map[types.BigUint]*models.{{.StructName}}{}, nil
+		return map[{{index .PrimaryKey 2}}]*models.{{.StructName}}{}, nil
 	}
 {{if .HasCache}}
 	ms, e := p.Gets(x, ids)
@@ -710,13 +710,13 @@ func (p *{{lower .StructName}}) GetsMap(x interface{}, ids []interface{}) (map[t
 	ms, e := p.GetsNoCache(x, ids)
 {{end}}
 	if e != nil || len(ms) == 0{
-		return map[types.BigUint]*models.{{.StructName}}{}, e
+		return map[{{index .PrimaryKey 2}}]*models.{{.StructName}}{}, e
 	}
 	l := len(ms)
-	list := make(map[types.BigUint]*models.{{.StructName}}, l)
+	list := make(map[{{index .PrimaryKey 2}}]*models.{{.StructName}}, l)
 	for i := 0; i < l; i++ {
 		m := ms[i]
-		list[types.BigUint(m.{{.PrimaryKeyName}})] = m
+		list[{{index .PrimaryKey 2}}(m.{{.PrimaryKeyName}})] = m
 	}
 	return list, nil
 }
@@ -791,24 +791,24 @@ func (p *{{lower .StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilde
 }
 
 //FindMap 根据cond条件从cache中获取数据列表，返回一个 map
-func (p *{{lower .StructName}}) FindMap(x interface{}, cond table.ISqlBuilder, size, index int) (map[types.BigUint]*models.{{.StructName}}, error) {
+func (p *{{lower .StructName}}) FindMap(x interface{}, cond table.ISqlBuilder, size, index int) (map[{{index .PrimaryKey 2}}]*models.{{.StructName}}, error) {
 {{if .HasCache}}
 	ids, e := p.IDs(x,cond,size,index)
 	if len(ids) == 0 {
-		return map[types.BigUint]*models.{{.StructName}}{}, e
+		return map[{{index .PrimaryKey 2}}]*models.{{.StructName}}{}, e
 	}
 
 	return p.GetsMap(x, ids)
 {{else}}
 	ms, e := p.FindNoCache(x,cond,size,index)
 	if e != nil || len(ms) == 0{
-		return map[types.BigUint]*models.{{.StructName}}{}, e
+		return map[{{index .PrimaryKey 2}}]*models.{{.StructName}}{}, e
 	}
 	l := len(ms)
-	list := make(map[types.BigUint]*models.{{.StructName}}, l)
+	list := make(map[{{index .PrimaryKey 2}}]*models.{{.StructName}}, l)
 	for i := 0; i < l; i++ {
 		m := ms[i]
-		list[types.BigUint(m.{{.PrimaryKeyName}})] = m
+		list[{{index .PrimaryKey 2}}(m.{{.PrimaryKeyName}})] = m
 	}
 	return list, nil
 {{end}}
@@ -877,7 +877,7 @@ func (p *{{lower .StructName}}) Exists(x interface{}, cond table.ISqlBuilder) (b
 
 {{if .HasCache}}
 //OnChange
-func (p *{{lower .StructName}}) OnChange(x interface{}, id types.BigUint) {
+func (p *{{lower .StructName}}) OnChange(x interface{}, id {{index .PrimaryKey 2}}) {
 	if e := {{lower .StructName}}_cache.Remove(getContext(x), id); e != nil {
 		log.Logs.Error(e)
 	}
