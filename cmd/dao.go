@@ -30,9 +30,9 @@ type {{lower .StructName}} struct {}
 var (
 	{{.StructName}} {{lower .StructName}}
 {{if and .HasCache .HasPrimaryKey}}
-	{{lower .StructName}}_cache     = redis.NewClient(conf.App.Mode,"{{lower .StructName}}").Expiration({{.CacheData}})
-	{{lower .StructName}}_ids_cache = redis.NewClient(conf.App.Mode, "{{lower .StructName}}_ids").Expiration({{.CacheList}})
-	{{lower .StructName}}_count_cache = redis.NewClient(conf.App.Mode, "{{lower .StructName}}_count").Expiration({{.CacheList}})
+	{{lower .StructName}}_cache     = redis.NewClient(conf.App.Mode, conf.App.Name+":{{lower .StructName}}").Expiration({{.CacheData}})
+	{{lower .StructName}}_ids_cache = redis.NewClient(conf.App.Mode, conf.App.Name+":{{lower .StructName}}_ids").Expiration({{.CacheList}})
+	{{lower .StructName}}_count_cache = redis.NewClient(conf.App.Mode, conf.App.Name+":{{lower .StructName}}_count").Expiration({{.CacheList}})
 {{end}}
 )
 
