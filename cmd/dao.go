@@ -310,22 +310,24 @@ func (p *{{lower .StructName}}) Get(x interface{},id {{index .PrimaryKey 2}}, co
 		//redis key不存在
 		if e == redis.Err_Key_Not_Found {
 			do, e, _ := Sync({{lower .StructName}}_cache.Key(id, suffix), func() (interface{}, error) {
-				has, m, e := p.GetNoCache(x, id, cols...)
-				bs, err := json.Marshal(m)
-				if err != nil {
+				has, m, _ := p.GetNoCache(x, id, cols...)
+				bs, e := json.Marshal(m)
+				if e != nil {
 					log.Logs.Error(e)
-					return []byte{}, err
+					return []byte{}, e
 				}
 				if has {
 					return bs, nil
 				}
-				if e != nil {
-					return []byte{}, e
-				}
 				return []byte{}, Err_NoRows
 			})
+
 			if e != nil {
-				return false, bean, e
+				if e == Err_NoRows {
+					return false, bean, nil
+				} else {
+					return false, bean, e
+				}
 			}
 			e = json.Unmarshal(do.([]byte), bean)
 			if e != nil {
