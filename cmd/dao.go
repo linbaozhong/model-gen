@@ -339,10 +339,7 @@ func (p *{{lower .StructName}}) Get(x interface{},id {{index .PrimaryKey 2}}, co
 		log.Logs.Error(e)
 		return p.GetNoCache(x, id, cols...)
 	}
-	if s == "" {
-		return false, bean, Err_NoRows
-	}
-	if s == redis.Err_Value_Not_Found {
+	if s == "" || s == redis.Err_Value_Not_Found {
 		return false, bean, nil
 	}
 	e = json.UnmarshalFromString(s, bean)
