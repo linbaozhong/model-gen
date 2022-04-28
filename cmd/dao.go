@@ -435,30 +435,36 @@ func (p *{{lower .StructName}}) IDs(x interface{}, cond table.ISqlBuilder, size,
 //IDsNoCache 根据cond条件从数据库中获取主键slice 
 func (p *{{lower .StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder, size, index int) ([]interface{}, error) {
 {{if .HasCache}}
-	if index < 1 {
-		index = 1	
-	}
 	{{if eq .CacheLimit ""}}var _size = 1000{{else}}var _size = {{.CacheLimit}}{{end}}
 	ids, e := getColumn(x,table.{{.StructName}}.TableName, table.{{.StructName}}.PrimaryKey.Quote(), cond, _size, 1)
 	if len(ids) > 0 {
+		if index < 1 {
+			index = 1	
+		}
+		var offset = size * index
+		if offset > len(ids) {
+			offset = len(ids)
+		}
+		_size = size * (index - 1)
+
 		//重置cache
 		key := {{lower .StructName}}_ids_cache.Key(cond)
 		_, e = {{lower .StructName}}_ids_cache.Client().Del(getContext(x), key).Result()
 		if e != nil {
 			log.Logs.Error(e)
-			return ids[(size*(index-1)):(size*index)], e
+			return ids[_size:offset], e
 		}
 		_, e = {{lower .StructName}}_ids_cache.Client().RPush(getContext(x), key, ids...).Result()
 		if e != nil {
 			log.Logs.Error(e)
-			return ids[(size*(index-1)):(size*index)], e
+			return ids[_size:offset], e
 		}
 		e = {{lower .StructName}}_ids_cache.Client().Expire(getContext(x), key, {{lower .StructName}}_ids_cache.DueTime()).Err()
 		if e != nil {
 			log.Logs.Error(e)
-			return ids[(size*(index-1)):(size*index)], e
+			return ids[_size:offset], e
 		}
-		return ids[(size*(index-1)):(size*index)], nil
+		return ids[_size:offset], nil
 	}
 	return ids, nil
 {{else}}
