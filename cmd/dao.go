@@ -441,30 +441,30 @@ func (p *{{lower .StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder
 		if index < 1 {
 			index = 1	
 		}
-		var offset = size * index
-		if offset > len(ids) {
-			offset = len(ids)
+		var start = size * (index - 1)
+		var end = size * index
+		if end > len(ids) {
+			end = len(ids)
 		}
-		_size = size * (index - 1)
 
 		//重置cache
 		key := {{lower .StructName}}_ids_cache.Key(cond)
 		_, e = {{lower .StructName}}_ids_cache.Client().Del(getContext(x), key).Result()
 		if e != nil {
 			log.Logs.Error(e)
-			return ids[_size:offset], e
+			return ids[start:end], e
 		}
 		_, e = {{lower .StructName}}_ids_cache.Client().RPush(getContext(x), key, ids...).Result()
 		if e != nil {
 			log.Logs.Error(e)
-			return ids[_size:offset], e
+			return ids[start:end], e
 		}
 		e = {{lower .StructName}}_ids_cache.Client().Expire(getContext(x), key, {{lower .StructName}}_ids_cache.DueTime()).Err()
 		if e != nil {
 			log.Logs.Error(e)
-			return ids[_size:offset], e
+			return ids[start:end], e
 		}
-		return ids[_size:offset], nil
+		return ids[start:end], nil
 	}
 	return ids, nil
 {{else}}
