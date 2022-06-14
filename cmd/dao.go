@@ -340,7 +340,7 @@ func (p *{{lower .StructName}}) Get(x interface{},id {{index .PrimaryKey 2}}, co
 		return p.GetNoCache(x, id, cols...)
 	}
 	if s == "" || s == redis.Err_Value_Not_Found {
-		return false, bean, Err_NoRows
+		return false, bean, nil
 	}
 	e = json.UnmarshalFromString(s, bean)
 	if e != nil {
@@ -435,30 +435,36 @@ func (p *{{lower .StructName}}) IDs(x interface{}, cond table.ISqlBuilder, size,
 //IDsNoCache 根据cond条件从数据库中获取主键slice 
 func (p *{{lower .StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder, size, index int) ([]interface{}, error) {
 {{if .HasCache}}
-	if index < 1 {
-		index = 1	
-	}
 	{{if eq .CacheLimit ""}}var _size = 1000{{else}}var _size = {{.CacheLimit}}{{end}}
 	ids, e := getColumn(x,table.{{.StructName}}.TableName, table.{{.StructName}}.PrimaryKey.Quote(), cond, _size, 1)
 	if len(ids) > 0 {
+		if index < 1 {
+			index = 1	
+		}
+		var start = size * (index - 1)
+		var end = size * index
+		if end > len(ids) {
+			end = len(ids)
+		}
+
 		//重置cache
 		key := {{lower .StructName}}_ids_cache.Key(cond)
 		_, e = {{lower .StructName}}_ids_cache.Client().Del(getContext(x), key).Result()
 		if e != nil {
 			log.Logs.Error(e)
-			return ids[(size*(index-1)):(size*index)], e
+			return ids[start:end], e
 		}
 		_, e = {{lower .StructName}}_ids_cache.Client().RPush(getContext(x), key, ids...).Result()
 		if e != nil {
 			log.Logs.Error(e)
-			return ids[(size*(index-1)):(size*index)], e
+			return ids[start:end], e
 		}
 		e = {{lower .StructName}}_ids_cache.Client().Expire(getContext(x), key, {{lower .StructName}}_ids_cache.DueTime()).Err()
 		if e != nil {
 			log.Logs.Error(e)
-			return ids[(size*(index-1)):(size*index)], e
+			return ids[start:end], e
 		}
-		return ids[(size*(index-1)):(size*index)], nil
+		return ids[start:end], nil
 	}
 	return ids, nil
 {{else}}
