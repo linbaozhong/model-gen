@@ -437,7 +437,7 @@ func (p *{{lower .StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder
 {{if .HasCache}}
 	{{if eq .CacheLimit ""}}var _size = 1000{{else}}var _size = {{.CacheLimit}}{{end}}
 	ids, e := getColumn(x,table.{{.StructName}}.TableName, table.{{.StructName}}.PrimaryKey.Quote(), cond, _size, 1)
-	if len(ids) > 0 {
+	if len(ids) > 0 && size > 0 {
 		if index < 1 {
 			index = 1	
 		}
@@ -466,7 +466,7 @@ func (p *{{lower .StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder
 		}
 		return ids[start:end], nil
 	}
-	return ids, nil
+	return ids, e
 {{else}}
 	return getColumn(x,table.{{.StructName}}.TableName, table.{{.StructName}}.PrimaryKey.Quote(), cond, size, index)
 {{end}}
