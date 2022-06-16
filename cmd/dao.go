@@ -339,7 +339,7 @@ func (p *{{lower .StructName}}) Get(x interface{},id {{index .PrimaryKey 2}}, co
 		log.Logs.Error(e)
 		return p.GetNoCache(x, id, cols...)
 	}
-	if s == "" || s == redis.Err_Value_Not_Found {
+	if s == redis.Err_Value_Not_Found || s == "" || s == nil{
 		return false, bean, nil
 	}
 	e = json.UnmarshalFromString(s, bean)
@@ -628,7 +628,7 @@ func (p *{{lower .StructName}}) Gets(x interface{}, ids []interface{}, cols ...s
 	_rsmap := make(map[string]*models.{{.StructName}}, l)
 	for i := 0; i < l; i++ {
 		m := rs[i]
-		if m == nil {
+		if m == redis.Err_Value_Not_Found || m == nil || m == ""{
 			_ids = append(_ids, ids[i])
 			continue
 		}
