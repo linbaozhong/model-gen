@@ -865,6 +865,9 @@ func (p *{{lower .StructName}}) FindAndCount(x interface{}, cond table.ISqlBuild
 	if e != nil || i64 == 0 {
 		return i64, nil, e
 	}
+	if i64 > {{.CacheLimit}} {
+		i64 = {{.CacheLimit}}
+	}
 	ms, e = p.Find(x, cond, size, index)
 	return
 }
