@@ -437,14 +437,18 @@ func (p *{{lower .StructName}}) IDsNoCache(x interface{}, cond table.ISqlBuilder
 {{if .HasCache}}
 	{{if eq .CacheLimit ""}}var _size = 1000{{else}}var _size = {{.CacheLimit}}{{end}}
 	ids, e := getColumn(x,table.{{.StructName}}.TableName, table.{{.StructName}}.PrimaryKey.Quote(), cond, _size, 1)
-	if len(ids) > 0 && size > 0 {
+	idsLen := len(ids)
+	if idsLen > 0 && size > 0 {
 		if index < 1 {
-			index = 1	
+			index = 1
 		}
 		var start = size * (index - 1)
+		if start >= idsLen {
+			return []interface{}{}, nil
+		}
 		var end = size * index
-		if end > len(ids) {
-			end = len(ids)
+		if end > idsLen {
+			end = idsLen
 		}
 
 		//重置cache
