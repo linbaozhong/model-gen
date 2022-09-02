@@ -381,7 +381,11 @@ func (p *{{lower .StructName}}) GetNoCache(x interface{},id {{index .PrimaryKey 
 		return true, bean, nil
 	}
 	if e != nil {
-		log.Logs.DBError(db, e)
+		if e == Err_NoRows {
+			e = nil
+		} else {
+			log.Logs.DBError(db, e)
+		}
 	}
 	return false, bean, e
 }
