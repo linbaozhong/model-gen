@@ -301,7 +301,7 @@ func (p *{{lower .StructName}}) Get(x interface{},id {{index .PrimaryKey 2}}, co
 {{if .HasCache}}
 	bean := models.New{{.StructName}}()
 	if id < 1 {
-		return false, bean, Err_NoRows
+		return false, bean, nil
 	}
 
 	suffix := strings.Join(cols, ",")
@@ -361,7 +361,7 @@ func (p *{{lower .StructName}}) Get(x interface{},id {{index .PrimaryKey 2}}, co
 func (p *{{lower .StructName}}) GetNoCache(x interface{},id {{index .PrimaryKey 2}}, cols ...string) (bool, *models.{{.StructName}},error) {
 	var bean = models.New{{.StructName}}()
 	{{$type := index .PrimaryKey 2}}{{if eq $type "string"}}if id == "" { {{else}}if id < 1 { {{end}}
-		return false, bean, Err_NoRows
+		return false, bean, nil
 	}
 	db := getDB(x, table.{{.StructName}}.TableName)
 	//
@@ -381,7 +381,11 @@ func (p *{{lower .StructName}}) GetNoCache(x interface{},id {{index .PrimaryKey 
 		return true, bean, nil
 	}
 	if e != nil {
-		log.Logs.DBError(db, e)
+		if e == Err_NoRows {
+			e = nil
+		} else {
+			log.Logs.DBError(db, e)
+		}
 	}
 	return false, bean, e
 }
