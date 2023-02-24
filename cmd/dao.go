@@ -51,7 +51,7 @@ func (p *{{lower .StructName}}) Insert(x interface{}, bean *models.{{.StructName
 	}
 {{if .HasCache}}	//向下兼容，未来会移除
 	if i64 > 0 {
-		p.OnListChange(x)
+		go p.OnListChange(x)
 	}
 {{end}}
 	return i64, e
@@ -78,7 +78,7 @@ func (p *{{lower .StructName}}) InsertBatch(x interface{}, beans []*models.{{.St
 	}
 {{if .HasCache}}	//向下兼容，未来会移除
 	if i64 > 0 {
-		p.OnListChange(x)
+		go p.OnListChange(x)
 	}
 {{end}}
 	return i64, e
@@ -124,7 +124,7 @@ func (p *{{lower .StructName}}) Update(x interface{}, id {{index .PrimaryKey 2}}
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnChange(x, id)
+		go p.OnChange(x, id)
 	}
 {{end}}
 	return i64, e
@@ -179,7 +179,7 @@ func (p *{{lower .StructName}}) UpdateBatch(x interface{}, cond table.ISqlBuilde
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(x, ids)
+		go p.OnBatchChange(x, ids)
 	}
 {{end}}
 	return i64, e
@@ -198,7 +198,7 @@ func (p *{{lower .StructName}}) Delete(x interface{}, id {{index .PrimaryKey 2}}
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnChange(x, id)
+		go p.OnChange(x, id)
 	}
 {{end}}
 	return i64, e
@@ -232,7 +232,7 @@ func (p *{{lower .StructName}}) DeleteBatch(x interface{}, cond table.ISqlBuilde
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(x, ids)
+		go p.OnBatchChange(x, ids)
 	}
 {{end}}
 	return i64, e
@@ -253,7 +253,7 @@ func (p *{{lower .StructName}}) SoftDelete(x interface{}, id {{index .PrimaryKey
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnChange(x, id)
+		go p.OnChange(x, id)
 	}
 {{end}}
 	return i64, e
@@ -289,7 +289,7 @@ func (p *{{lower .StructName}}) SoftDeleteBatch(x interface{}, cond table.ISqlBu
 	}
 {{if .HasCache}}
 	if i64 > 0 {
-		p.OnBatchChange(x, ids)
+		go p.OnBatchChange(x, ids)
 	}
 {{end}}
 	return i64, e
