@@ -68,11 +68,12 @@ func (p *{{lower .StructName}}) InsertBatch(x interface{}, beans []*models.{{.St
 	if len(cols) > 0 {
 		db.Cols(cols...)
 	}
-	ibeans := make([]interface{}, l)
-	for i := 0; i < l; i++ {
-		ibeans[i] = beans[i]
-	}
-	i64, e := db.Insert(ibeans...)
+	//ibeans := make([]interface{}, l)
+	//for i := 0; i < l; i++ {
+	//	ibeans[i] = beans[i]
+	//}
+	//i64, e := db.Insert(ibeans...)
+	i64, e := db.Insert(beans)
 	if e != nil {
 		log.Logs.DBError(db, e)
 	}
