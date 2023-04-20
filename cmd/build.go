@@ -181,6 +181,8 @@ type ISqlBuilder interface {
 	SetExpr(f TableField, expr string) ISqlBuilder
 	Replace(f TableField, o, n string) ISqlBuilder
 	GetExpr() []Expr
+	//Sum(cols ...TableField) ISqlBuilder
+	//GetSum() []string
 
 	Free()
 }
@@ -390,6 +392,7 @@ type sqlBuilder struct {
 	incrCols     []Expr
 	decrCols     []Expr
 	exprCols     []Expr
+	//sumCols      []string
 }
 
 var (
@@ -433,6 +436,7 @@ func (p *sqlBuilder) Free() {
 	p.incrCols = []Expr{}
 	p.decrCols = []Expr{}
 	p.exprCols = []Expr{}
+	//p.sumCols = []string{}
 
 	sqlBuilderPool.Put(p)
 }
@@ -950,6 +954,14 @@ func (p *sqlBuilder) SetExpr(f TableField, expr string) ISqlBuilder {
 	return p
 }
 
+//// Sum
+//func (p *sqlBuilder) Sum(cols ...TableField) ISqlBuilder {
+//	for _, f := range cols {
+//		p.sumCols = append(p.sumCols, f.Quote())
+//	}
+//	return p
+//}
+
 //Replace
 func (p *sqlBuilder) Replace(f TableField, o, n string) ISqlBuilder {
 	p.exprCols = append(p.exprCols, Expr{
@@ -970,6 +982,12 @@ func (p *sqlBuilder) GetDecr() []Expr {
 func (p *sqlBuilder) GetExpr() []Expr {
 	return p.exprCols
 }
+
+//// GetSum
+//func (p *sqlBuilder) GetSum() []string {
+//	return p.sumCols
+//}
+
 func (p *sqlBuilder) GetUpdate() ([]string, []interface{}) {
 	return p.updateCols, p.updateParams
 }
