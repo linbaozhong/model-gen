@@ -687,7 +687,7 @@ func (p *{{lower .StructName}}) GetsNoCache(x interface{}, ids []interface{}, co
 
 	db := getDB(x, table.{{.StructName}}.TableName)
 	if len(cols) > 0 {
-		db.Cols(cols...)
+		db.Cols(cols...).Cols(table.{{.StructName}}.PrimaryKey.Quote())
 	}
 
 	list := make([]*models.{{.StructName}}, 0)
@@ -786,7 +786,7 @@ func (p *{{lower .StructName}}) FindNoCache(x interface{}, cond table.ISqlBuilde
 			}
 		}
 		if cols := cond.GetCols(); len(cols) > 0 {
-			db.Cols(cols...)
+			db.Cols(cols...).Cols(table.{{.StructName}}.PrimaryKey.Quote())
 		}
 		if omit := cond.GetOmit(); len(omit) > 0 {
 			db.Omit(omit...)
