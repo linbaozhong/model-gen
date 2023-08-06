@@ -37,7 +37,7 @@ type TempData struct {
 	HasConvert     bool
 }
 
-//handleFile 处理model文件
+// handleFile 处理model文件
 func handleFile(module, modulePath, filename string) error {
 	tempData := new(TempData)
 	tempData.Module = module
@@ -84,6 +84,9 @@ func handleFile(module, modulePath, filename string) error {
 		}
 
 		for _, field := range stru.Fields {
+			if len(field.Tags) == 0 {
+				continue
+			}
 			var (
 				pk string
 				rw string //禁止读写 -，只读<-，只写->
@@ -307,6 +310,7 @@ func (d *TempData) writeToTable() error {
 		showError(e.Error())
 		return e
 	}
+
 	formatted, e := format.Source(buf.Bytes())
 	if e != nil {
 		showError(e.Error())
@@ -320,7 +324,6 @@ func (d *TempData) writeToTable() error {
 	return e
 }
 
-//
 func getFieldName(name string) string {
 	bs := bytes.NewBuffer([]byte{})
 
