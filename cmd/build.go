@@ -640,7 +640,8 @@ func (p *sqlBuilder) Rand() ISqlBuilder {
 //UnNull
 func (p *sqlBuilder) UnNull(f TableField) ISqlBuilder {
 	p.prepare()
-	p.where.WriteString(f.Quote() + " IS NOT NULL")
+	p.where.WriteString(" NOT ISNULL(?)")
+	p.whereParams = append(p.whereParams,f.Quote())
 
 	p.andOr = false
 	return p
@@ -649,7 +650,8 @@ func (p *sqlBuilder) UnNull(f TableField) ISqlBuilder {
 //Null
 func (p *sqlBuilder) Null(f TableField) ISqlBuilder {
 	p.prepare()
-	p.where.WriteString(f.Quote() + " IS NULL")
+	p.where.WriteString(" ISNULL(?)")
+	p.whereParams = append(p.whereParams,f.Quote())
 
 	p.andOr = false
 	return p
