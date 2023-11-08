@@ -34,7 +34,6 @@ func writeDaoBaseFile(filename, modulePath string) error {
 	return e
 }
 
-//
 var daoBaseTpl = `
 package dao
 
@@ -60,20 +59,26 @@ var (
 )
 
 //Transaction 事务处理
-func Transaction(f func(*models.Session) (interface{}, error)) (interface{}, error) {
+func Transaction(f func(*models.Session) (interface{}, error)) (result interface{}, err error) {
 	session := models.Db().NewSession()
 	defer session.Close()
 
-	if err := session.Begin(); err != nil {
+	if err = session.Begin(); err != nil {
 		return nil, err
 	}
 
-	result, err := f(session)
+	defer func() {
+		if err != nil {
+			session.Rollback()
+		}
+	}()
+
+	result, err = f(session)
 	if err != nil {
 		return result, err
 	}
 
-	if err := session.Commit(); err != nil {
+	if err = session.Commit(); err != nil {
 		return result, err
 	}
 
