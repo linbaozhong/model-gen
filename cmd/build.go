@@ -415,14 +415,16 @@ func NewSqlBuilder() *sqlBuilder {
 
 //Free
 func (p *sqlBuilder) Free() {
+	p.cmd = ""
 	p.table = ""
 	p.distinct = false
-	p.cols = []interface{}{}
+	p.cols = p.cols[0:0]	//[]interface{}{}
+	p.omit = p.omit[0:0]
 	p.where.Reset()
-	p.whereParams = []interface{}{}
+	p.whereParams = p.whereParams[0:0]	// []interface{}{}
 	p.groupBy.Reset()
 	p.having.Reset()
-	//p.havingParams = []interface{}{}
+	//p.havingParams = p.havingParams[0:0]	// []interface{}{}
 	p.orderBy.Reset()
 	p.limit = ""
 	p.limitStart = 0
@@ -431,12 +433,12 @@ func (p *sqlBuilder) Free() {
 
 	p.andOr = true
 
-	p.updateCols = []string{}
-	p.updateParams = []interface{}{}
-	p.incrCols = []Expr{}
-	p.decrCols = []Expr{}
-	p.exprCols = []Expr{}
-	//p.sumCols = []string{}
+	p.updateCols = p.updateCols[0:0]	// []string{}
+	p.updateParams = p.updateParams[0:0]	// []interface{}{}
+	p.incrCols = p.incrCols[0:0]	// []Expr{}
+	p.decrCols = p.decrCols[0:0]	// []Expr{}
+	p.exprCols = p.exprCols[0:0]	// []Expr{}
+	//p.sumCols = p.sumCols[0:0]	// []string{}
 
 	sqlBuilderPool.Put(p)
 }
