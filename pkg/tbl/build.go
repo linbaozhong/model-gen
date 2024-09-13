@@ -23,8 +23,14 @@ import (
 	"sync"
 )
 
-type JoinType string
-type command string
+type (
+	JoinType string
+	command  string
+
+	// TParam interface {
+	// 	~int | ~int8 | ~int16 | ~int32 | ~int64 | ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~string | ~float32 | ~float64 | ~bool
+	// }
+)
 
 const (
 	Inner_Join JoinType = " INNER"
@@ -54,68 +60,68 @@ type ITableName interface {
 	TableName() string
 }
 
-type IInsert interface {
-	Insert(x interface{}, cols ...string) (int64, error)
-	InsertBatch(x interface{}, beans []interface{}, cols ...string) (int64, error)
-}
-
-type IUpdate interface {
-	Update(x interface{}, id uint64, bean ...interface{}) (int64, error)
-	UpdateBatch(x interface{}, cond ISqlBuilder, bean ...interface{}) (int64, error)
-}
-
-type IDelete interface {
-	Delete(x interface{}, id uint64) (int64, error)
-	DeleteBatch(x interface{}, cond ISqlBuilder) (int64, error)
-}
+// type IInsert interface {
+// 	Insert(x any, cols ...string) (int64, error)
+// 	InsertBatch(x any, beans []any, cols ...string) (int64, error)
+// }
+//
+// type IUpdate interface {
+// 	Update(x any, id uint64, bean ...any) (int64, error)
+// 	UpdateBatch(x any, cond ISqlBuilder, bean ...any) (int64, error)
+// }
+//
+// type IDelete interface {
+// 	Delete(x any, id uint64) (int64, error)
+// 	DeleteBatch(x any, cond ISqlBuilder) (int64, error)
+// }
 
 // type IDataAccess interface {
-// 	Get(x interface{}, id uint64) (bool, error)
-// 	// Find(x interface{}, query string, vals []interface{}, size, index int) ([]interface{}, error)
-// 	ToMap(cols ...TableField) map[string]interface{}
+// 	Get(x any, id uint64) (bool, error)
+// 	// Find(x any, query string, vals []any, size, index int) ([]any, error)
+// 	ToMap(cols ...TableField) map[string]any
 // 	ToJSON(cols ...TableField) types.Smap
 // }
 
 type ISqlBuilder interface {
-	ToSQL() (string, []interface{}, error)
-	Table(m interface{}) ISqlBuilder
-	GetCondition() (string, []interface{})
-	Select() ([]interface{}, error)
-	Insert() ([]interface{}, error)
-	Update() ([]interface{}, error)
-	Delete() ([]interface{}, error)
+	ToSQL() (string, []any, error)
+	Table(m any) ISqlBuilder
+	GetCondition() (string, []any)
+	Select() ([]any, error)
+	Insert() ([]any, error)
+	Update() ([]any, error)
+	Delete() ([]any, error)
 
 	Distinct() ISqlBuilder
-	Cols(args ...interface{}) ISqlBuilder
-	Omit(args ...interface{}) ISqlBuilder
+	Cols(args ...any) ISqlBuilder
+	Omit(args ...any) ISqlBuilder
 	GetColsX(args []string) []string
 	GetCols() []string
 	GetOmit() []string
-	Where(sql string, v ...interface{}) *sqlBuilder
+	Where(sql string, v ...any) *sqlBuilder
 	// 等于
-	Eq(f TableField, v interface{}) ISqlBuilder
+	Eq(f TableField, v any) ISqlBuilder
 	// 大于
-	Gt(f TableField, v interface{}) ISqlBuilder
+	Gt(f TableField, v any) ISqlBuilder
 	// 大于等于
-	Gte(f TableField, v interface{}) ISqlBuilder
+	Gte(f TableField, v any) ISqlBuilder
 	// 小于
-	Lt(f TableField, v interface{}) ISqlBuilder
+	Lt(f TableField, v any) ISqlBuilder
 	// 小于等于
-	Lte(f TableField, v interface{}) ISqlBuilder
+	Lte(f TableField, v any) ISqlBuilder
 	// IN
-	In(f TableField, v ...interface{}) ISqlBuilder
+	In(f TableField, v ...any) ISqlBuilder
 	// NOT IN
-	UnIn(f TableField, v ...interface{}) ISqlBuilder
+	UnIn(f TableField, v ...any) ISqlBuilder
 	// 不等于
-	Ue(f TableField, v interface{}) ISqlBuilder
+	Ue(f TableField, v any) ISqlBuilder
 	// BETWEEN
-	Bt(f TableField, v1, v2 interface{}) ISqlBuilder
+	Bt(f TableField, v1, v2 any) ISqlBuilder
 	// LIKE
-	Like(f TableField, v interface{}) ISqlBuilder
+	Like(f TableField, v any) ISqlBuilder
 	//
-	Llike(f TableField, v interface{}) ISqlBuilder
+	Llike(f TableField, v any) ISqlBuilder
 	//
-	Rlike(f TableField, v interface{}) ISqlBuilder
+	Rlike(f TableField, v any) ISqlBuilder
 	// IS NULL
 	Null(f TableField) ISqlBuilder
 	// IS NOT NULL
@@ -131,9 +137,9 @@ type ISqlBuilder interface {
 
 	Or(sb ISqlBuilder) ISqlBuilder
 
-	GetWhere() (string, []interface{}, error)
+	GetWhere() (string, []any, error)
 	getWhereString() string
-	GetParams() []interface{}
+	GetParams() []any
 
 	GroupBy(cols ...TableField) ISqlBuilder
 	GetGroupBy() string
@@ -148,11 +154,11 @@ type ISqlBuilder interface {
 	GetOrderBy() string
 
 	//
-	Set(f TableField, v interface{}) ISqlBuilder
-	GetUpdate() ([]string, []interface{})
-	Incr(f TableField, v ...interface{}) ISqlBuilder
+	Set(f TableField, v any) ISqlBuilder
+	GetUpdate() ([]string, []any)
+	Incr(f TableField, v ...any) ISqlBuilder
 	GetIncr() []Expr
-	Decr(f TableField, v ...interface{}) ISqlBuilder
+	Decr(f TableField, v ...any) ISqlBuilder
 	GetDecr() []Expr
 	SetExpr(f TableField, expr string) ISqlBuilder
 	Replace(f TableField, o, n string) ISqlBuilder
@@ -164,26 +170,26 @@ type ISqlBuilder interface {
 }
 
 // Insert
-func I(t interface{}) ISqlBuilder {
+func I(t any) ISqlBuilder {
 	return get(t, command_insert)
 }
 
 // Update
-func U(t interface{}) ISqlBuilder {
+func U(t any) ISqlBuilder {
 	return get(t, command_update)
 }
 
 // Delete
-func D(t interface{}) ISqlBuilder {
+func D(t any) ISqlBuilder {
 	return get(t, command_delete)
 }
 
 // Select
-func S(t interface{}) ISqlBuilder {
+func S(t any) ISqlBuilder {
 	return get(t, command_select)
 }
 
-func get(t interface{}, cmd command) ISqlBuilder {
+func get(t any, cmd command) ISqlBuilder {
 	p := NewSqlBuilder()
 
 	p.setTable(t)
@@ -192,12 +198,12 @@ func get(t interface{}, cmd command) ISqlBuilder {
 }
 
 // Table
-func Table(t interface{}) ISqlBuilder {
+func Table(t any) ISqlBuilder {
 	return NewSqlBuilder().setTable(t)
 }
 
 // //Columns
-// func Columns(cols ...interface{}) []string {
+// func Columns(cols ...any) []string {
 //	_cols := make([]string, 0, len(cols))
 //	for i := 0; i < len(cols); i++ {
 //		if c, ok := cols[i].(TableField); ok {
@@ -225,77 +231,77 @@ func Null(f TableField) ISqlBuilder {
 }
 
 // Rlike
-func Rlike(f TableField, v interface{}) ISqlBuilder {
+func Rlike(f TableField, v any) ISqlBuilder {
 	return NewSqlBuilder().Rlike(f, v)
 }
 
 // Llike
-func Llike(f TableField, v interface{}) ISqlBuilder {
+func Llike(f TableField, v any) ISqlBuilder {
 	return NewSqlBuilder().Llike(f, v)
 }
 
 // Like
-func Like(f TableField, v interface{}) ISqlBuilder {
+func Like(f TableField, v any) ISqlBuilder {
 	return NewSqlBuilder().Like(f, v)
 }
 
 // Bt Between
-func Bt(f TableField, v1, v2 interface{}) ISqlBuilder {
+func Bt(f TableField, v1, v2 any) ISqlBuilder {
 	return NewSqlBuilder().Bt(f, v1, v2)
 }
 
 // In
-func In(f TableField, v ...interface{}) ISqlBuilder {
+func In(f TableField, v ...any) ISqlBuilder {
 	return NewSqlBuilder().In(f, v...)
 }
 
 // UnIn Not In
-func UnIn(f TableField, v ...interface{}) ISqlBuilder {
+func UnIn(f TableField, v ...any) ISqlBuilder {
 	return NewSqlBuilder().UnIn(f, v...)
 }
 
 // Ue !=
-func Ue(f TableField, v interface{}) ISqlBuilder {
+func Ue(f TableField, v any) ISqlBuilder {
 	return NewSqlBuilder().toWhere(f, v, " <> ")
 }
 
 // Lte <=
-func Lte(f TableField, v interface{}) ISqlBuilder {
+func Lte(f TableField, v any) ISqlBuilder {
 	return NewSqlBuilder().toWhere(f, v, " <= ")
 }
 
 // Lt <
-func Lt(f TableField, v interface{}) ISqlBuilder {
+func Lt(f TableField, v any) ISqlBuilder {
 	return NewSqlBuilder().toWhere(f, v, " < ")
 }
 
 // Gte >=
-func Gte(f TableField, v interface{}) ISqlBuilder {
+func Gte(f TableField, v any) ISqlBuilder {
 	return NewSqlBuilder().toWhere(f, v, " >= ")
 }
 
 // Gt >
-func Gt(f TableField, v interface{}) ISqlBuilder {
+func Gt(f TableField, v any) ISqlBuilder {
 	return NewSqlBuilder().toWhere(f, v, " > ")
 }
 
 // Eq =
-func Eq(f TableField, v interface{}) ISqlBuilder {
+func Eq(f TableField, v any) ISqlBuilder {
 	return NewSqlBuilder().toWhere(f, v, " = ")
 }
 
 // Where
-func Where(sql string, v ...interface{}) *sqlBuilder {
+func Where(sql string, v ...any) *sqlBuilder {
 	return NewSqlBuilder().Where(sql, v...)
 }
 
 // Cols
-func Cols(args ...interface{}) ISqlBuilder {
+func Cols(args ...any) ISqlBuilder {
 	return NewSqlBuilder().Cols(args...)
 }
 
 // Omit
-func Omit(args ...interface{}) ISqlBuilder {
+func Omit(args ...any) ISqlBuilder {
 	return NewSqlBuilder().Omit(args...)
 }
 
@@ -315,17 +321,17 @@ func Desc(cols ...TableField) ISqlBuilder {
 }
 
 // Set
-func Set(f TableField, v interface{}) ISqlBuilder {
+func Set(f TableField, v any) ISqlBuilder {
 	return NewSqlBuilder().Set(f, v)
 }
 
 // Incr
-func Incr(f TableField, v ...interface{}) ISqlBuilder {
+func Incr(f TableField, v ...any) ISqlBuilder {
 	return NewSqlBuilder().Incr(f, v...)
 }
 
 // Decr
-func Decr(f TableField, v ...interface{}) ISqlBuilder {
+func Decr(f TableField, v ...any) ISqlBuilder {
 	return NewSqlBuilder().Decr(f, v...)
 }
 
@@ -342,20 +348,20 @@ func Replace(f TableField, o, n string) ISqlBuilder {
 // Expr represents an SQL express
 type Expr struct {
 	ColName string
-	Arg     interface{}
+	Arg     any
 }
 
 type sqlBuilder struct {
 	cmd         command
 	table       string
 	distinct    bool
-	cols        []interface{}
-	omit        []interface{}
+	cols        []any
+	omit        []any
 	where       strings.Builder
-	whereParams []interface{}
+	whereParams []any
 	groupBy     strings.Builder
 	having      strings.Builder
-	// havingParams []interface{}
+	// havingParams []any
 	orderBy    strings.Builder
 	limit      string
 	limitSize  int
@@ -365,7 +371,7 @@ type sqlBuilder struct {
 	andOr bool
 
 	updateCols   []string
-	updateParams []interface{}
+	updateParams []any
 	incrCols     []Expr
 	decrCols     []Expr
 	exprCols     []Expr
@@ -375,7 +381,7 @@ type sqlBuilder struct {
 }
 
 var (
-	sqlBuilderPool = sync.Pool{New: func() interface{} {
+	sqlBuilderPool = sync.Pool{New: func() any {
 		return &sqlBuilder{
 			andOr: true,
 		}
@@ -398,12 +404,12 @@ func NewSqlBuilder() *sqlBuilder {
 func (p *sqlBuilder) Free() {
 	p.table = ""
 	p.distinct = false
-	p.cols = []interface{}{}
+	p.cols = []any{}
 	p.where.Reset()
-	p.whereParams = []interface{}{}
+	p.whereParams = []any{}
 	p.groupBy.Reset()
 	p.having.Reset()
-	// p.havingParams = []interface{}{}
+	// p.havingParams = []any{}
 	p.orderBy.Reset()
 	p.limit = ""
 	p.limitStart = 0
@@ -413,7 +419,7 @@ func (p *sqlBuilder) Free() {
 	p.andOr = true
 
 	p.updateCols = []string{}
-	p.updateParams = []interface{}{}
+	p.updateParams = []any{}
 	p.incrCols = []Expr{}
 	p.decrCols = []Expr{}
 	p.exprCols = []Expr{}
@@ -425,11 +431,11 @@ func (p *sqlBuilder) Free() {
 }
 
 // Table
-func (p *sqlBuilder) Table(t interface{}) ISqlBuilder {
+func (p *sqlBuilder) Table(t any) ISqlBuilder {
 	return p.setTable(t)
 }
 
-func (p *sqlBuilder) ToSQL() (string, []interface{}, error) {
+func (p *sqlBuilder) ToSQL() (string, []any, error) {
 	defer p.Free()
 	switch p.cmd {
 	case command_insert:
@@ -444,7 +450,7 @@ func (p *sqlBuilder) ToSQL() (string, []interface{}, error) {
 }
 
 // Insert
-func (p *sqlBuilder) Insert() ([]interface{}, error) {
+func (p *sqlBuilder) Insert() ([]any, error) {
 	defer p.Free()
 
 	if p.err != nil {
@@ -455,7 +461,7 @@ func (p *sqlBuilder) Insert() ([]interface{}, error) {
 	if e != nil {
 		return nil, e
 	}
-	r := make([]interface{}, 0, len(p.updateParams)+1)
+	r := make([]any, 0, len(p.updateParams)+1)
 	r = append(r, sql)
 	r = append(r, args...)
 
@@ -463,7 +469,7 @@ func (p *sqlBuilder) Insert() ([]interface{}, error) {
 }
 
 // Update
-func (p *sqlBuilder) Update() ([]interface{}, error) {
+func (p *sqlBuilder) Update() ([]any, error) {
 	defer p.Free()
 
 	if p.err != nil {
@@ -474,7 +480,7 @@ func (p *sqlBuilder) Update() ([]interface{}, error) {
 	if e != nil {
 		return nil, e
 	}
-	r := make([]interface{}, 0, len(p.updateParams)+1)
+	r := make([]any, 0, len(p.updateParams)+1)
 	r = append(r, sql)
 	r = append(r, args...)
 
@@ -482,7 +488,7 @@ func (p *sqlBuilder) Update() ([]interface{}, error) {
 }
 
 // Delete
-func (p *sqlBuilder) Delete() ([]interface{}, error) {
+func (p *sqlBuilder) Delete() ([]any, error) {
 	defer p.Free()
 
 	if p.err != nil {
@@ -493,7 +499,7 @@ func (p *sqlBuilder) Delete() ([]interface{}, error) {
 	if e != nil {
 		return nil, e
 	}
-	r := make([]interface{}, 0, len(p.updateParams)+1)
+	r := make([]any, 0, len(p.updateParams)+1)
 	r = append(r, sql)
 	r = append(r, args...)
 
@@ -501,7 +507,7 @@ func (p *sqlBuilder) Delete() ([]interface{}, error) {
 }
 
 // Select
-func (p *sqlBuilder) Select() ([]interface{}, error) {
+func (p *sqlBuilder) Select() ([]any, error) {
 	defer p.Free()
 
 	if p.err != nil {
@@ -512,7 +518,7 @@ func (p *sqlBuilder) Select() ([]interface{}, error) {
 	if e != nil {
 		return nil, e
 	}
-	r := make([]interface{}, 0, len(p.updateParams)+1)
+	r := make([]any, 0, len(p.updateParams)+1)
 	r = append(r, sql)
 	r = append(r, args...)
 
@@ -520,7 +526,7 @@ func (p *sqlBuilder) Select() ([]interface{}, error) {
 }
 
 // GetCondition
-func (p *sqlBuilder) GetCondition() (string, []interface{}) {
+func (p *sqlBuilder) GetCondition() (string, []any) {
 	defer p.Free()
 	return p.condition()
 }
@@ -655,7 +661,7 @@ func (p *sqlBuilder) Null(f TableField) ISqlBuilder {
 }
 
 // Rlike
-func (p *sqlBuilder) Rlike(f TableField, v interface{}) ISqlBuilder {
+func (p *sqlBuilder) Rlike(f TableField, v any) ISqlBuilder {
 	p.prepare()
 	p.where.WriteString("(" + f.Quote() + " LIKE CONCAT(" + placeholder + ",'%'))")
 	p.whereParams = append(p.whereParams, v)
@@ -665,7 +671,7 @@ func (p *sqlBuilder) Rlike(f TableField, v interface{}) ISqlBuilder {
 }
 
 // Llike
-func (p *sqlBuilder) Llike(f TableField, v interface{}) ISqlBuilder {
+func (p *sqlBuilder) Llike(f TableField, v any) ISqlBuilder {
 	p.prepare()
 	p.where.WriteString("(" + f.Quote() + " LIKE CONCAT('%'," + placeholder + "))")
 	p.whereParams = append(p.whereParams, v)
@@ -675,7 +681,7 @@ func (p *sqlBuilder) Llike(f TableField, v interface{}) ISqlBuilder {
 }
 
 // Like
-func (p *sqlBuilder) Like(f TableField, v interface{}) ISqlBuilder {
+func (p *sqlBuilder) Like(f TableField, v any) ISqlBuilder {
 	p.prepare()
 	p.where.WriteString("(" + f.Quote() + " LIKE CONCAT('%'," + placeholder + ",'%'))")
 	p.whereParams = append(p.whereParams, v)
@@ -685,7 +691,7 @@ func (p *sqlBuilder) Like(f TableField, v interface{}) ISqlBuilder {
 }
 
 // Bt
-func (p *sqlBuilder) Bt(f TableField, v1, v2 interface{}) ISqlBuilder {
+func (p *sqlBuilder) Bt(f TableField, v1, v2 any) ISqlBuilder {
 	p.prepare()
 	p.where.WriteString(f.Quote() + " BETWEEN " + placeholder + " AND " + placeholder)
 	p.whereParams = append(p.whereParams, v1, v2)
@@ -695,7 +701,7 @@ func (p *sqlBuilder) Bt(f TableField, v1, v2 interface{}) ISqlBuilder {
 }
 
 // In
-func (p *sqlBuilder) In(f TableField, v ...interface{}) ISqlBuilder {
+func (p *sqlBuilder) In(f TableField, v ...any) ISqlBuilder {
 	if len(v) == 0 {
 		p.err = errors.New("In param is empty")
 		return p
@@ -724,7 +730,7 @@ func (p *sqlBuilder) In(f TableField, v ...interface{}) ISqlBuilder {
 }
 
 // UnIn
-func (p *sqlBuilder) UnIn(f TableField, v ...interface{}) ISqlBuilder {
+func (p *sqlBuilder) UnIn(f TableField, v ...any) ISqlBuilder {
 	if len(v) == 0 {
 		p.err = errors.New("UnIn param is empty")
 		return p
@@ -752,37 +758,37 @@ func (p *sqlBuilder) UnIn(f TableField, v ...interface{}) ISqlBuilder {
 }
 
 // Ue
-func (p *sqlBuilder) Ue(f TableField, v interface{}) ISqlBuilder {
+func (p *sqlBuilder) Ue(f TableField, v any) ISqlBuilder {
 	return p.toWhere(f, v, " <> ")
 }
 
 // Lte
-func (p *sqlBuilder) Lte(f TableField, v interface{}) ISqlBuilder {
+func (p *sqlBuilder) Lte(f TableField, v any) ISqlBuilder {
 	return p.toWhere(f, v, " <= ")
 }
 
 // Lt
-func (p *sqlBuilder) Lt(f TableField, v interface{}) ISqlBuilder {
+func (p *sqlBuilder) Lt(f TableField, v any) ISqlBuilder {
 	return p.toWhere(f, v, " < ")
 }
 
 // Gte
-func (p *sqlBuilder) Gte(f TableField, v interface{}) ISqlBuilder {
+func (p *sqlBuilder) Gte(f TableField, v any) ISqlBuilder {
 	return p.toWhere(f, v, " >= ")
 }
 
 // Gt
-func (p *sqlBuilder) Gt(f TableField, v interface{}) ISqlBuilder {
+func (p *sqlBuilder) Gt(f TableField, v any) ISqlBuilder {
 	return p.toWhere(f, v, " > ")
 }
 
 // Eq
-func (p *sqlBuilder) Eq(f TableField, v interface{}) ISqlBuilder {
+func (p *sqlBuilder) Eq(f TableField, v any) ISqlBuilder {
 	return p.toWhere(f, v, " = ")
 }
 
 // Where
-func (p *sqlBuilder) Where(sql string, v ...interface{}) *sqlBuilder {
+func (p *sqlBuilder) Where(sql string, v ...any) *sqlBuilder {
 	p.prepare()
 	p.where.WriteString(sql)
 	p.whereParams = append(p.whereParams, v...)
@@ -792,13 +798,13 @@ func (p *sqlBuilder) Where(sql string, v ...interface{}) *sqlBuilder {
 }
 
 // Cols
-func (p *sqlBuilder) Cols(args ...interface{}) ISqlBuilder {
+func (p *sqlBuilder) Cols(args ...any) ISqlBuilder {
 	p.cols = args
 	return p
 }
 
 // Omit
-func (p *sqlBuilder) Omit(args ...interface{}) ISqlBuilder {
+func (p *sqlBuilder) Omit(args ...any) ISqlBuilder {
 	p.omit = args
 	return p
 }
@@ -900,7 +906,7 @@ func (p *sqlBuilder) Or(sb ISqlBuilder) ISqlBuilder {
 }
 
 // GetWhere
-func (p *sqlBuilder) GetWhere() (string, []interface{}, error) {
+func (p *sqlBuilder) GetWhere() (string, []any, error) {
 	return p.where.String(), p.whereParams, p.err
 }
 
@@ -910,20 +916,20 @@ func (p *sqlBuilder) getWhereString() string {
 }
 
 // GetParams
-func (p *sqlBuilder) GetParams() []interface{} {
+func (p *sqlBuilder) GetParams() []any {
 	return p.whereParams
 }
 
 // //
 // Set
-func (p *sqlBuilder) Set(f TableField, v interface{}) ISqlBuilder {
+func (p *sqlBuilder) Set(f TableField, v any) ISqlBuilder {
 	p.updateCols = append(p.updateCols, f.PureQuote())
 	p.updateParams = append(p.updateParams, v)
 	return p
 }
 
 // Incr
-func (p *sqlBuilder) Incr(f TableField, v ...interface{}) ISqlBuilder {
+func (p *sqlBuilder) Incr(f TableField, v ...any) ISqlBuilder {
 	var _v = "1"
 	if len(v) > 0 {
 		_v = utils.Interface2String(v[0])
@@ -936,7 +942,7 @@ func (p *sqlBuilder) Incr(f TableField, v ...interface{}) ISqlBuilder {
 }
 
 // Decr
-func (p *sqlBuilder) Decr(f TableField, v ...interface{}) ISqlBuilder {
+func (p *sqlBuilder) Decr(f TableField, v ...any) ISqlBuilder {
 	var _v = "1"
 	if len(v) > 0 {
 		_v = utils.Interface2String(v[0])
@@ -991,7 +997,7 @@ func (p *sqlBuilder) GetExpr() []Expr {
 //	return p.sumCols
 // }
 
-func (p *sqlBuilder) GetUpdate() ([]string, []interface{}) {
+func (p *sqlBuilder) GetUpdate() ([]string, []any) {
 	return p.updateCols, p.updateParams
 }
 
@@ -1011,6 +1017,8 @@ func (p *sqlBuilder) String() string {
 // //
 // subCond 子条件
 func (p *sqlBuilder) subCond(sb ISqlBuilder) ISqlBuilder {
+	defer sb.Free()
+
 	s := sb.getWhereString()
 	if s == "" {
 		return p
@@ -1027,7 +1035,7 @@ func (p *sqlBuilder) subCond(sb ISqlBuilder) ISqlBuilder {
 }
 
 // condition
-func (p *sqlBuilder) condition() (string, []interface{}) {
+func (p *sqlBuilder) condition() (string, []any) {
 	var buf strings.Builder
 	// WHERE
 	if p.where.Len() > 0 {
@@ -1049,7 +1057,7 @@ func (p *sqlBuilder) condition() (string, []interface{}) {
 	return buf.String(), p.GetParams()
 }
 
-func (p *sqlBuilder) toWhere(f TableField, v interface{}, op string) *sqlBuilder {
+func (p *sqlBuilder) toWhere(f TableField, v any, op string) *sqlBuilder {
 	p.prepare()
 	p.where.WriteString("(" + f.generate(op) + ")")
 	p.whereParams = append(p.whereParams, v)
@@ -1067,7 +1075,7 @@ func (p *sqlBuilder) prepare() *sqlBuilder {
 }
 
 // setTable
-func (p *sqlBuilder) setTable(t interface{}) ISqlBuilder {
+func (p *sqlBuilder) setTable(t any) ISqlBuilder {
 	if name, ok := t.(string); ok {
 		p.table = name
 	} else if iface, ok := t.(ITableName); ok {
@@ -1080,7 +1088,7 @@ func (p *sqlBuilder) setCmd(c command) ISqlBuilder {
 	return p
 }
 
-func (p *sqlBuilder) getInsert() (string, []interface{}, error) {
+func (p *sqlBuilder) getInsert() (string, []any, error) {
 	if p.table == "" {
 		return "", nil, ErrTableEmpty
 	}
@@ -1107,7 +1115,7 @@ func (p *sqlBuilder) getInsert() (string, []interface{}, error) {
 	return buf.String(), p.updateParams, nil
 }
 
-func (p *sqlBuilder) getUpdate() (string, []interface{}, error) {
+func (p *sqlBuilder) getUpdate() (string, []any, error) {
 	if p.table == "" {
 		return "", nil, ErrTableEmpty
 	}
@@ -1142,7 +1150,7 @@ func (p *sqlBuilder) getUpdate() (string, []interface{}, error) {
 	buf.WriteString(strings.Join(cols, ", "))
 	// WHERE
 	sql, params := p.condition()
-	var _params = make([]interface{}, len(p.updateParams)+len(params))
+	var _params = make([]any, len(p.updateParams)+len(params))
 	copy(_params, p.updateParams)
 
 	if sql != "" {
@@ -1153,7 +1161,7 @@ func (p *sqlBuilder) getUpdate() (string, []interface{}, error) {
 	return buf.String(), _params, nil
 }
 
-func (p *sqlBuilder) getDelete() (string, []interface{}, error) {
+func (p *sqlBuilder) getDelete() (string, []any, error) {
 	if p.table == "" {
 		return "", nil, ErrTableEmpty
 	}
@@ -1170,7 +1178,7 @@ func (p *sqlBuilder) getDelete() (string, []interface{}, error) {
 	return buf.String(), params, nil
 }
 
-func (p *sqlBuilder) getSelect() (string, []interface{}, error) {
+func (p *sqlBuilder) getSelect() (string, []any, error) {
 	if p.table == "" {
 		return "", nil, ErrTableEmpty
 	}
