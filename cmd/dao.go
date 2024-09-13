@@ -13,14 +13,14 @@ package dao
 
 import (
 {{if .HasPrimaryKey}}
-	{{if .HasCache}}"github.com/linbaozhong/modelgen/pkg/utils"
+	{{if .HasCache}}"github.com/linbaozhong/model-gen/pkg/utils"
 	"internal/cache/redis"
 	"strings"
 	"time"
 	"internal/conf"{{end}}
 {{end}}
 	"internal/log"
-	"github.com/linbaozhong/modelgen/pkg/types"
+	"github.com/linbaozhong/model-gen/pkg/types"
 	"{{.ModulePath}}"
 	"{{.ModulePath}}/table"
 )

@@ -14,8 +14,8 @@ package {{.PackageName}}
 import (
 	"sync"
 	{{if .HasTime}}"time"{{end}}
-	"github.com/linbaozhong/modelgen/pkg/types"
-	"github.com/linbaozhong/modelgen/pkg/utils"
+	"github.com/linbaozhong/model-gen/pkg/types"
+	"github.com/linbaozhong/model-gen/pkg/utils"
 	"{{.ModulePath}}/table"
 )
 

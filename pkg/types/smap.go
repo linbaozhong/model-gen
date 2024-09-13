@@ -1,7 +1,7 @@
 package types
 
 import (
-	"libs/constant"
+	"github.com/linbaozhong/model-gen/pkg/constant"
 	"strconv"
 	"time"
 )
@@ -70,7 +70,7 @@ func (p Smap) Remove(k string) {
 	delete(p, k)
 }
 
-//MinuteToString 日期分钟转字符串
+// MinuteToString 日期分钟转字符串
 func minuteToString(t time.Time) string {
 	if t.IsZero() {
 		return ""

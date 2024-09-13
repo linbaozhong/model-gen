@@ -16,7 +16,7 @@ package table
 
 import (
 	"errors"
-	"github.com/linbaozhong/modelgen/pkg/utils"
+	"github.com/linbaozhong/model-gen/pkg/utils"
 	"reflect"
 	"strconv"
 	"strings"

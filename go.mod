@@ -1,4 +1,4 @@
-module github.com/linbaozhong/modelgen
+module github.com/linbaozhong/model-gen
 
 go 1.17
 

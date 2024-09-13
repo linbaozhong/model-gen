@@ -17,7 +17,7 @@ package utils
 import (
 	"fmt"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/linbaozhong/modelgen/pkg/types"
+	"github.com/linbaozhong/model-gen/pkg/types"
 	"math"
 	"strconv"
 	"strings"
