@@ -39,7 +39,7 @@ var (
 				showError(e.Error())
 				return
 			}
-			//module_path
+			// module_path
 			module_path := module
 			p := path[:1]
 			if p == "." {
@@ -56,7 +56,7 @@ var (
 			} else {
 				module_path += "/" + strings.Replace(path, Separator, "/", -1)
 			}
-			//module
+			// module
 			pos := strings.Index(module, "/")
 			if pos > 0 {
 				module = module[:pos]
@@ -64,18 +64,18 @@ var (
 
 			if e = os.Mkdir(filepath.Join(path, "dao"), os.ModePerm); e != nil && !os.IsExist(e) {
 				showError(e.Error())
-				//return
+				// return
 			}
-			if e = writeDaoBaseFile(filepath.Join(path, "dao", "a_base.go"), module_path); e != nil {
+			if e = writeDaoBaseFile(filepath.Join(path, "dao", "a_base.go"), module_path, module); e != nil {
 				showError(e.Error())
 			}
 			if e = os.Mkdir(filepath.Join(path, "table"), os.ModePerm); e != nil && !os.IsExist(e) {
 				showError(e.Error())
-				//return
+				// return
 			}
 			if e = writeBaseFile(filepath.Join(path, "table", "base_sorm.go")); e != nil {
 				showError(e.Error())
-				//return
+				// return
 			}
 			if e = writeBuildFile(filepath.Join(path, "table", "build_sorm.go")); e != nil {
 				showError(e.Error())
@@ -117,7 +117,6 @@ func showError(msg interface{}) {
 	os.Exit(1)
 }
 
-//
 func initConfig() {
 	if path == "" {
 		// Find home directory.

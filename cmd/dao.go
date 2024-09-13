@@ -39,7 +39,7 @@ var (
 
 {{if .HasPrimaryKey}}
 //Insert 新增一条数据
-func (p *{{lower .StructName}}) Insert(x interface{}, bean *models.{{.StructName}}, cols ...string) (int64,error) {
+func (p *{{lower .StructName}}) Insert(x interface{}, bean *{{.Module}}.{{.StructName}}, cols ...string) (int64,error) {
 	db := getDB(x, table.{{.StructName}}.TableName)
 
 	if len(cols) > 0 {
@@ -59,7 +59,7 @@ func (p *{{lower .StructName}}) Insert(x interface{}, bean *models.{{.StructName
 }
 
 //InsertBatch 批量新增数据
-func (p *{{lower .StructName}}) InsertBatch(x interface{}, beans []*models.{{.StructName}}, cols ...string) (int64, error) {
+func (p *{{lower .StructName}}) InsertBatch(x interface{}, beans []*{{.Module}}.{{.StructName}}, cols ...string) (int64, error) {
 	l := len(beans)
 	if l == 0 {
 		return 0, nil
@@ -155,7 +155,9 @@ func (p *{{lower .StructName}}) UpdateBatch(x interface{}, cond tbl.ISqlBuilder,
 		if omit := cond.GetOmit(); len(omit) > 0 {
 			db.Omit(omit...)
 		}
-		if s, args := cond.GetWhere(); s != "" {
+		if s, args, e := cond.GetWhere(); e != nil {
+			return 0, e
+		} else if s != "" {
 			db.Where(s, args...)
 		}
 		if size, start := cond.GetLimit(); size > 0 {
@@ -220,7 +222,9 @@ func (p *{{lower .StructName}}) DeleteBatch(x interface{}, cond tbl.ISqlBuilder)
 		if e != nil || len(ids) == 0 {
 			return 0, e
 		}
-		if s, args := cond.GetWhere(); s != "" {
+		if s, args, e := cond.GetWhere(); e != nil {
+			return 0, e
+		} else if s != "" {
 			db.Where(s, args...)
 		}
 		if size, start := cond.GetLimit(); size > 0 {
@@ -275,7 +279,9 @@ func (p *{{lower .StructName}}) SoftDeleteBatch(x interface{}, cond tbl.ISqlBuil
 		if e != nil || len(ids) == 0 {
 			return 0, e
 		}
-		if s, args := cond.GetWhere(); s != "" {
+		if s, args, e := cond.GetWhere(); e != nil {
+			return 0, e
+		} else if s != "" {
 			db.Where(s, args...)
 		}
 		if size, start := cond.GetLimit(); size > 0 {
@@ -299,9 +305,9 @@ func (p *{{lower .StructName}}) SoftDeleteBatch(x interface{}, cond tbl.ISqlBuil
 {{end}}
 
 //Get 根据主键从Cache中获取一条数据
-func (p *{{lower .StructName}}) Get(x interface{},id {{index .PrimaryKey 2}}, cols ...string) (bool, *models.{{.StructName}}, error) {
+func (p *{{lower .StructName}}) Get(x interface{},id {{index .PrimaryKey 2}}, cols ...string) (bool, *{{.Module}}.{{.StructName}}, error) {
 {{if .HasCache}}
-	bean := models.New{{.StructName}}()
+	bean := {{.Module}}.New{{.StructName}}()
 	if id < 1 {
 		return false, bean, nil
 	}
@@ -360,8 +366,8 @@ func (p *{{lower .StructName}}) Get(x interface{},id {{index .PrimaryKey 2}}, co
 }
 
 //GetNoCache 根据主键从数据库中获取一条数据
-func (p *{{lower .StructName}}) GetNoCache(x interface{},id {{index .PrimaryKey 2}}, cols ...string) (bool, *models.{{.StructName}},error) {
-	var bean = models.New{{.StructName}}()
+func (p *{{lower .StructName}}) GetNoCache(x interface{},id {{index .PrimaryKey 2}}, cols ...string) (bool, *{{.Module}}.{{.StructName}},error) {
+	var bean = {{.Module}}.New{{.StructName}}()
 	{{$type := index .PrimaryKey 2}}{{if eq $type "string"}}if id == "" { {{else}}if id < 1 { {{end}}
 		return false, bean, nil
 	}
@@ -502,7 +508,9 @@ func (p *{{lower .StructName}}) Sum(x interface{}, cond tbl.ISqlBuilder, col str
 				db.Join(join[0], join[1], join[2])
 			}
 		}
-		if s, args := cond.GetWhere(); s != "" {
+		if s, args, e := cond.GetWhere(); e != nil {
+			return 0, e
+		} else if s != "" {
 			db.Where(s, args...)
 		}
 		if s := cond.GetGroupBy(); s != "" {
@@ -536,7 +544,9 @@ func (p *{{lower .StructName}}) Sums(x interface{}, cond tbl.ISqlBuilder, cols .
 				db.Join(join[0], join[1], join[2])
 			}
 		}
-		if s, args := cond.GetWhere(); s != "" {
+		if s, args, e := cond.GetWhere(); e != nil {
+			return nil, e
+		} else if s != "" {
 			db.Where(s, args...)
 		}
 		if s := cond.GetGroupBy(); s != "" {
@@ -592,7 +602,9 @@ func (p *{{lower .StructName}}) CountNoCache(x interface{}, cond tbl.ISqlBuilder
 				db.Join(join[0], join[1], join[2])
 			}
 		}
-		if s, args := cond.GetWhere(); s != "" {
+		if s, args, e := cond.GetWhere(); e != nil {
+			return 0, e
+		} else if s != "" {
 			db.Where(s, args...)
 		}
 		if s := cond.GetGroupBy(); s != "" {
@@ -616,11 +628,11 @@ func (p *{{lower .StructName}}) CountNoCache(x interface{}, cond tbl.ISqlBuilder
 }
 
 // Gets 根据主键列表从cache中获取一组数据
-func (p *{{lower .StructName}}) Gets(x interface{}, ids []interface{}, cols ...string) ([]*models.{{.StructName}}, error) {
+func (p *{{lower .StructName}}) Gets(x interface{}, ids []interface{}, cols ...string) ([]*{{.Module}}.{{.StructName}}, error) {
 {{if .HasCache}}
 	l := len(ids)
 	if l == 0 {
-		return []*models.{{.StructName}}{}, nil
+		return []*{{.Module}}.{{.StructName}}{}, nil
 	}
 
 	var suffix string
@@ -635,18 +647,18 @@ func (p *{{lower .StructName}}) Gets(x interface{}, ids []interface{}, cols ...s
 	rs, e := {{lower .StructName}}_cache.Client().MGet(getContext(x), keys...).Result()
 	if e != nil {
 		log.Logs.Error(e)
-		return []*models.{{.StructName}}{}, e
+		return []*{{.Module}}.{{.StructName}}{}, e
 	}
 
 	_ids := make([]interface{}, 0, l) //未命中的key
-	_rsmap := make(map[string]*models.{{.StructName}}, l)
+	_rsmap := make(map[string]*{{.Module}}.{{.StructName}}, l)
 	for i := 0; i < l; i++ {
 		m := rs[i]
 		if m == redis.Err_Value_Not_Found || m == nil || m == ""{
 			_ids = append(_ids, ids[i])
 			continue
 		}
-		mm := models.New{{.StructName}}()
+		mm := {{.Module}}.New{{.StructName}}()
 		if e = json.UnmarshalFromString(utils.Interface2String(m), mm); e == nil {
 			_rsmap[utils.Interface2String(mm.ID)] = mm
 		} else {
@@ -657,7 +669,7 @@ func (p *{{lower .StructName}}) Gets(x interface{}, ids []interface{}, cols ...s
 		do, _, _ := Sync({{lower .StructName}}_ids_cache.Key(_ids, suffix), func() (interface{}, error) {
 			return p.GetsNoCache(x, _ids, cols...)
 		})
-		if _list, ok := do.([]*models.{{.StructName}}); ok {
+		if _list, ok := do.([]*{{.Module}}.{{.StructName}}); ok {
 			for i := 0; i < len(_list); i++ {
 				_m := _list[i]
 				_rsmap[utils.Interface2String(_m.ID)] = _m
@@ -665,13 +677,13 @@ func (p *{{lower .StructName}}) Gets(x interface{}, ids []interface{}, cols ...s
 		}
 	}
 	//按ids排序
-	_list := make([]*models.{{.StructName}}, 0, l)
+	_list := make([]*{{.Module}}.{{.StructName}}, 0, l)
 	for i := 0; i < l; i++ {
 		if _m, ok := _rsmap[utils.Interface2String(ids[i])]; ok {
 			_list = append(_list, _m)
 			continue
 		}
-		_list = append(_list, models.New{{.StructName}}())
+		_list = append(_list, {{.Module}}.New{{.StructName}}())
 	}
 	return _list, nil
 {{else}}
@@ -680,10 +692,10 @@ func (p *{{lower .StructName}}) Gets(x interface{}, ids []interface{}, cols ...s
 }
 
 // GetsNoCache 根据主键列表从数据库中获取一组数据
-func (p *{{lower .StructName}}) GetsNoCache(x interface{}, ids []interface{}, cols ...string) ([]*models.{{.StructName}}, error) {
+func (p *{{lower .StructName}}) GetsNoCache(x interface{}, ids []interface{}, cols ...string) ([]*{{.Module}}.{{.StructName}}, error) {
 	idsLen := len(ids)
 	if idsLen == 0 {
-		return []*models.{{.StructName}}{}, nil
+		return []*{{.Module}}.{{.StructName}}{}, nil
 	}
 
 	db := getDB(x, table.{{.StructName}}.TableName)
@@ -691,7 +703,7 @@ func (p *{{lower .StructName}}) GetsNoCache(x interface{}, ids []interface{}, co
 		db.Cols(cols...).Cols(table.{{.StructName}}.PrimaryKey.Quote())
 	}
 
-	list := make([]*models.{{.StructName}}, 0)
+	list := make([]*{{.Module}}.{{.StructName}}, 0)
 	e := db.In(table.{{.StructName}}.PrimaryKey.Name, ids...).Limit(idsLen).Find(&list)
 	if e != nil {
 		log.Logs.DBError(db, e)
@@ -731,9 +743,9 @@ func (p *{{lower .StructName}}) GetsNoCache(x interface{}, ids []interface{}, co
 }
 
 // GetsMap 根据主键列表从cache中获取一组数据，返回一个 map
-func (p *{{lower .StructName}}) GetsMap(x interface{}, ids []interface{}) (map[{{index .PrimaryKey 2}}]*models.{{.StructName}}, error) {
+func (p *{{lower .StructName}}) GetsMap(x interface{}, ids []interface{}) (map[{{index .PrimaryKey 2}}]*{{.Module}}.{{.StructName}}, error) {
 	if len(ids) == 0 {
-		return map[{{index .PrimaryKey 2}}]*models.{{.StructName}}{}, nil
+		return map[{{index .PrimaryKey 2}}]*{{.Module}}.{{.StructName}}{}, nil
 	}
 {{if .HasCache}}
 	ms, e := p.Gets(x, ids)
@@ -741,10 +753,10 @@ func (p *{{lower .StructName}}) GetsMap(x interface{}, ids []interface{}) (map[{
 	ms, e := p.GetsNoCache(x, ids)
 {{end}}
 	if e != nil || len(ms) == 0{
-		return map[{{index .PrimaryKey 2}}]*models.{{.StructName}}{}, e
+		return map[{{index .PrimaryKey 2}}]*{{.Module}}.{{.StructName}}{}, e
 	}
 	l := len(ms)
-	list := make(map[{{index .PrimaryKey 2}}]*models.{{.StructName}}, l)
+	list := make(map[{{index .PrimaryKey 2}}]*{{.Module}}.{{.StructName}}, l)
 	for i := 0; i < l; i++ {
 		m := ms[i]
 		list[{{index .PrimaryKey 2}}(m.{{.PrimaryKeyName}})] = m
@@ -753,11 +765,11 @@ func (p *{{lower .StructName}}) GetsMap(x interface{}, ids []interface{}) (map[{
 }
 
 //Find 根据cond条件从cache中获取数据列表
-func (p *{{lower .StructName}}) Find(x interface{}, cond tbl.ISqlBuilder, size, index int) ([]*models.{{.StructName}}, error) {
+func (p *{{lower .StructName}}) Find(x interface{}, cond tbl.ISqlBuilder, size, index int) ([]*{{.Module}}.{{.StructName}}, error) {
 {{if .HasCache}}
 	ids, e := p.IDs(x,cond,size,index)
 	if len(ids) == 0 {
-		return []*models.{{.StructName}}{}, e
+		return []*{{.Module}}.{{.StructName}}{}, e
 	}
 	
 	return p.Gets(x, ids, cond.GetColsX(table.{{.StructName}}.ColumnNames)...)
@@ -767,10 +779,10 @@ func (p *{{lower .StructName}}) Find(x interface{}, cond tbl.ISqlBuilder, size, 
 }
 
 //FindNoCache 根据cond条件从数据库中获取数据列表
-func (p *{{lower .StructName}}) FindNoCache(x interface{}, cond tbl.ISqlBuilder, size, index int) ([]*models.{{.StructName}}, error) {
+func (p *{{lower .StructName}}) FindNoCache(x interface{}, cond tbl.ISqlBuilder, size, index int) ([]*{{.Module}}.{{.StructName}}, error) {
 	db := getDB(x, table.{{.StructName}}.TableName)
 
-	list := make([]*models.{{.StructName}}, 0)
+	list := make([]*{{.Module}}.{{.StructName}}, 0)
 
 	if cond == nil {
 		if size > 0 {
@@ -792,7 +804,9 @@ func (p *{{lower .StructName}}) FindNoCache(x interface{}, cond tbl.ISqlBuilder,
 		if omit := cond.GetOmit(); len(omit) > 0 {
 			db.Omit(omit...)
 		}
-		if s, args := cond.GetWhere(); s != "" {
+		if s, args, e := cond.GetWhere(); e != nil {
+			return nil, e
+		} else if s != "" {
 			db.Where(s, args...)
 		}
 		if s := cond.GetGroupBy(); s != "" {
@@ -822,21 +836,21 @@ func (p *{{lower .StructName}}) FindNoCache(x interface{}, cond tbl.ISqlBuilder,
 }
 
 //FindMap 根据cond条件从cache中获取数据列表，返回一个 map
-func (p *{{lower .StructName}}) FindMap(x interface{}, cond tbl.ISqlBuilder, size, index int) (map[{{index .PrimaryKey 2}}]*models.{{.StructName}}, error) {
+func (p *{{lower .StructName}}) FindMap(x interface{}, cond tbl.ISqlBuilder, size, index int) (map[{{index .PrimaryKey 2}}]*{{.Module}}.{{.StructName}}, error) {
 {{if .HasCache}}
 	ids, e := p.IDs(x,cond,size,index)
 	if len(ids) == 0 {
-		return map[{{index .PrimaryKey 2}}]*models.{{.StructName}}{}, e
+		return map[{{index .PrimaryKey 2}}]*{{.Module}}.{{.StructName}}{}, e
 	}
 
 	return p.GetsMap(x, ids)
 {{else}}
 	ms, e := p.FindNoCache(x,cond,size,index)
 	if e != nil || len(ms) == 0{
-		return map[{{index .PrimaryKey 2}}]*models.{{.StructName}}{}, e
+		return map[{{index .PrimaryKey 2}}]*{{.Module}}.{{.StructName}}{}, e
 	}
 	l := len(ms)
-	list := make(map[{{index .PrimaryKey 2}}]*models.{{.StructName}}, l)
+	list := make(map[{{index .PrimaryKey 2}}]*{{.Module}}.{{.StructName}}, l)
 	for i := 0; i < l; i++ {
 		m := ms[i]
 		list[{{index .PrimaryKey 2}}(m.{{.PrimaryKeyName}})] = m
@@ -846,7 +860,7 @@ func (p *{{lower .StructName}}) FindMap(x interface{}, cond tbl.ISqlBuilder, siz
 }
 
 //FindOne 根据cond条件从cache中获取一条数据
-func (p *{{lower .StructName}}) FindOne(x interface{}, cond tbl.ISqlBuilder) (bool, *models.{{.StructName}}, error) {
+func (p *{{lower .StructName}}) FindOne(x interface{}, cond tbl.ISqlBuilder) (bool, *{{.Module}}.{{.StructName}}, error) {
 	if cond != nil {
 		cond.Limit(1)
 	}
@@ -854,11 +868,11 @@ func (p *{{lower .StructName}}) FindOne(x interface{}, cond tbl.ISqlBuilder) (bo
 	if len(f) > 0 {
 		return true, f[0],nil
 	}
-	return false, models.New{{.StructName}}(), e
+	return false, {{.Module}}.New{{.StructName}}(), e
 }
 
 //FindOneNoCache 根据cond条件从数据库中获取一条数据
-func (p *{{lower .StructName}}) FindOneNoCache(x interface{}, cond tbl.ISqlBuilder) (bool, *models.{{.StructName}},error) {
+func (p *{{lower .StructName}}) FindOneNoCache(x interface{}, cond tbl.ISqlBuilder) (bool, *{{.Module}}.{{.StructName}},error) {
 	if cond != nil {
 		cond.Limit(1)
 	}
@@ -866,11 +880,11 @@ func (p *{{lower .StructName}}) FindOneNoCache(x interface{}, cond tbl.ISqlBuild
 	if len(f) > 0 {
 		return true, f[0],nil
 	}
-	return false, models.New{{.StructName}}(), e
+	return false, {{.Module}}.New{{.StructName}}(), e
 }
 
 //FindAndCound
-func (p *{{lower .StructName}}) FindAndCount(x interface{}, cond tbl.ISqlBuilder, size, index int) (i64 int64, ms []*models.{{.StructName}}, e error) {
+func (p *{{lower .StructName}}) FindAndCount(x interface{}, cond tbl.ISqlBuilder, size, index int) (i64 int64, ms []*{{.Module}}.{{.StructName}}, e error) {
 	i64, e = p.Count(x, cond)
 	if e != nil || i64 == 0 {
 		return i64, nil, e
@@ -903,7 +917,9 @@ func (p *{{lower .StructName}}) Exists(x interface{}, cond tbl.ISqlBuilder) (boo
 	db := getDB(x, table.{{.StructName}}.TableName)
 
 	if cond != nil {
-		if s, args := cond.GetWhere(); s != "" {
+		if s, args, e := cond.GetWhere(); e != nil {
+			return false, e
+		} else if s != "" {
 			db.Where(s, args...)
 		}
 	}
@@ -965,7 +981,7 @@ func (p *{{lower .StructName}})CountCache() *redis.RedisBroker {
 }
 
 //SliceToJSON slice转json
-func (p *{{lower .StructName}}) SliceToJSON(sls []*models.{{.StructName}},cols...table.TableField) []types.Smap {
+func (p *{{lower .StructName}}) SliceToJSON(sls []*{{.Module}}.{{.StructName}},cols...tbl.TableField) []types.Smap {
 	sl := len(sls)
 	if sl == 0 {
 		return []types.Smap{}

@@ -8,7 +8,7 @@ import (
 	"text/template"
 )
 
-func writeDaoBaseFile(filename, modulePath string) error {
+func writeDaoBaseFile(filename, modulePath, module string) error {
 	baseFilename, _ := filepath.Abs(filename)
 
 	f, e := os.OpenFile(baseFilename, os.O_RDWR|os.O_TRUNC|os.O_CREATE, os.ModePerm)
@@ -25,7 +25,7 @@ func writeDaoBaseFile(filename, modulePath string) error {
 	// }
 
 	var buf bytes.Buffer
-	_ = template.Must(template.New("daoBaseTpl").Parse(daoBaseTpl)).Execute(&buf, modulePath)
+	_ = template.Must(template.New("daoBaseTpl").Parse(daoBaseTpl)).Execute(&buf, map[string]string{"Module": module, "ModulePath": modulePath})
 	formatted, _ := format.Source(buf.Bytes())
 	_, e = f.Write(formatted)
 	if e != nil {
@@ -39,8 +39,7 @@ package dao
 
 import (
 	"context"
-	"{{.}}"
-	"{{.}}/table"
+	"{{.ModulePath}}"
 	"database/sql"
 	"errors"
 	"internal/log"
@@ -60,8 +59,8 @@ var (
 )
 
 //Transaction 事务处理
-func Transaction(f func(*models.Session) (interface{}, error)) (result interface{}, err error) {
-	session := models.Db().NewSession()
+func Transaction(f func(*{{.Module}}.Session) (interface{}, error)) (result interface{}, err error) {
+	session := {{.Module}}.Db().NewSession()
 	defer session.Close()
 
 	if err = session.Begin(); err != nil {
@@ -91,7 +90,7 @@ func Sync(k string, f func() (interface{}, error)) (v interface{}, err error, sh
 	return sg.Do(k, f)
 }
 
-func queryInterfaces(x *models.Session, cond tbl.ISqlBuilder) ([]map[string]interface{}, error) {
+func queryInterfaces(x *{{.Module}}.Session, cond tbl.ISqlBuilder) ([]map[string]interface{}, error) {
 	sql, e := cond.Select()
 	if e != nil {
 		return nil, e
@@ -99,18 +98,18 @@ func queryInterfaces(x *models.Session, cond tbl.ISqlBuilder) ([]map[string]inte
 	return x.QueryInterface(sql...)
 }
 
-func getSession(x interface{}, tablename string) *models.Session {
-	db, ok := x.(*models.Engine)
+func getSession(x interface{}, tablename string) *{{.Module}}.Session {
+	db, ok := x.(*{{.Module}}.Engine)
 	if ok && db != nil {
 		return db.Table(tablename)
 	}
-	sess, ok := x.(*models.Session)
+	sess, ok := x.(*{{.Module}}.Session)
 	if ok && sess != nil {
 		return sess.Table(tablename)
 	}
 	return nil
 }
-func getDB(x interface{}, tablename string) *models.Session {
+func getDB(x interface{}, tablename string) *{{.Module}}.Session {
 	sess := getSession(x, tablename)
 	if sess != nil {
 		return sess
@@ -122,7 +121,7 @@ func getDB(x interface{}, tablename string) *models.Session {
 			}
 		}
 	}
-	return models.Db().Table(tablename)
+	return {{.Module}}.Db().Table(tablename)
 }
 
 func getColumn(x interface{}, tablename string, col string, cond tbl.ISqlBuilder, size, index int) ([]interface{}, error) {

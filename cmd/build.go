@@ -158,7 +158,7 @@ type ISqlBuilder interface {
 	Or(sb ISqlBuilder) ISqlBuilder
 
 	GetWhere() (string, []interface{})
-	GetWhereString() string
+	getWhereString() string
 	GetParams() []interface{}
 
 	GroupBy(cols ...TableField) ISqlBuilder
@@ -871,7 +871,7 @@ func (p *sqlBuilder) GetOmit() []string {
 //And 算术方法之间默认为 AND 逻辑
 func (p *sqlBuilder) And(sb ISqlBuilder) ISqlBuilder {
 	defer sb.Free()
-	if sb.GetWhereString() == "" {
+	if sb.getWhereString() == "" {
 		return p
 	}
 
@@ -888,7 +888,7 @@ func (p *sqlBuilder) And(sb ISqlBuilder) ISqlBuilder {
 //Or
 func (p *sqlBuilder) Or(sb ISqlBuilder) ISqlBuilder {
 	defer sb.Free()
-	if sb.GetWhereString() == "" {
+	if sb.getWhereString() == "" {
 		return p
 	}
 
@@ -907,8 +907,8 @@ func (p *sqlBuilder) GetWhere() (string, []interface{}) {
 	return p.where.String(), p.whereParams
 }
 
-//GetWhereString
-func (p *sqlBuilder) GetWhereString() string {
+//getWhereString
+func (p *sqlBuilder) getWhereString() string {
 	return p.where.String()
 }
 
@@ -1014,7 +1014,7 @@ func (p *sqlBuilder) String() string {
 ////
 //subCond 子条件
 func (p *sqlBuilder) subCond(sb ISqlBuilder) ISqlBuilder {
-	s := sb.GetWhereString()
+	s := sb.getWhereString()
 	if s == "" {
 		return p
 	}
@@ -1034,7 +1034,7 @@ func (p *sqlBuilder) condition() (string, []interface{}) {
 	var buf strings.Builder
 	//WHERE
 	if p.where.Len() > 0 {
-		buf.WriteString(p.GetWhereString())
+		buf.WriteString(p.getWhereString())
 	}
 	//GROUP BY
 	if p.groupBy.Len() > 0 {
