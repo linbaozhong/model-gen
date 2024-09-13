@@ -8,7 +8,7 @@ import (
 	"text/template"
 )
 
-func writeDaoBaseFile(filename, modulePath, module string) error {
+func writeDaoBaseFile(filename string, d *TempData) error {
 	baseFilename, _ := filepath.Abs(filename)
 
 	f, e := os.OpenFile(baseFilename, os.O_RDWR|os.O_TRUNC|os.O_CREATE, os.ModePerm)
@@ -25,7 +25,7 @@ func writeDaoBaseFile(filename, modulePath, module string) error {
 	// }
 
 	var buf bytes.Buffer
-	_ = template.Must(template.New("daoBaseTpl").Parse(daoBaseTpl)).Execute(&buf, map[string]string{"Module": module, "ModulePath": modulePath})
+	_ = template.Must(template.New("daoBaseTpl").Parse(daoBaseTpl)).Execute(&buf, d)
 	formatted, _ := format.Source(buf.Bytes())
 	_, e = f.Write(formatted)
 	if e != nil {
@@ -59,8 +59,8 @@ var (
 )
 
 //Transaction 事务处理
-func Transaction(f func(*{{.Module}}.Session) (interface{}, error)) (result interface{}, err error) {
-	session := {{.Module}}.Db().NewSession()
+func Transaction(f func(*{{.PackageName}}.Session) (interface{}, error)) (result interface{}, err error) {
+	session := {{.PackageName}}.Db().NewSession()
 	defer session.Close()
 
 	if err = session.Begin(); err != nil {
@@ -90,7 +90,7 @@ func Sync(k string, f func() (interface{}, error)) (v interface{}, err error, sh
 	return sg.Do(k, f)
 }
 
-func queryInterfaces(x *{{.Module}}.Session, cond tbl.ISqlBuilder) ([]map[string]interface{}, error) {
+func queryInterfaces(x *{{.PackageName}}.Session, cond tbl.ISqlBuilder) ([]map[string]interface{}, error) {
 	sql, e := cond.Select()
 	if e != nil {
 		return nil, e
@@ -98,18 +98,18 @@ func queryInterfaces(x *{{.Module}}.Session, cond tbl.ISqlBuilder) ([]map[string
 	return x.QueryInterface(sql...)
 }
 
-func getSession(x interface{}, tablename string) *{{.Module}}.Session {
-	db, ok := x.(*{{.Module}}.Engine)
+func getSession(x interface{}, tablename string) *{{.PackageName}}.Session {
+	db, ok := x.(*{{.PackageName}}.Engine)
 	if ok && db != nil {
 		return db.Table(tablename)
 	}
-	sess, ok := x.(*{{.Module}}.Session)
+	sess, ok := x.(*{{.PackageName}}.Session)
 	if ok && sess != nil {
 		return sess.Table(tablename)
 	}
 	return nil
 }
-func getDB(x interface{}, tablename string) *{{.Module}}.Session {
+func getDB(x interface{}, tablename string) *{{.PackageName}}.Session {
 	sess := getSession(x, tablename)
 	if sess != nil {
 		return sess
@@ -121,7 +121,7 @@ func getDB(x interface{}, tablename string) *{{.Module}}.Session {
 			}
 		}
 	}
-	return {{.Module}}.Db().Table(tablename)
+	return {{.PackageName}}.Db().Table(tablename)
 }
 
 func getColumn(x interface{}, tablename string, col string, cond tbl.ISqlBuilder, size, index int) ([]interface{}, error) {
@@ -143,7 +143,9 @@ func getColumn(x interface{}, tablename string, col string, cond tbl.ISqlBuilder
 				db.Join(join[0], join[1], join[2])
 			}
 		}
-		if s, args := cond.GetWhere(); s != "" {
+		if s, args, e := cond.GetWhere(); e != nil {
+			return nil, e
+		} else if s != "" {
 			db.Where(s, args...)
 		}
 		if s := cond.GetGroupBy(); s != "" {

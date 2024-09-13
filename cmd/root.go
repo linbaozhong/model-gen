@@ -66,9 +66,6 @@ var (
 				showError(e.Error())
 				// return
 			}
-			if e = writeDaoBaseFile(filepath.Join(path, "dao", "a_base.go"), module_path, module); e != nil {
-				showError(e.Error())
-			}
 			if e = os.Mkdir(filepath.Join(path, "table"), os.ModePerm); e != nil && !os.IsExist(e) {
 				showError(e.Error())
 				// return

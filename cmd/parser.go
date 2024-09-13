@@ -23,12 +23,12 @@ type TempData struct {
 	PackageName    string
 	StructName     string
 	TableName      string
-	CacheData      string //数据缓存时长
-	CacheList      string //list缓存时长
-	CacheLimit     string //list缓存长度
+	CacheData      string // 数据缓存时长
+	CacheList      string // list缓存时长
+	CacheLimit     string // list缓存长度
 	Columns        map[string][]string
 	PrimaryKey     []string
-	PrimaryKeyName string //struct pk属性名
+	PrimaryKeyName string // struct pk属性名
 	HasPrimaryKey  bool
 	HasState       bool
 	HasCache       bool
@@ -51,7 +51,7 @@ func handleFile(module, modulePath, filename string) error {
 		panic(err)
 	}
 
-	////////////
+	// //////////
 	file, err := astra.ParseFile(filename,
 		astra.IgnoreVariables|astra.IgnoreConstants|astra.IgnoreFunctions|
 			astra.IgnoreInterfaces|astra.IgnoreTypes|astra.IgnoreMethods)
@@ -76,11 +76,11 @@ func handleFile(module, modulePath, filename string) error {
 		tempData.Columns = make(map[string][]string)
 		tempData.FileName = filename
 		tempData.StructName = stru.Name
-		//解析struct文档
+		// 解析struct文档
 		parseDocs(tempData, stru.Docs)
 		if tempData.TableName == "" {
 			continue
-			//tempData.TableName = tempData.StructName
+			// tempData.TableName = tempData.StructName
 		}
 
 		for _, field := range stru.Fields {
@@ -89,18 +89,18 @@ func handleFile(module, modulePath, filename string) error {
 			}
 			var (
 				pk string
-				rw string //禁止读写 -，只读<-，只写->
+				rw string // 禁止读写 -，只读<-，只写->
 			)
 			var _namejson = make([]string, 5)
 			for k, v := range field.Tags {
 				if k == "json" {
-					_namejson[1] = v[0] //json_name
+					_namejson[1] = v[0] // json_name
 				} else if k == "comment" {
 					_namejson[3] = v[0]
 				} else if k == XORM_TAG {
-					_namejson[0], pk, rw = parseTagsForXORM(v) //column_name
+					_namejson[0], pk, rw = parseTagsForXORM(v) // column_name
 				} else if k == GORM_TAG {
-					_namejson[0] = parseTagsForGORM(v) //column_name
+					_namejson[0] = parseTagsForGORM(v) // column_name
 				}
 			}
 			_namejson[4] = rw
@@ -115,9 +115,9 @@ func handleFile(module, modulePath, filename string) error {
 				"float32", "float64", "bool", "types.Money":
 				tempData.HasConvert = true
 			}
-			//if _namejson[2] == "time.Time" {
+			// if _namejson[2] == "time.Time" {
 			//	tempData.HasTime = true
-			//}
+			// }
 
 			if _namejson[1] == "" {
 				if _namejson[0] == "" {
@@ -147,7 +147,7 @@ func handleFile(module, modulePath, filename string) error {
 				tempData.HasState = true
 			}
 		}
-		//如果struct名称为空,或者是一个私有struct,或者field为空,返回
+		// 如果struct名称为空,或者是一个私有struct,或者field为空,返回
 		if len(tempData.StructName) == 0 ||
 			tempData.StructName[:1] == strings.ToLower(tempData.StructName[:1]) ||
 			len(tempData.Columns) == 0 {
@@ -157,21 +157,26 @@ func handleFile(module, modulePath, filename string) error {
 		if debug {
 			return tempData.writeTo(os.Stdout)
 		}
-		//写model文件
+
+		if err = writeDaoBaseFile(filepath.Join(path, "dao", "a_base.go"), tempData); err != nil {
+			showError(err)
+		}
+
+		// 写model文件
 		err = tempData.writeToModel(filename)
 		if err != nil {
 			showError(err)
 			return err
 		}
 
-		//写table文件
+		// 写table文件
 		err := tempData.writeToTable()
 		if err != nil {
 			showError(err.Error())
 			return err
 		}
 
-		//写dao文件
+		// 写dao文件
 		if tempData.HasPrimaryKey {
 			err = tempData.writeToDao(filename)
 			if err != nil {
@@ -298,11 +303,11 @@ func (d *TempData) writeToTable() error {
 	}
 	defer f.Close()
 
-	//e = f.Truncate(0)
-	//if e != nil {
+	// e = f.Truncate(0)
+	// if e != nil {
 	//	showError(e.Error())
 	//	return e
-	//}
+	// }
 
 	var buf bytes.Buffer
 	e = d.writeTo(&buf)
@@ -327,16 +332,16 @@ func (d *TempData) writeToTable() error {
 func getFieldName(name string) string {
 	bs := bytes.NewBuffer([]byte{})
 
-	pre_lower := true //前一个字母是小写
+	pre_lower := true // 前一个字母是小写
 	for i, s := range name {
-		//如果是大写字母
+		// 如果是大写字母
 		if s >= 65 && s <= 90 {
-			s += 32 //转成小写
+			s += 32 // 转成小写
 			if i == 0 {
 				bs.WriteByte(byte(s))
 			} else {
 				if pre_lower {
-					bs.WriteByte(byte(95)) //写下划线
+					bs.WriteByte(byte(95)) // 写下划线
 				}
 				bs.WriteByte(byte(s))
 			}
