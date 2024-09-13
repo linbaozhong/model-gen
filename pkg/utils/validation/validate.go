@@ -6,8 +6,8 @@ package validation
 
 import (
 	"fmt"
-	"libs/types"
-	"libs/utils"
+	"github.com/linbaozhong/model-gen/pkg/types"
+	"github.com/linbaozhong/model-gen/pkg/utils"
 	"math"
 	"reflect"
 	"regexp"
@@ -48,21 +48,21 @@ func AlphaDigitChar(obj interface{}) bool {
 }
 
 var (
-	//邮政编码，有效类型：string
+	// 邮政编码，有效类型：string
 	zipCodePattern = regexp.MustCompile(`^[1-9]\d{5}$`)
-	//固定电话号，有效类型：string
+	// 固定电话号，有效类型：string
 	telPattern = regexp.MustCompile(`^(0\d{2,3}(\-)?)?\d{7,8}$`)
-	//手机号，有效类型：string   手机号更新太快，放开第2和3位限制
+	// 手机号，有效类型：string   手机号更新太快，放开第2和3位限制
 	mobilePattern = regexp.MustCompile(`^((\+86)|(86))?(1([0-9][0-9]))\d{8}$`)
-	//base64 编码，有效类型：string
+	// base64 编码，有效类型：string
 	base64Pattern = regexp.MustCompile(`^(?:[A-Za-z0-99+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$`)
-	//IP 格式，目前只支持 IPv4 格式验证，有效类型：string
+	// IP 格式，目前只支持 IPv4 格式验证，有效类型：string
 	ipPattern = regexp.MustCompile(`^((2[0-4]\d|25[0-5]|[01]?\d\d?)\.){3}(2[0-4]\d|25[0-5]|[01]?\d\d?)$`)
-	//alpha 字符或数字或横杠 -_，有效类型：string
+	// alpha 字符或数字或横杠 -_，有效类型：string
 	alphaDashPattern = regexp.MustCompile(`[^\d\w-_]`)
-	//邮箱格式，有效类型：string
+	// 邮箱格式，有效类型：string
 	emailPattern = regexp.MustCompile(`^[\w!#$%&'*+/=?^_` + "`" + `{|}~-]+(?:\.[\w!#$%&'*+/=?^_` + "`" + `{|}~-]+)*@(?:[\w](?:[\w-]*[\w])?\.)+[a-zA-Z0-9](?:[\w-]*[\w])?$`)
-	//字母 数字 特殊字符二选一
+	// 字母 数字 特殊字符二选一
 	alphaDigitChar = regexp.MustCompile("(\\d+.*[a-zA-Z_]+)|([a-zA-Z_]+.*\\d+)|([\\W_]+.*\\d+)|(\\d+.*\\W+)|([\\W_]+.*[a-zA-Z_]+)|([a-zA-Z_]+.*\\W+)")
 )
 

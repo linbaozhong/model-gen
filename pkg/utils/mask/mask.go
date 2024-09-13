@@ -1,11 +1,11 @@
 package mask
 
 import (
-	"libs/utils/validation"
+	"github.com/linbaozhong/model-gen/pkg/utils/validation"
 	"strings"
 )
 
-//脱敏手机号
+// 脱敏手机号
 func MaskMobile(m string) string {
 	if validation.Mobile(m) {
 		return m[:3] + "****" + m[7:]
@@ -13,7 +13,7 @@ func MaskMobile(m string) string {
 	return m
 }
 
-//脱敏邮箱
+// 脱敏邮箱
 func MaskEmail(m string) string {
 	if validation.Email(m) {
 		pos := strings.Index(m, "@")

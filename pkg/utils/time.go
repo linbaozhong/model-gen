@@ -6,7 +6,7 @@ package utils
 
 import (
 	"fmt"
-	"libs/constant"
+	"github.com/linbaozhong/model-gen/pkg/constant"
 	"strconv"
 	"strings"
 	"time"
@@ -321,32 +321,32 @@ func GetWorkingByTime(t time.Time) string {
 	}
 	return f.String()
 
-	//year := nowTime.Year() - t.Year()
+	// year := nowTime.Year() - t.Year()
 	//
-	//month := nowTime.Month() - t.Month()
+	// month := nowTime.Month() - t.Month()
 	//
-	//if month < 0 {
+	// if month < 0 {
 	//	year -= 1
 	//
 	//	month += 12
-	//}
+	// }
 	//
-	//if year < 0 {
+	// if year < 0 {
 	//	return "0年"
-	//}
+	// }
 	//
-	//if year == 0 && month == 0 {
+	// if year == 0 && month == 0 {
 	//	return "0年"
-	//}
+	// }
 	//
-	//if year == 0 {
+	// if year == 0 {
 	//	return fmt.Sprintf("%d个月", month)
-	//}
-	//if month == 0 {
+	// }
+	// if month == 0 {
 	//	return fmt.Sprintf("%d年", year)
-	//}
+	// }
 	//
-	//return fmt.Sprintf("%d年%d个月", year, month)
+	// return fmt.Sprintf("%d年%d个月", year, month)
 }
 
 // 获得特定时间到当前时间相隔的月数、天数和小时数,即是距离时间t又过了多久
@@ -381,20 +381,20 @@ func GetIntervalByTime(t time.Time) string {
 	}
 	return f.String()
 
-	//year := nowTime.Year() - t.Year()
+	// year := nowTime.Year() - t.Year()
 	//
-	//month := int(nowTime.Month() - t.Month())
+	// month := int(nowTime.Month() - t.Month())
 	//
-	//day := nowTime.Day() - t.Day()
+	// day := nowTime.Day() - t.Day()
 	//
-	//hour := nowTime.Hour() - t.Hour()
+	// hour := nowTime.Hour() - t.Hour()
 	//
-	//if hour < 0 {
+	// if hour < 0 {
 	//	day -= 1
 	//	hour += 24
-	//}
+	// }
 	//
-	//if day < 0 {
+	// if day < 0 {
 	//	month -= 1
 	//
 	//	var days int
@@ -415,27 +415,27 @@ func GetIntervalByTime(t time.Time) string {
 	//	}
 	//
 	//	day += days
-	//}
+	// }
 	//
-	//if month < 0 {
+	// if month < 0 {
 	//	year -= 1
 	//	month += 12
-	//}
+	// }
 	//
-	//month = int(month) + year*12
+	// month = int(month) + year*12
 	//
-	//if month == 0 && day == 0 && hour == 0 {
+	// if month == 0 && day == 0 && hour == 0 {
 	//	return "0小时"
-	//}
+	// }
 	//
-	//if month == 0 && day == 0 {
+	// if month == 0 && day == 0 {
 	//	return fmt.Sprintf("%d小时", hour)
-	//}
+	// }
 	//
-	//if month == 0 {
+	// if month == 0 {
 	//	return fmt.Sprintf("%d天 %d小时", day, hour)
-	//}
-	//return fmt.Sprintf("%d个月 %d天 %d小时", month, day, hour)
+	// }
+	// return fmt.Sprintf("%d个月 %d天 %d小时", month, day, hour)
 }
 
 // WeekToString 星期转字符串
@@ -477,7 +477,7 @@ func GetInterval(t time.Time) string {
 	y := dt.Year() - 1
 	m := int(dt.Month()) - 1
 	d := dt.Day() - 1
-	//h := dt.Hour()
+	// h := dt.Hour()
 
 	var f strings.Builder
 	if y > 0 {
@@ -489,9 +489,9 @@ func GetInterval(t time.Time) string {
 	if d > 0 {
 		f.WriteString(IntToString(d) + "天 ")
 	}
-	//if h > 0 {
+	// if h > 0 {
 	//	f.WriteString(IntToString(h) + "小时")
-	//}
+	// }
 	return f.String()
 
 }

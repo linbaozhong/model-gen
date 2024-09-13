@@ -1,7 +1,7 @@
 package request
 
 import (
-	"libs/utils"
+	"github.com/linbaozhong/model-gen/pkg/utils"
 	"testing"
 )
 

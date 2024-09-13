@@ -1,10 +1,10 @@
 package request
 
 import (
+	"github.com/linbaozhong/model-gen/pkg/constant"
+	"github.com/linbaozhong/model-gen/pkg/types"
+	"github.com/linbaozhong/model-gen/pkg/utils"
 	"html"
-	"libs/constant"
-	"libs/types"
-	"libs/utils"
 	"strconv"
 	"strings"
 	"time"
