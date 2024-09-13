@@ -13,14 +13,14 @@ package dao
 
 import (
 {{if .HasPrimaryKey}}
-	{{if .HasCache}}"libs/utils"
+	{{if .HasCache}}"github.com/linbaozhong/modelgen/pkg/utils"
 	"internal/cache/redis"
 	"strings"
 	"time"
 	"internal/conf"{{end}}
 {{end}}
 	"internal/log"
-	"libs/types"
+	"github.com/linbaozhong/modelgen/pkg/types"
 	"{{.ModulePath}}"
 	"{{.ModulePath}}/table"
 )
@@ -1050,11 +1050,11 @@ func (d *TempData) writeToDao(fileName string) error {
 	}
 	defer f.Close()
 
-	//e = f.Truncate(0)
-	//if e != nil {
+	// e = f.Truncate(0)
+	// if e != nil {
 	//	showError(e.Error())
 	//	return e
-	//}
+	// }
 
 	_, e = f.Write(buf.Bytes())
 	if e != nil {

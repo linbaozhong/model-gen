@@ -13,9 +13,9 @@ package {{.PackageName}}
 
 import (
 	"sync"
-	"libs/utils"
 	{{if .HasTime}}"time"{{end}}
-	"libs/types"
+	"github.com/linbaozhong/modelgen/pkg/types"
+	"github.com/linbaozhong/modelgen/pkg/utils"
 	"{{.ModulePath}}/table"
 )
 
@@ -200,7 +200,7 @@ func (d *TempData) writeToModel(fileName string) error {
 			}
 			return ret
 		},
-		//"marshal": JSONValue,
+		// "marshal": JSONValue,
 	}
 
 	e := template.Must(template.New("tableTpl").Funcs(funcMap).Parse(model_str)).Execute(&buf, d)
@@ -219,11 +219,11 @@ func (d *TempData) writeToModel(fileName string) error {
 	}
 	defer f.Close()
 
-	//e = f.Truncate(0)
-	//if e != nil {
+	// e = f.Truncate(0)
+	// if e != nil {
 	//	showError(e.Error())
 	//	return e
-	//}
+	// }
 
 	_, e = f.Write(buf.Bytes())
 	if e != nil {
@@ -235,8 +235,8 @@ func (d *TempData) writeToModel(fileName string) error {
 }
 
 //
-////JSONValue redis存储序列化数据转换方法
-//func JSONValue(t []string, v string) string {
+// //JSONValue redis存储序列化数据转换方法
+// func JSONValue(t []string, v string) string {
 //	//return `utils.JSONValue(p.` + v + `)`
 //	switch t[2] {
 //	case "string":
@@ -260,13 +260,13 @@ func (d *TempData) writeToModel(fileName string) error {
 //	default:
 //		return `utils.JSONValue(p.` + v + `)`
 //	}
-//}
+// }
 
-////MarshalJSON
-//func (p *{{.StructName}}) MarshalJSON() ([]byte, error) {
+// //MarshalJSON
+// func (p *{{.StructName}}) MarshalJSON() ([]byte, error) {
 //	var buf bytes.Buffer
 //	buf.WriteByte('{')
 //	{{range $key, $value := .Columns}}buf.WriteString("\"{{index $value 1}}\":" + {{marshal $value $key}} + ",")
 //	{{end}}
 //	return append(buf.Bytes()[:buf.Len()-1], '}'), nil
-//}
+// }

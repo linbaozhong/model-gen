@@ -9,6 +9,8 @@ import (
 )
 
 func writeBaseFile(filename string) error {
+	return nil
+
 	baseFilename, _ := filepath.Abs(filename)
 
 	f, e := os.OpenFile(baseFilename, os.O_RDWR|os.O_TRUNC|os.O_CREATE, os.ModePerm)
@@ -18,11 +20,11 @@ func writeBaseFile(filename string) error {
 	}
 	defer f.Close()
 
-	//e = f.Truncate(0)
-	//if e != nil {
+	// e = f.Truncate(0)
+	// if e != nil {
 	//	showError(e.Error())
 	//	return e
-	//}
+	// }
 
 	var buf bytes.Buffer
 	_ = template.Must(template.New("baseTpl").Parse(baseTpl)).Execute(&buf, nil)
@@ -34,7 +36,6 @@ func writeBaseFile(filename string) error {
 	return e
 }
 
-//
 var baseTpl = `
 		package table
 
