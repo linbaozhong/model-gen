@@ -45,7 +45,7 @@ import (
 	"internal/log"
 	"golang.org/x/sync/singleflight"
 	jsoniter "github.com/json-iterator/go"
-	tbl "github.com/linbaozhong/model-gen/pkg/table"
+	"github.com/linbaozhong/model-gen/pkg/orm"
 )
 
 var (
@@ -90,7 +90,7 @@ func Sync(k string, f func() (interface{}, error)) (v interface{}, err error, sh
 	return sg.Do(k, f)
 }
 
-func queryInterfaces(x *{{.PackageName}}.Session, cond tbl.ISqlBuilder) ([]map[string]interface{}, error) {
+func queryInterfaces(x *{{.PackageName}}.Session, cond orm.ISqlBuilder) ([]map[string]interface{}, error) {
 	sql, e := cond.Select()
 	if e != nil {
 		return nil, e
@@ -124,7 +124,7 @@ func getDB(x interface{}, tablename string) *{{.PackageName}}.Session {
 	return {{.PackageName}}.Db().Table(tablename)
 }
 
-func getColumn(x interface{}, tablename string, col string, cond tbl.ISqlBuilder, size, index int) ([]interface{}, error) {
+func getColumn(x interface{}, tablename string, col string, cond orm.ISqlBuilder, size, index int) ([]interface{}, error) {
 	db := getDB(x, tablename)
 
 	cls := make([]interface{}, 0)

@@ -23,7 +23,7 @@ import (
 	"github.com/linbaozhong/model-gen/pkg/types"
 	"{{.ModulePath}}"
 	"{{.ModulePath}}/table"
-	tbl "github.com/linbaozhong/model-gen/pkg/table"
+	"github.com/linbaozhong/model-gen/pkg/orm"
 )
 
 type {{lower .StructName}} struct {}
@@ -99,7 +99,7 @@ func (p *{{lower .StructName}}) Update(x interface{}, id {{index .PrimaryKey 2}}
 	db := getDB(x, table.{{.StructName}}.TableName)
 	db.Where(table.{{.StructName}}.PrimaryKey.Eq(), id).
 		Limit(1)
-	if build, ok := bean.(tbl.ISqlBuilder); ok {
+	if build, ok := bean.(orm.ISqlBuilder); ok {
 		sm := types.Smap{}
 		cols, args := build.GetUpdate()
 		for i := 0; i < len(cols); i++ {
@@ -133,7 +133,7 @@ func (p *{{lower .StructName}}) Update(x interface{}, id {{index .PrimaryKey 2}}
 }
 
 //UpdateBatch 根据cond条件批量修改数据
-func (p *{{lower .StructName}}) UpdateBatch(x interface{}, cond tbl.ISqlBuilder, bean interface{}) (int64, error) {
+func (p *{{lower .StructName}}) UpdateBatch(x interface{}, cond orm.ISqlBuilder, bean interface{}) (int64, error) {
 	if bean == nil {
 		bean = types.Smap{}
 	}
@@ -209,7 +209,7 @@ func (p *{{lower .StructName}}) Delete(x interface{}, id {{index .PrimaryKey 2}}
 }
 
 //DeleteBatch 根据cond条件批量删除数据
-func (p *{{lower .StructName}}) DeleteBatch(x interface{}, cond tbl.ISqlBuilder) (int64, error) {
+func (p *{{lower .StructName}}) DeleteBatch(x interface{}, cond orm.ISqlBuilder) (int64, error) {
 	var (
 		i64 int64
 		e error
@@ -266,7 +266,7 @@ func (p *{{lower .StructName}}) SoftDelete(x interface{}, id {{index .PrimaryKey
 }
 
 //SoftDeleteBatch 软删除：根据cond条件批量删除数据，数据表中必须要state字段 -1=软删除
-func (p *{{lower .StructName}}) SoftDeleteBatch(x interface{}, cond tbl.ISqlBuilder) (int64, error) {
+func (p *{{lower .StructName}}) SoftDeleteBatch(x interface{}, cond orm.ISqlBuilder) (int64, error) {
 	var (
 		i64 int64
 		e error
@@ -399,7 +399,7 @@ func (p *{{lower .StructName}}) GetNoCache(x interface{},id {{index .PrimaryKey 
 }
 
 //IDs 根据cond条件从cache中获取主键slice
-func (p *{{lower .StructName}}) IDs(x interface{}, cond tbl.ISqlBuilder, size, index int) ([]interface{}, error) {
+func (p *{{lower .StructName}}) IDs(x interface{}, cond orm.ISqlBuilder, size, index int) ([]interface{}, error) {
 {{if .HasCache}}
 	if size == 0 {
 		size = {{.CacheLimit}}
@@ -449,7 +449,7 @@ func (p *{{lower .StructName}}) IDs(x interface{}, cond tbl.ISqlBuilder, size, i
 }
 
 //IDsNoCache 根据cond条件从数据库中获取主键slice 
-func (p *{{lower .StructName}}) IDsNoCache(x interface{}, cond tbl.ISqlBuilder, size, index int) ([]interface{}, error) {
+func (p *{{lower .StructName}}) IDsNoCache(x interface{}, cond orm.ISqlBuilder, size, index int) ([]interface{}, error) {
 {{if .HasCache}}
 	{{if eq .CacheLimit ""}}var _size = 1000{{else}}var _size = {{.CacheLimit}}{{end}}
 	ids, e := getColumn(x,table.{{.StructName}}.TableName, table.{{.StructName}}.PrimaryKey.Quote(), cond, _size, 1)
@@ -493,12 +493,12 @@ func (p *{{lower .StructName}}) IDsNoCache(x interface{}, cond tbl.ISqlBuilder, 
 }
 
 //GetColumn 根据cond条件从数据库中单列slice
-func (p *{{lower .StructName}}) GetColumn(x interface{}, col string, cond tbl.ISqlBuilder, size, index int) ([]interface{}, error) {
+func (p *{{lower .StructName}}) GetColumn(x interface{}, col string, cond orm.ISqlBuilder, size, index int) ([]interface{}, error) {
 	return getColumn(x,table.{{.StructName}}.TableName, col, cond, size, index)
 }
 
 //Sum 对某个字段进行求和
-func (p *{{lower .StructName}}) Sum(x interface{}, cond tbl.ISqlBuilder, col string) (float64, error) {
+func (p *{{lower .StructName}}) Sum(x interface{}, cond orm.ISqlBuilder, col string) (float64, error) {
 	db := getDB(x, table.{{.StructName}}.TableName)
 
 	if cond != nil {
@@ -530,7 +530,7 @@ func (p *{{lower .StructName}}) Sum(x interface{}, cond tbl.ISqlBuilder, col str
 }
 
 //Sums 对某几个字段进行求和
-func (p *{{lower .StructName}}) Sums(x interface{}, cond tbl.ISqlBuilder, cols ...string) ([]float64, error) {
+func (p *{{lower .StructName}}) Sums(x interface{}, cond orm.ISqlBuilder, cols ...string) ([]float64, error) {
 	if len(cols) == 0 {
 		return []float64{}, Param_Missing
 	}
@@ -566,7 +566,7 @@ func (p *{{lower .StructName}}) Sums(x interface{}, cond tbl.ISqlBuilder, cols .
 }
 
 //Count 根据cond条件从cache中获取数据总数
-func (p *{{lower .StructName}}) Count(x interface{}, cond tbl.ISqlBuilder) (int64, error) {
+func (p *{{lower .StructName}}) Count(x interface{}, cond orm.ISqlBuilder) (int64, error) {
 {{if .HasCache}}
 	key :=  {{lower .StructName}}_count_cache.Key(cond)
 	i, e := {{lower .StructName}}_count_cache.Client().Get(getContext(x), key).Result()
@@ -592,7 +592,7 @@ func (p *{{lower .StructName}}) Count(x interface{}, cond tbl.ISqlBuilder) (int6
 
 
 //CoundNoCache 根据cond条件从数据库中获取数据列表
-func (p *{{lower .StructName}}) CountNoCache(x interface{}, cond tbl.ISqlBuilder) (int64, error) {
+func (p *{{lower .StructName}}) CountNoCache(x interface{}, cond orm.ISqlBuilder) (int64, error) {
 	db := getDB(x, table.{{.StructName}}.TableName)
 
 	if cond != nil {
@@ -765,7 +765,7 @@ func (p *{{lower .StructName}}) GetsMap(x interface{}, ids []interface{}) (map[{
 }
 
 //Find 根据cond条件从cache中获取数据列表
-func (p *{{lower .StructName}}) Find(x interface{}, cond tbl.ISqlBuilder, size, index int) ([]*{{.PackageName}}.{{.StructName}}, error) {
+func (p *{{lower .StructName}}) Find(x interface{}, cond orm.ISqlBuilder, size, index int) ([]*{{.PackageName}}.{{.StructName}}, error) {
 {{if .HasCache}}
 	ids, e := p.IDs(x,cond,size,index)
 	if len(ids) == 0 {
@@ -779,7 +779,7 @@ func (p *{{lower .StructName}}) Find(x interface{}, cond tbl.ISqlBuilder, size, 
 }
 
 //FindNoCache 根据cond条件从数据库中获取数据列表
-func (p *{{lower .StructName}}) FindNoCache(x interface{}, cond tbl.ISqlBuilder, size, index int) ([]*{{.PackageName}}.{{.StructName}}, error) {
+func (p *{{lower .StructName}}) FindNoCache(x interface{}, cond orm.ISqlBuilder, size, index int) ([]*{{.PackageName}}.{{.StructName}}, error) {
 	db := getDB(x, table.{{.StructName}}.TableName)
 
 	list := make([]*{{.PackageName}}.{{.StructName}}, 0)
@@ -836,7 +836,7 @@ func (p *{{lower .StructName}}) FindNoCache(x interface{}, cond tbl.ISqlBuilder,
 }
 
 //FindMap 根据cond条件从cache中获取数据列表，返回一个 map
-func (p *{{lower .StructName}}) FindMap(x interface{}, cond tbl.ISqlBuilder, size, index int) (map[{{index .PrimaryKey 2}}]*{{.PackageName}}.{{.StructName}}, error) {
+func (p *{{lower .StructName}}) FindMap(x interface{}, cond orm.ISqlBuilder, size, index int) (map[{{index .PrimaryKey 2}}]*{{.PackageName}}.{{.StructName}}, error) {
 {{if .HasCache}}
 	ids, e := p.IDs(x,cond,size,index)
 	if len(ids) == 0 {
@@ -860,7 +860,7 @@ func (p *{{lower .StructName}}) FindMap(x interface{}, cond tbl.ISqlBuilder, siz
 }
 
 //FindOne 根据cond条件从cache中获取一条数据
-func (p *{{lower .StructName}}) FindOne(x interface{}, cond tbl.ISqlBuilder) (bool, *{{.PackageName}}.{{.StructName}}, error) {
+func (p *{{lower .StructName}}) FindOne(x interface{}, cond orm.ISqlBuilder) (bool, *{{.PackageName}}.{{.StructName}}, error) {
 	if cond != nil {
 		cond.Limit(1)
 	}
@@ -872,7 +872,7 @@ func (p *{{lower .StructName}}) FindOne(x interface{}, cond tbl.ISqlBuilder) (bo
 }
 
 //FindOneNoCache 根据cond条件从数据库中获取一条数据
-func (p *{{lower .StructName}}) FindOneNoCache(x interface{}, cond tbl.ISqlBuilder) (bool, *{{.PackageName}}.{{.StructName}},error) {
+func (p *{{lower .StructName}}) FindOneNoCache(x interface{}, cond orm.ISqlBuilder) (bool, *{{.PackageName}}.{{.StructName}},error) {
 	if cond != nil {
 		cond.Limit(1)
 	}
@@ -884,7 +884,7 @@ func (p *{{lower .StructName}}) FindOneNoCache(x interface{}, cond tbl.ISqlBuild
 }
 
 //FindAndCound
-func (p *{{lower .StructName}}) FindAndCount(x interface{}, cond tbl.ISqlBuilder, size, index int) (i64 int64, ms []*{{.PackageName}}.{{.StructName}}, e error) {
+func (p *{{lower .StructName}}) FindAndCount(x interface{}, cond orm.ISqlBuilder, size, index int) (i64 int64, ms []*{{.PackageName}}.{{.StructName}}, e error) {
 	i64, e = p.Count(x, cond)
 	if e != nil || i64 == 0 {
 		return i64, nil, e
@@ -903,7 +903,7 @@ func (p *{{lower .StructName}}) FindAndCount(x interface{}, cond tbl.ISqlBuilder
 }
 
 //QueryInterfaces 多表连接查询
-func (p *{{lower .StructName}}) QueryInterfaces(x interface{}, cond tbl.ISqlBuilder) ([]map[string]interface{}, error) {
+func (p *{{lower .StructName}}) QueryInterfaces(x interface{}, cond orm.ISqlBuilder) ([]map[string]interface{}, error) {
 	db := getDB(x, table.{{.StructName}}.TableName)
 	sm, e := queryInterfaces(db, cond.Table(table.{{.StructName}}.TableName))
 	if e != nil {
@@ -913,7 +913,7 @@ func (p *{{lower .StructName}}) QueryInterfaces(x interface{}, cond tbl.ISqlBuil
 }
 
 //Exists 是否存在符合条件cond的记录
-func (p *{{lower .StructName}}) Exists(x interface{}, cond tbl.ISqlBuilder) (bool, error) {
+func (p *{{lower .StructName}}) Exists(x interface{}, cond orm.ISqlBuilder) (bool, error) {
 	db := getDB(x, table.{{.StructName}}.TableName)
 
 	if cond != nil {
@@ -949,7 +949,7 @@ func (p *{{lower .StructName}}) OnBatchChange(x interface{}, ids []interface{}) 
 	}
 }
 //OnListChange
-func (p *{{lower .StructName}}) OnListChange(x interface{}, cond ...tbl.ISqlBuilder) {
+func (p *{{lower .StructName}}) OnListChange(x interface{}, cond ...orm.ISqlBuilder) {
 	ctx := getContext(x)
 	if len(cond) == 0 {
 		if e := {{lower .StructName}}_ids_cache.Empty(ctx); e != nil {
@@ -981,7 +981,7 @@ func (p *{{lower .StructName}})CountCache() *redis.RedisBroker {
 }
 
 //SliceToJSON slice转json
-func (p *{{lower .StructName}}) SliceToJSON(sls []*{{.PackageName}}.{{.StructName}},cols...tbl.TableField) []types.Smap {
+func (p *{{lower .StructName}}) SliceToJSON(sls []*{{.PackageName}}.{{.StructName}},cols...orm.TableField) []types.Smap {
 	sl := len(sls)
 	if sl == 0 {
 		return []types.Smap{}
