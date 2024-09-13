@@ -8,7 +8,7 @@ var (
 		package table
 
 		import (
-			"github.com/linbaozhong/model-gen/pkg/orm"
+			"github.com/linbaozhong/model-gen/pkg/tbl"
 		)
 
 		type _{{.StructName}} struct {
@@ -17,8 +17,8 @@ var (
 			WriteColumnNames   []string          //可写列名
 			ColumnName2Comment map[string]string //列名和列描述映射
 			ColumnName2Json    map[string]string //列名和JSON Key映射
-			{{if .HasPrimaryKey}}PrimaryKey orm.TableField{{end}}
-		{{range $key, $value := .Columns}} {{ $key }} orm.TableField 
+			{{if .HasPrimaryKey}}PrimaryKey tbl.TableField{{end}}
+		{{range $key, $value := .Columns}} {{ $key }} tbl.TableField 
 		{{end}}
 		}
 
@@ -34,14 +34,14 @@ var (
 			{{.StructName}}.ColumnName2Comment = make(map[string]string,{{len .Columns}})
 
 		{{if .HasPrimaryKey}}
-			{{.StructName}}.PrimaryKey = orm.TableField{
+			{{.StructName}}.PrimaryKey = tbl.TableField{
 				Name: "{{index .PrimaryKey 0}}",
 				Json: "{{index .PrimaryKey 1}}",
 				Table: {{$.StructName}}.TableName,
 			}
 		{{end}}
 		{{range $key, $value := .Columns}} 
-		{{ $.StructName}}.{{$key}} = orm.TableField{
+		{{ $.StructName}}.{{$key}} = tbl.TableField{
 			Name: "{{index $value 0}}",
 			Json: "{{index $value 1}}",
 			Comment: "{{index $value 3}}",
