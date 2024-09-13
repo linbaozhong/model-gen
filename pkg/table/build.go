@@ -184,7 +184,8 @@ func S(t interface{}) ISqlBuilder {
 }
 
 func get(t interface{}, cmd command) ISqlBuilder {
-	p := sqlBuilderPool.Get().(*sqlBuilder)
+	p := NewSqlBuilder()
+
 	p.setTable(t)
 	p.setCmd(cmd)
 	return p
@@ -383,12 +384,14 @@ var (
 
 // X NewSqlBuilder的简称
 func X() *sqlBuilder {
-	return sqlBuilderPool.Get().(*sqlBuilder)
+	return NewSqlBuilder()
 }
 
 // NewSqlBuilder 实例化一个 *sqlBuilder
 func NewSqlBuilder() *sqlBuilder {
-	return sqlBuilderPool.Get().(*sqlBuilder)
+	obj := sqlBuilderPool.Get().(*sqlBuilder)
+	obj.err = nil
+	return obj
 }
 
 // Free
