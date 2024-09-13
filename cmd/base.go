@@ -9,8 +9,6 @@ import (
 )
 
 func writeBaseFile(filename string) error {
-	return nil
-
 	baseFilename, _ := filepath.Abs(filename)
 
 	f, e := os.OpenFile(baseFilename, os.O_RDWR|os.O_TRUNC|os.O_CREATE, os.ModePerm)

@@ -14,10 +14,9 @@ package {{.PackageName}}
 import (
 	"sync"
 	{{if .HasTime}}"time"{{end}}
-	"github.com/linbaozhong/model-gen/pkg/types"
-	"github.com/linbaozhong/model-gen/pkg/utils"
+	"libs/types"
+	"libs/utils"
 	"{{.ModulePath}}/table"
-	"github.com/linbaozhong/model-gen/pkg/tbl"
 )
 
 var (
@@ -48,7 +47,7 @@ func (*{{.StructName}}) TableName() string {
 }
 
 //ToMap struct转map
-func (p *{{.StructName}}) ToMap(cols...tbl.TableField) map[string]interface{} {
+func (p *{{.StructName}}) ToMap(cols...table.TableField) map[string]interface{} {
 	l := len(cols)
 	if l == 0 {
 		return map[string]interface{}{
@@ -70,7 +69,7 @@ func (p *{{.StructName}}) ToMap(cols...tbl.TableField) map[string]interface{} {
 }
 
 //ToJSON struct转json
-func (p *{{.StructName}}) ToJSON(cols...tbl.TableField) types.Smap {
+func (p *{{.StructName}}) ToJSON(cols...table.TableField) types.Smap {
 	m := p.ToMap()
 	clen := len(cols)
 	if clen == 0 {
@@ -93,7 +92,7 @@ func (p *{{.StructName}}) ToJSON(cols...tbl.TableField) types.Smap {
 }
 
 //ToCnJSON struct转json，key被替换为字段描述
-func (p *{{.StructName}}) ToCnJSON(cols...tbl.TableField) types.Smap {
+func (p *{{.StructName}}) ToCnJSON(cols...table.TableField) types.Smap {
 	m := p.ToMap()
 	clen := len(cols)
 	if clen == 0 {
@@ -140,7 +139,7 @@ func (p *{{.StructName}}) TranslateJSON(bean interface{}) (types.Smap, error) {
 }
 
 //SliceToJSON slice转json
-func (p *{{.StructName}}) SliceToJSON(sls []*{{.StructName}},cols...tbl.TableField) []types.Smap {
+func (p *{{.StructName}}) SliceToJSON(sls []*{{.StructName}},cols...table.TableField) []types.Smap {
 	slen := len(sls)
 	clen := len(cols)
 	ms := make([]types.Smap, 0, slen)
