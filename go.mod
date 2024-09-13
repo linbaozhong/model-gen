@@ -1,8 +1,6 @@
 module github.com/linbaozhong/model-gen
 
-go 1.22
-
-toolchain go1.22.7
+go 1.22.7
 
 require (
 	github.com/fatih/structtag v1.2.0 // indirect
