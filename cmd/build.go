@@ -234,61 +234,62 @@ func X() *sqlBuilder {
 func NewSqlBuilder() *sqlBuilder {
 	obj := sqlBuilderPool.Get().(*sqlBuilder)
 
-	obj.table = ""
-	obj.distinct = false
-	obj.cols = obj.cols[:0]
-	obj.omit = obj.omit[:0]
-	obj.where.Reset()
-	obj.whereParams = obj.whereParams[:0]
-	obj.groupBy.Reset()
-	obj.having.Reset()
-	// obj.havingParams = obj.havingParams[:0]
-	obj.orderBy.Reset()
-	obj.limit = ""
-	obj.limitStart = 0
-	obj.limitSize = 0
-	obj.join = obj.join[:0]
+	// obj.table = ""
+	// obj.distinct = false
+	// obj.cols = obj.cols[:0]
+	// obj.omit = obj.omit[:0]
+	// obj.where.Reset()
+	// obj.whereParams = obj.whereParams[:0]
+	// obj.groupBy.Reset()
+	// obj.having.Reset()
+	// // obj.havingParams = obj.havingParams[:0]
+	// obj.orderBy.Reset()
+	// obj.limit = ""
+	// obj.limitStart = 0
+	// obj.limitSize = 0
+	// obj.join = obj.join[:0]
+	//
+	// obj.andOr = true
+	//
+	// obj.updateCols = obj.updateCols[:0]
+	// obj.updateParams = obj.updateParams[:0]
+	// obj.incrCols = obj.incrCols[:0]
+	// obj.decrCols = obj.decrCols[:0]
+	// obj.exprCols = obj.exprCols[:0]
+	// // obj.sumCols = obj.sumCols[:0]
+	//
+	// obj.err = nil
 
-	obj.andOr = true
-
-	obj.updateCols = obj.updateCols[:0]
-	obj.updateParams = obj.updateParams[:0]
-	obj.incrCols = obj.incrCols[:0]
-	obj.decrCols = obj.decrCols[:0]
-	obj.exprCols = obj.exprCols[:0]
-	// obj.sumCols = obj.sumCols[:0]
-
-	obj.err = nil
 	return obj
 }
 
 // Free
 func (p *sqlBuilder) Free() {
-	// p.table = ""
-	// p.distinct = false
-	// p.cols = p.cols[:0]
-	// p.omit = p.omit[:0]
-	// p.where.Reset()
-	// p.whereParams = p.whereParams[:0]
-	// p.groupBy.Reset()
-	// p.having.Reset()
-	// // p.havingParams = p.havingParams[:0]
-	// p.orderBy.Reset()
-	// p.limit = ""
-	// p.limitStart = 0
-	// p.limitSize = 0
-	// p.join = p.join[:0]
-	//
-	// p.andOr = true
-	//
-	// p.updateCols = p.updateCols[:0]
-	// p.updateParams = p.updateParams[:0]
-	// p.incrCols = p.incrCols[:0]
-	// p.decrCols = p.decrCols[:0]
-	// p.exprCols = p.exprCols[:0]
-	// // p.sumCols = p.sumCols[:0]
-	//
-	// p.err = nil
+	p.table = ""
+	p.distinct = false
+	p.cols = p.cols[:0]
+	p.omit = p.omit[:0]
+	p.where.Reset()
+	p.whereParams = p.whereParams[:0]
+	p.groupBy.Reset()
+	p.having.Reset()
+	// p.havingParams = p.havingParams[:0]
+	p.orderBy.Reset()
+	p.limit = ""
+	p.limitStart = 0
+	p.limitSize = 0
+	p.join = p.join[:0]
+	
+	p.andOr = true
+	
+	p.updateCols = p.updateCols[:0]
+	p.updateParams = p.updateParams[:0]
+	p.incrCols = p.incrCols[:0]
+	p.decrCols = p.decrCols[:0]
+	p.exprCols = p.exprCols[:0]
+	// p.sumCols = p.sumCols[:0]
+	
+	p.err = nil
 
 	sqlBuilderPool.Put(p)
 }
