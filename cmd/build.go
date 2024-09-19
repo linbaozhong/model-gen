@@ -418,26 +418,27 @@ func NewSqlBuilder() *sqlBuilder {
 
 	obj.table = ""
 	obj.distinct = false
-	obj.cols = obj.cols[:]
+	obj.cols = []any
+	obj.omit = []any
 	obj.where.Reset()
-	obj.whereParams = obj.whereParams[:]
+	obj.whereParams = []any
 	obj.groupBy.Reset()
 	obj.having.Reset()
-	// obj.havingParams = obj.havingParams[:]
+	// obj.havingParams = []any
 	obj.orderBy.Reset()
 	obj.limit = ""
 	obj.limitStart = 0
 	obj.limitSize = 0
-	obj.join = obj.join[:]
+	obj.join = [][3]string
 
 	obj.andOr = true
 
-	obj.updateCols = obj.updateCols[:]
-	obj.updateParams = obj.updateParams[:]
-	obj.incrCols = obj.incrCols[:]
-	obj.decrCols = obj.decrCols[:]
-	obj.exprCols = obj.exprCols[:]
-	// obj.sumCols = obj.sumCols[:]
+	obj.updateCols = []string
+	obj.updateParams = []any
+	obj.incrCols = []Expr
+	obj.decrCols = []Expr
+	obj.exprCols = []Expr
+	// obj.sumCols = []string
 
 	obj.err = nil
 	return obj
