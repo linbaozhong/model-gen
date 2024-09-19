@@ -415,36 +415,60 @@ func X() *sqlBuilder {
 // NewSqlBuilder 实例化一个 *sqlBuilder
 func NewSqlBuilder() *sqlBuilder {
 	obj := sqlBuilderPool.Get().(*sqlBuilder)
+
+	obj.table = ""
+	obj.distinct = false
+	obj.cols = obj.cols[:]
+	obj.where.Reset()
+	obj.whereParams = obj.whereParams[:]
+	obj.groupBy.Reset()
+	obj.having.Reset()
+	// obj.havingParams = obj.havingParams[:]
+	obj.orderBy.Reset()
+	obj.limit = ""
+	obj.limitStart = 0
+	obj.limitSize = 0
+	obj.join = obj.join[:]
+
+	obj.andOr = true
+
+	obj.updateCols = obj.updateCols[:]
+	obj.updateParams = obj.updateParams[:]
+	obj.incrCols = obj.incrCols[:]
+	obj.decrCols = obj.decrCols[:]
+	obj.exprCols = obj.exprCols[:]
+	// obj.sumCols = obj.sumCols[:]
+
 	obj.err = nil
 	return obj
 }
 
 // Free
 func (p *sqlBuilder) Free() {
-	p.table = ""
-	p.distinct = false
-	p.cols = []any{}
-	p.where.Reset()
-	p.whereParams = []any{}
-	p.groupBy.Reset()
-	p.having.Reset()
-	// p.havingParams = []any{}
-	p.orderBy.Reset()
-	p.limit = ""
-	p.limitStart = 0
-	p.limitSize = 0
-	p.join = [][3]string{}
-
-	p.andOr = true
-
-	p.updateCols = []string{}
-	p.updateParams = []any{}
-	p.incrCols = []Expr{}
-	p.decrCols = []Expr{}
-	p.exprCols = []Expr{}
-	// p.sumCols = []string{}
-
-	p.err = nil
+	// p.table = ""
+	// p.distinct = false
+	// p.cols = p.cols[:]
+	// p.where.Reset()
+	// p.whereParams = p.whereParams[:]
+	// p.groupBy.Reset()
+	// p.having.Reset()
+	// // p.havingParams = p.havingParams[:]
+	// p.orderBy.Reset()
+	// p.limit = ""
+	// p.limitStart = 0
+	// p.limitSize = 0
+	// p.join = p.join[:]
+	//
+	// p.andOr = true
+	//
+	// p.updateCols = p.updateCols[:]
+	// p.updateParams = p.updateParams[:]
+	// p.incrCols = p.incrCols[:]
+	// p.decrCols = p.decrCols[:]
+	// p.exprCols = p.exprCols[:]
+	// // p.sumCols = p.sumCols[:]
+	//
+	// p.err = nil
 
 	sqlBuilderPool.Put(p)
 }
