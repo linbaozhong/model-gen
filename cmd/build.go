@@ -188,6 +188,111 @@ type ISqlBuilder interface {
 	Free()
 }
 
+type sqlBuilder struct {
+	cmd         command
+	table       string
+	distinct    bool
+	cols        []any
+	omit        []any
+	where       strings.Builder
+	whereParams []any
+	groupBy     strings.Builder
+	having      strings.Builder
+	// havingParams []any
+	orderBy    strings.Builder
+	limit      string
+	limitSize  int
+	limitStart int
+	join       [][3]string
+
+	andOr bool
+
+	updateCols   []string
+	updateParams []any
+	incrCols     []Expr
+	decrCols     []Expr
+	exprCols     []Expr
+	// sumCols      []string
+
+	err error
+}
+
+var (
+	sqlBuilderPool = sync.Pool{New: func() any {
+		return &sqlBuilder{
+			andOr: true,
+		}
+	}}
+)
+
+// X NewSqlBuilder的简称
+func X() *sqlBuilder {
+	return NewSqlBuilder()
+}
+
+// NewSqlBuilder 实例化一个 *sqlBuilder
+func NewSqlBuilder() *sqlBuilder {
+	obj := sqlBuilderPool.Get().(*sqlBuilder)
+
+	obj.table = ""
+	obj.distinct = false
+	obj.cols = obj.cols[:0]
+	obj.omit = obj.omit[:0]
+	obj.where.Reset()
+	obj.whereParams = obj.whereParams[:0]
+	obj.groupBy.Reset()
+	obj.having.Reset()
+	// obj.havingParams = obj.havingParams[:0]
+	obj.orderBy.Reset()
+	obj.limit = ""
+	obj.limitStart = 0
+	obj.limitSize = 0
+	obj.join = obj.join[:0]
+
+	obj.andOr = true
+
+	obj.updateCols = obj.updateCols[:0]
+	obj.updateParams = obj.updateParams[:0]
+	obj.incrCols = obj.incrCols[:0]
+	obj.decrCols = obj.decrCols[:0]
+	obj.exprCols = obj.exprCols[:0]
+	// obj.sumCols = obj.sumCols[:0]
+
+	obj.err = nil
+	return obj
+}
+
+// Free
+func (p *sqlBuilder) Free() {
+	// p.table = ""
+	// p.distinct = false
+	// p.cols = p.cols[:0]
+	// p.omit = p.omit[:0]
+	// p.where.Reset()
+	// p.whereParams = p.whereParams[:0]
+	// p.groupBy.Reset()
+	// p.having.Reset()
+	// // p.havingParams = p.havingParams[:0]
+	// p.orderBy.Reset()
+	// p.limit = ""
+	// p.limitStart = 0
+	// p.limitSize = 0
+	// p.join = p.join[:0]
+	//
+	// p.andOr = true
+	//
+	// p.updateCols = p.updateCols[:0]
+	// p.updateParams = p.updateParams[:0]
+	// p.incrCols = p.incrCols[:0]
+	// p.decrCols = p.decrCols[:0]
+	// p.exprCols = p.exprCols[:0]
+	// // p.sumCols = p.sumCols[:0]
+	//
+	// p.err = nil
+
+	sqlBuilderPool.Put(p)
+}
+
 // Insert
 func I(t any) ISqlBuilder {
 	return get(t, command_insert)
@@ -368,110 +473,6 @@ func Replace(f TableField, o, n string) ISqlBuilder {
 type Expr struct {
 	ColName string
 	Arg     any
-}
-
-type sqlBuilder struct {
-	cmd         command
-	table       string
-	distinct    bool
-	cols        []any
-	omit        []any
-	where       strings.Builder
-	whereParams []any
-	groupBy     strings.Builder
-	having      strings.Builder
-	// havingParams []any
-	orderBy    strings.Builder
-	limit      string
-	limitSize  int
-	limitStart int
-	join       [][3]string
-
-	andOr bool
-
-	updateCols   []string
-	updateParams []any
-	incrCols     []Expr
-	decrCols     []Expr
-	exprCols     []Expr
-	// sumCols      []string
-
-	err error
-}
-
-var (
-	sqlBuilderPool = sync.Pool{New: func() any {
-		return &sqlBuilder{
-			andOr: true,
-		}
-	}}
-)
-
-// X NewSqlBuilder的简称
-func X() *sqlBuilder {
-	return NewSqlBuilder()
-}
-
-// NewSqlBuilder 实例化一个 *sqlBuilder
-func NewSqlBuilder() *sqlBuilder {
-	obj := sqlBuilderPool.Get().(*sqlBuilder)
-
-	obj.table = ""
-	obj.distinct = false
-	obj.cols = []any
-	obj.omit = []any
-	obj.where.Reset()
-	obj.whereParams = []any
-	obj.groupBy.Reset()
-	obj.having.Reset()
-	// obj.havingParams = []any
-	obj.orderBy.Reset()
-	obj.limit = ""
-	obj.limitStart = 0
-	obj.limitSize = 0
-	obj.join = [][3]string
-
-	obj.andOr = true
-
-	obj.updateCols = []string
-	obj.updateParams = []any
-	obj.incrCols = []Expr
-	obj.decrCols = []Expr
-	obj.exprCols = []Expr
-	// obj.sumCols = []string
-
-	obj.err = nil
-	return obj
-}
-
-// Free
-func (p *sqlBuilder) Free() {
-	// p.table = ""
-	// p.distinct = false
-	// p.cols = p.cols[:]
-	// p.where.Reset()
-	// p.whereParams = p.whereParams[:]
-	// p.groupBy.Reset()
-	// p.having.Reset()
-	// // p.havingParams = p.havingParams[:]
-	// p.orderBy.Reset()
-	// p.limit = ""
-	// p.limitStart = 0
-	// p.limitSize = 0
-	// p.join = p.join[:]
-	//
-	// p.andOr = true
-	//
-	// p.updateCols = p.updateCols[:]
-	// p.updateParams = p.updateParams[:]
-	// p.incrCols = p.incrCols[:]
-	// p.decrCols = p.decrCols[:]
-	// p.exprCols = p.exprCols[:]
-	// // p.sumCols = p.sumCols[:]
-	//
-	// p.err = nil
-
-	sqlBuilderPool.Put(p)
 }
 
 // Table
@@ -951,6 +952,9 @@ func (p *sqlBuilder) Or(sb ISqlBuilder) ISqlBuilder {
 
 // GetWhere
 func (p *sqlBuilder) GetWhere() (string, []any, error) {
+	if p.err != nil {
+		defer p.Free()
+	}
 	return p.where.String(), p.whereParams, p.err
 }
 
