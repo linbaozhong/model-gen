@@ -232,10 +232,7 @@ func X() *sqlBuilder {
 
 // NewSqlBuilder 实例化一个 *sqlBuilder
 func NewSqlBuilder() *sqlBuilder {
-	obj := sqlBuilderPool.Get().(*sqlBuilder)
-	obj.empty()
-
-	return obj
+	return sqlBuilderPool.Get().(*sqlBuilder)
 }
 
 // Free
@@ -1045,8 +1042,6 @@ func (p *sqlBuilder) String() string {
 // //
 // subCond 子条件
 func (p *sqlBuilder) subCond(sb ISqlBuilder) ISqlBuilder {
-	defer sb.Free()
-
 	s := sb.getWhereString()
 	if s == "" {
 		return p

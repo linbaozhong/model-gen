@@ -15,7 +15,6 @@ type Build struct {
 
 var buildPool = sync.Pool{
 	New: func() interface{} {
-		fmt.Println("New")
 		return new(Build)
 	},
 }
@@ -32,17 +31,19 @@ func (b *Build) Free() {
 }
 
 func TestName(t *testing.T) {
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 10; i++ {
 		go func() {
 			obj := NewBuild()
+			fmt.Printf("%v", obj)
 			if obj.ID != 0 {
 				t.Fatal("obj.ID should be 0")
 			}
 			obj.ID = 1
 			obj.Name = "test"
 
-			//obj.Free()
+			obj.Free()
+			obj.Free()
 		}()
 	}
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Second)
 }
