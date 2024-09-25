@@ -40,7 +40,7 @@ func (p *{{.StructName}}) Free() {
 	{{range $key, $value := .Columns}}obj.{{$key}} = {{getTypeValue $value}}
 	{{end}}
 	{{lower .StructName}}Pool.Put(p)
-	p = nil
+	table.Dispose(p)
 }
 
 //TableName
