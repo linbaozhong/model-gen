@@ -215,6 +215,9 @@ type sqlBuilder struct {
 	// sumCols      []string
 
 	err error
+
+	inPool bool
+	mu sync.Mutex
 }
 
 var (
@@ -232,11 +235,19 @@ func X() *sqlBuilder {
 
 // NewSqlBuilder 实例化一个 *sqlBuilder
 func NewSqlBuilder() *sqlBuilder {
-	return sqlBuilderPool.Get().(*sqlBuilder)
+	obj := sqlBuilderPool.Get().(*sqlBuilder)
+	obj.inPool = false
+	return obj
 }
 
 // Free
 func (p *sqlBuilder) Free() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if p.inPool {
+		return
+	}
 	p.empty()
 	sqlBuilderPool.Put(p)
 }
@@ -268,6 +279,7 @@ func (p *sqlBuilder) empty() {
 	// p.sumCols = p.sumCols[:0]
 	
 	p.err = nil
+	p.inPool = true
 }
 
 // Insert
