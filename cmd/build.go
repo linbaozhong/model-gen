@@ -25,8 +25,14 @@ func writeBuildFile(filename string) error {
 	// }
 
 	var buf bytes.Buffer
-	_ = template.Must(template.New("buildTpl").Parse(buildTpl)).Execute(&buf, nil)
-	formatted, _ := format.Source(buf.Bytes())
+	e = template.Must(template.New("buildTpl").Parse(buildTpl)).Execute(&buf, nil)
+	if e != nil {
+		showError(e.Error())
+	}
+	formatted, e := format.Source(buf.Bytes())
+	if e != nil {
+		showError(e.Error())
+	}
 	_, e = f.Write(formatted)
 	if e != nil {
 		showError(e.Error())
@@ -237,12 +243,12 @@ func NewSqlBuilder() *sqlBuilder {
 
 // Free
 func (p *sqlBuilder) Free() {
-	p.empty()
+	p.Reset()
 	sqlBuilderPool.Put(p)
 }
 
-// empty
-func (p *sqlBuilder) empty() {
+// Reset
+func (p *sqlBuilder) Reset() {
 	p.table = ""
 	p.distinct = false
 	p.cols = p.cols[:0]
