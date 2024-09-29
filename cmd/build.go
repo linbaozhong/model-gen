@@ -230,6 +230,10 @@ var (
 		}
 	}}
 )
+// Dispose 销毁
+func Dispose(x any){
+	x = nil
+}
 
 // X NewSqlBuilder的简称
 func X() *sqlBuilder {
@@ -245,6 +249,7 @@ func NewSqlBuilder() *sqlBuilder {
 func (p *sqlBuilder) Free() {
 	p.Reset()
 	sqlBuilderPool.Put(p)
+	Dispose(p)
 }
 
 // Reset

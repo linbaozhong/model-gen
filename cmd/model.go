@@ -29,8 +29,6 @@ var (
 
 func New{{.StructName}}() *{{.StructName}} {
 	obj := {{lower .StructName}}Pool.Get().(*{{.StructName}})
-	{{range $key, $value := .Columns}}obj.{{$key}} = {{getTypeValue $value}}
-	{{end}}
 	return obj
 }
 
@@ -39,7 +37,10 @@ func (p *{{.StructName}}) Free() {
 	if p == nil {
 		return
 	}
+	{{range $key, $value := .Columns}}obj.{{$key}} = {{getTypeValue $value}}
+	{{end}}
 	{{lower .StructName}}Pool.Put(p)
+	table.Dispose(p)
 }
 
 //TableName
