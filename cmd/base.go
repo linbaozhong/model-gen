@@ -98,7 +98,7 @@ var baseTpl = `
 			return f.generate("<>")
 		}
 		//Bt BETWEEN
-		func (f TableField)Bt() string {
+		func (f TableField) Bt() string {
 			return f.Quote() + " BETWEEN ? AND ?"
 		}
 		//Like LIKE
@@ -129,6 +129,14 @@ var baseTpl = `
 		//JOIN
 		func (f TableField) Join(joinOp string, col TableField) (string, string, string) {
 			return strings.ToUpper(joinOp), col.Table, col.Quote() + "=" + f.Quote()
+		}
+
+		//Count
+		func (f TableField) Count(names ...string) string {
+			if (len(names) == 0) {
+				return "IFNULL(COUNT("+f.Quote()+"),0)"
+			}
+			return "IFNULL(Count("+f.Quote()+"),0) AS "+names[0]
 		}
 
 		//AsName
